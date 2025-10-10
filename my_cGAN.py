@@ -41,6 +41,7 @@ def to_onehot(x, num_classes=10):
     return c
 
 
+
 class Discriminator(nn.Module):
     """
         Simple Discriminator w/ MLP
