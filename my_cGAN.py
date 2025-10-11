@@ -198,7 +198,8 @@ class CGAN():
                 step += 1
 
 
-    
+# 1 dataset di log stock price (per ora tutti con lo stesso periodo t0, t1) -> X
+# 2 come label una matrice (n_simulations, n_steps) create da GBM -> y
 
 
 

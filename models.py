@@ -11,8 +11,7 @@ def simulate_log_price_trajectories(
     n_simulations: int
 ) -> np.ndarray:
     """
-    Simulates Black-Scholes log stock price trajectories based on Geometric Brownian Motion.
-
+    Simulates log prices with Brownian Motion.
     This function simulates M trajectories of the log stock price process
     dX_t = (mu - 0.5 * sigma^2) dt + sigma dW_t
     over the time horizon [0, T] using N time steps.
@@ -33,25 +32,21 @@ def simulate_log_price_trajectories(
     dt = T / N
     X0 = np.log(S0)
 
-    # Define the constant drift and diffusion terms for the discrete process
-    # The increment is: (mu - 0.5 * sigma^2) * dt + sigma * Z * sqrt(dt)
-    # where Z is a standard normal random variable.
+    #drift --- (mu - 0.5 * sigma^2) * dt 
     drift = (mu - 0.5 * sigma**2) * dt
     
-    #Generate all random shocks for all paths and all steps at once
-    # Z has shape (n_simulations, N)
-    Z = np.random.standard_normal(size=(n_simulations, N))
+    #shocks --- sigma * Z * sqrt(dt) with Z distributed as N(0,1)
+    Z = np.random.standard_normal(size=(n_simulations, N)) # shape (n_simulations, N)
     shocks = sigma * Z * np.sqrt(dt)
 
-    # 4. Calculate the increments for each step
+    # 4. Calculate the increments for each step --- (mu - 0.5 * sigma^2) * dt  + sigma * Z * sqrt(dt) with Z distributed as N(0,1)
     increments = drift + shocks
 
-    # 5. Use cumsum to build the paths and add the initial value
-    # Create an array to hold the paths, with shape (M, N + 1)
-    paths = np.zeros((n_simulations, N + 1))
+    #cumsum to build the paths and add the initial value
+    paths = np.zeros((n_simulations, N + 1)) #shape (M, N + 1)
     paths[:, 0] = X0 # Set the initial value for all paths
     
-    # Calculate the cumulative sum of increments and add the initial value
+    # cumulative sum of increments with start value X0
     paths[:, 1:] = X0 + np.cumsum(increments, axis=1)
 
     return paths
