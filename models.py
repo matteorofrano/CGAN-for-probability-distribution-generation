@@ -12,11 +12,10 @@ def simulate_log_price_trajectories(
 ) -> np.ndarray:
     """
     Simulates log prices with Brownian Motion.
-    This function simulates M trajectories of the log stock price process
-    dX_t = (mu - 0.5 * sigma^2) dt + sigma dW_t
-    over the time horizon [0, T] using N time steps.
+    This function simulates M trajectories of the log stock price process over the time horizon [0, T] using N time steps.
+    dX_t = (mu - 0.5 * sigma^2) dt + sigma dW_t 
 
-    Args:
+    Input:
         S0 (float): The initial stock price at time t=0.
         mu (float): The expected return of the stock (drift).
         sigma (float): The volatility of the stock (diffusion).
@@ -39,7 +38,7 @@ def simulate_log_price_trajectories(
     Z = np.random.standard_normal(size=(n_simulations, N)) # shape (n_simulations, N)
     shocks = sigma * Z * np.sqrt(dt)
 
-    # 4. Calculate the increments for each step --- (mu - 0.5 * sigma^2) * dt  + sigma * Z * sqrt(dt) with Z distributed as N(0,1)
+    # 4. Calculate the increments for each step -> (mu - 0.5 * sigma^2) * dt  + sigma * Z * sqrt(dt) with Z distributed as N(0,1)
     increments = drift + shocks
 
     #cumsum to build the paths and add the initial value
@@ -53,13 +52,18 @@ def simulate_log_price_trajectories(
 
 
 
+
+# 30 days parametetric from Black and Scholes 
+
+
+
 if __name__ == '__main__':
-    # --- Simulation Parameters ---
+    # example
     S0 = 100.0     # Initial stock price
     mu = 0.05      # Expected return (5% per year)
     sigma = 0.20   # Volatility (20% per year)
     T = 1.0        # Time horizon (1 year)
-    N = 252        # Number of time steps (e.g., trading days in a year)
+    N = 252        # Number of time steps (trading days in a year)
     M = 50         # Number of paths to simulate
 
     # --- Run the Simulation ---

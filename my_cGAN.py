@@ -29,7 +29,7 @@ def get_sample_image(G, n_noise=100):
     return img
 
 def to_onehot(x, num_classes=10):
-    assert isinstance(x, int) or isinstance(x, (torch.LongTensor, torch.cuda.LongTensor))
+    assert isinstance(x, int) or isinstance(x, (torch.LongTensor, torch.cuda.LongTensor)) #type:ignore
     if isinstance(x, int):
         c = torch.zeros(1, num_classes).long() # vectors of zeros with d=num_classes
         c[0][x] = 1 #at position x set value to 1
@@ -188,7 +188,7 @@ class CGAN():
                     G_opt.step()
                 
                 if step % 500 == 0:
-                    print('Epoch: {}/{}, Step: {}, D Loss: {}, G Loss: {}'.format(epoch, self.max_epoch, step, D_loss.item(), G_loss.item()))
+                    print('Epoch: {}/{}, Step: {}, D Loss: {}, G Loss: {}'.format(epoch, self.max_epoch, step, D_loss.item(), G_loss.item())) #type:ignore
                 
                 if step % 1000 == 0:
                     self.G.eval()
@@ -197,9 +197,167 @@ class CGAN():
                     self.G.train()
                 step += 1
 
+# MY IMPLEMENTATION 
+##########################################################################################################################################
+##########################################################################################################################################
 
 # 1 dataset di log stock price (per ora tutti con lo stesso periodo t0, t1) -> X
 # 2 come label una matrice (n_simulations, n_steps) create da GBM -> y
+
+
+#  problem 1 -> in D, G we have a [input, c label] concatenated vector. in our case [n x 1, m x l]. embedding or CNN?
+# problem 2 -> need to manage temporal dipendence -> D,G are LSTMs
+class MyDiscriminator(nn.Module):
+    """
+        Simple Discriminator w/ MLP
+    """
+    # num_classes = 1 because output is real or fake
+    def __init__(self, input_size=260, condition_size=22, num_classes=1):
+        super(MyDiscriminator, self).__init__()
+        self.layer = nn.Sequential(
+            nn.Linear(input_size+condition_size, 512), # x input size + y size
+            nn.LeakyReLU(0.2),
+            nn.Linear(512, 256),
+            nn.LeakyReLU(0.2),
+            nn.Linear(256, num_classes),
+            nn.Sigmoid(),
+        )
+    
+    def forward(self, x, c):        
+        x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
+        v = torch.cat((x, c), 1) # v: [input, label] concatenated vector
+        y_ = self.layer(v)
+        return y_
+    
+
+
+
+class MyGenerator(nn.Module):
+    """
+        Simple Generator w/ MLP
+    """
+    def __init__(self, input_size=100, condition_size=10, num_classes=784):
+        super(MyGenerator, self).__init__()
+        self.layer = nn.Sequential(
+            nn.Linear(input_size+condition_size, 128), # z noise vector + y size
+            nn.LeakyReLU(0.2),
+            nn.Linear(128, 256),
+            nn.BatchNorm1d(256),
+            nn.LeakyReLU(0.2),
+            nn.Linear(256, 512),
+            nn.BatchNorm1d(512),
+            nn.LeakyReLU(0.2),
+            nn.Linear(512, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, num_classes),
+            nn.Tanh()
+        )
+        
+    def forward(self, x, c):
+        x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
+        v = torch.cat((x, c), 1) # v: [input, label] concatenated vector
+        y_ = self.layer(v)
+        y_ = y_.view(x.size(0), 1, 28, 28)
+        return y_
+    
+
+
+class MyCGAN():
+
+    MODEL_NAME = 'ConditionalGAN'
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    """
+    Cgan architecture 
+    """
+    def __init__(self, max_epoch:int = 100, batch_size = 8, n_critic:int = 1, z_noise_dim:int = 22, loss_fn:Callable =  nn.BCELoss()):
+        """
+        """
+
+        self.max_epoch = max_epoch
+        self.batch_size = batch_size
+        self.n_critic = n_critic
+        self.z_dim = z_noise_dim
+        self.loss_fn = loss_fn
+
+        #architecture
+        self.G=None
+        self.D=None
+
+    # generator architecture
+    def set_generator(self, input_size=100, condition_size=10, num_classes=784, **generator_params):
+        """
+        create the generator
+        """
+        
+        self.G=MyGenerator(input_size=input_size, condition_size=condition_size, num_classes=num_classes, **generator_params)
+
+    #discriminator architecture 
+    def set_discriminator(self, input_size=784, condition_size=10, num_classes=1, **discriminator_params):
+        """
+        create the discriminator
+        """
+
+        self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size, num_classes=num_classes, **discriminator_params)
+
+
+    def train(self, data):
+        """
+        train process
+        """
+
+        if self.D is None or self.G is None:
+            raise Exception("Discriminator or Generator is not defined. Use set_discriminator or set_generator to initialize them")
+        
+        MODEL_NAME = 'ConditionalGAN'
+        DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True, drop_last=True)
+        D_labels = torch.ones([self.batch_size, 1]).to(DEVICE) # Discriminator Label to real
+        D_fakes = torch.zeros([self.batch_size, 1]).to(DEVICE) # Discriminator Label to fake
+
+        D_opt = torch.optim.Adam(self.D.parameters(), lr=0.0002, betas=(0.5, 0.999))
+        G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0002, betas=(0.5, 0.999))
+
+        step=0
+        for epoch in range(self.max_epoch):
+            for idx, (prob_dist, trajectory) in enumerate(data_loader):
+                # Training Discriminator
+                x = prob_dist.to(DEVICE) # () n-days probability distribution pdf (parameters u, sigma) toy model BS -> vector [u, sigma] 
+                y = trajectory.view(self.batch_size, 1) # observed trajectory -> vector of length n
+                # parto dai parametri della distribuzione (u, sigma), genero con montecarlo le traiettorie  
+                #y = to_onehot(y).to(DEVICE)
+                x_outputs = self.D(x, y) # is the observed trajectory from t0 to t1 given the next n days probability distribution real? problem 2
+                D_x_loss = self.loss_fn(x_outputs, D_labels) #kl?
+
+                z = torch.randn(self.batch_size, self.z_dim).to(DEVICE)
+                z_outputs = self.D(self.G(z, y), y)
+                D_z_loss = self.loss_fn(z_outputs, D_fakes)
+                D_loss = D_x_loss + D_z_loss
+                
+                self.D.zero_grad()
+                D_loss.backward()
+                D_opt.step()
+                
+                if step % self.n_critic == 0:
+                    # Training Generator
+                    z = torch.randn(self.batch_size, self.z_dim).to(DEVICE)
+                    z_outputs = self.D(self.G(z, y), y)
+                    G_loss = self.loss_fn(z_outputs, D_labels)
+
+                    self.G.zero_grad()
+                    G_loss.backward()
+                    G_opt.step()
+                
+                if step % 500 == 0:
+                    print('Epoch: {}/{}, Step: {}, D Loss: {}, G Loss: {}'.format(epoch, self.max_epoch, step, D_loss.item(), G_loss.item())) #type:ignore
+                
+                if step % 1000 == 0:
+                    self.G.eval()
+                    img = get_sample_image(self.G, self.z_dim)
+                    imsave('samples/{}_step{}.jpg'.format(MODEL_NAME, str(step).zfill(3)), img, cmap='gray')
+                    self.G.train()
+                step += 1
 
 
 
@@ -213,7 +371,7 @@ if __name__=="__main__":
     mnist = datasets.MNIST(root='../data/', train=True, transform=transform, download=True)
 
 
-    conditional_gan = CGAN()
+    conditional_gan = MyCGAN()
     conditional_gan.set_generator()
     conditional_gan.set_discriminator()
     conditional_gan.train(mnist)

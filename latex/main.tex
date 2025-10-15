@@ -1,0 +1,119 @@
+\documentclass[a4paper, twoside,openright]{report}
+
+% Dimensione dei margini
+\usepackage[a4paper,top=3cm,bottom=3cm,left=3cm,right=3cm]{geometry}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[fontsize=12pt]{scrextend}
+
+% Lingua del testo
+\usepackage[english]{babel}
+
+\usepackage{microtype}
+\usepackage{fancyhdr}
+\usepackage[backend=biber,style=numeric,citestyle=science]{biblatex}
+\usepackage{csquotes}
+\usepackage{float}
+
+% Librerie matematiche - SIMPLIFIED (no amssymb to avoid conflicts)
+\usepackage{newtxtext}
+\usepackage{amsmath}
+\usepackage{newtxmath}
+% Note: amssymb removed to avoid \Bbbk conflict - newtxmath provides most symbols
+%\usepackage{amssymb}  % commented out due to conflict with newtxmath
+%\usepackage{amsthm}   % uncomment if needed
+
+
+% Uso delle immagini
+\usepackage{graphicx}
+% Uso dei colori
+\usepackage[dvipsnames]{xcolor}
+
+% Uso dei listing per il codice
+\usepackage{listings}
+
+% Per inserire gli hyperlinks tra i vari elementi del testo
+\usepackage{hyperref}
+
+% Diversi tipi di sottolineature
+\usepackage[normalem]{ulem}
+
+% Per numeri con virgola
+\DeclareUnicodeCharacter{2212}{-}
+
+% Additional packages
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{rotating}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+%\usepackage{algpseudocode}
+\usepackage{subfigure}
+\usepackage{etoolbox}
+\usepackage{comment}
+\usepackage{nicematrix}
+\usepackage{booktabs}
+
+%APPENDIX
+\usepackage[toc,page]{appendix}
+
+% -----------------------------------------------------------------
+% Modifica lo stile dell'header
+%\pagestyle{fancy}
+%\fancyhf{}
+%\lhead{\rightmark}
+%\rhead{\textbf{\thepage}}
+%\fancyfoot{}
+%\setlength{\headheight}{12.5pt}
+
+% Rimuove il numero di pagina all'inizio dei capitoli
+\fancypagestyle{plain}{
+  \fancyfoot{}
+  \fancyhead{}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+% Modifica dello stile dei riferimenti, con il testo in cyano
+\hypersetup{
+    colorlinks,
+    linkcolor=CornflowerBlue,
+    citecolor=CornflowerBlue
+}
+
+% Aggiunti definizioni, teoremi, linea e listing
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{assumption}{Assumption}
+
+\providecommand*\definitionautorefname{Definition}
+\providecommand*\theoremautorefname{Theorem}
+\providecommand*{\listingautorefname}{Listing}
+\providecommand*\lstnumberautorefname{Line}
+
+\raggedbottom
+
+%---------------------------------------------------------------
+\makeatletter
+\patchcmd{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
+\makeatother
+
+\setlength\parindent{0pt}
+
+\bibliography{bibliografia}
+
+% -----------------------------------------------------------------
+\begin{document}
+
+\include{frontespizio}
+
+\tableofcontents
+
+\include{Background/Background}
+
+
+
+%\nocite{*}
+\printbibliography
+
+\end{document}

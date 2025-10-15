@@ -19,3 +19,4 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
     
     return stock_df
 
+

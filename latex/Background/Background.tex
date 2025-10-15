@@ -1,0 +1,54 @@
+\chapter{Background}
+
+for each trajectory $j = 1, ..., J$ we define 
+the SDE of the log-price $X_t^j$ as:
+\begin{equation}
+    \label{log-price SDE}
+    \begin{aligned}
+       &dX_t^j = -\frac{1}{2}\sigma_j^2 dt + \sigma_j dW_t\\
+         &\text{with } X_0^j = \log(S_0^j)
+    \end{aligned}
+    \end{equation} 
+
+Where $S_0^j$ is the raw price at time $0$ of trajectory $j$, $\sigma_j$ is the volatility of trajectory $j$ and $W_t$ is a standard Brownian motion.\\
+$x_0^j$ and $\sigma_j$ are randomly sampled for each trajectory such that 
+$x_0^j \in [0, 10]$ and $\sigma_j \in (0.0, 1.0]$.\\
+
+In this context our condition label $y_j$ for a general data observation $j$ is given by
+a vector containing the trajectory $y_j=[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$.
+So our condition data matrix $Y$ has shape $J\times N$ where $J$ is the number of trajectories (data points)
+ and $N$ is the number of time steps in each trajectory.\\
+ 
+ The SDE is discretized over a uniform time space $N dt = t$ obtaining the following form
+ adopted for the simulation of the trajectories:
+ \begin{equation}
+    X_{t+dt}^j = X_0^j -\frac{1}{2}\sigma_j^2 dt + \sigma_j \sqrt{dt} Z_t
+ \end{equation}
+ Where $Z_t \sim \mathcal{N}(0,1)$.\\
+The procedure to build the condition data matrix $Y$ is summarized in Algorithm \ref{alg:y condition}.
+
+\begin{algorithm}[H]
+\caption{Algorithm for trajectory simulation and condition data matrix $Y$ creation}
+\label{alg:y condition}
+\begin{algorithmic}[1]
+
+\STATE Define the number of simulation $J$.
+\STATE Initialize an empty data matrix $Y$ of shape $J\times N$.
+\STATE Set iteration counter $j \leftarrow 0$.
+\REPEAT
+    \STATE Randomly sample $X_0^j \in [0.0, 10.0]$ and $\sigma_j \in (0.0, 1.0]$.
+    \STATE Evolve $X_t^j$ based on the discretized SDE for $0, dt, ..., Ndt$ steps.
+    \STATE Store the trajectory $[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$ in the $j$-th row of $Y$.
+    \STATE Increment counter $j \leftarrow j + 1$.
+\UNTIL{$j = J$}
+\RETURN $Y$
+\end{algorithmic}
+\end{algorithm}
+
+In $t=N dt$ we have the following information: the final log-price $X_{Ndt}^j$ of each trajectory $j$ and the corresponding volatility $\sigma_j$.
+The goal of the cGAN is to learn the distribution of the next time interval $Ndt + \Delta t$ 
+which is a normal distribution $\mathcal{N} \sim (X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \Delta t)$.\\
+So the data matrix $X$, that in classical implementations of GANs are images, is in this case 
+a vector containing the parametrization of the distribution. In this case a vector of two elements:
+the mean and the standard deviation.\\
+
