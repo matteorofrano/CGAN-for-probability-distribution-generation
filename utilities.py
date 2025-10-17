@@ -3,6 +3,8 @@ import pandas as pd
 import yfinance as yf
 import numpy as np
 import matplotlib.pyplot as plt
+import torch 
+from torch.utils.data import TensorDataset
 
 
 
@@ -23,8 +25,24 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
 
 
 
+def prepare_data(X:np.ndarray,C:np.ndarray):
+    """
+    A auxiliary function to normalize data and load them into a dataloader
+    """
+    #tensorization
+    X_tensor = torch.tensor(X, dtype=torch.float32)
+    C_tensor = torch.tensor(C, dtype=torch.float32)
 
-class TrajectorySimulator():
+    #standardization
+    X_tensor = (X_tensor - X_tensor.mean(dim=0)) / X_tensor.std(dim=0)
+    C_tensor = (C_tensor - C_tensor.mean(dim=0)) / C_tensor.std(dim=0)
+
+    dataset = TensorDataset(X_tensor, C_tensor)
+    return dataset
+
+
+
+class DataSimulator():
     """
     Simulation class object for J trajectories 
 
@@ -55,6 +73,7 @@ class TrajectorySimulator():
         self.T=T
         self.N = N
         self.n_simulations = n_simulations
+        self.dt = None
         self.strategies = ['uniform', 'log_uniform']
 
         #to be sampled
@@ -64,8 +83,10 @@ class TrajectorySimulator():
 
         #trajectories
         self.paths=None
+        self.X_T = None
+        self.pdf=None
 
-    def sample_parameters(self, strategy:Text, range: tuple):
+    def sample_parameter(self, strategy:Text, range: tuple):
         """
         Function used to sample J initial values, mu and sigma for each trajectory j
         """
@@ -91,7 +112,7 @@ class TrajectorySimulator():
 
         return sampled_values
     
-    def simulate_BS_paths(self):
+    def get_BS_paths(self):
         """
         Simulates log prices with Brownian Motion.
         This function simulates M trajectories of the log stock price process over the time horizon [0, T] using N time steps.
@@ -99,9 +120,9 @@ class TrajectorySimulator():
 
         """
 
-        self.X0 = self.sample_parameters('uniform', self.X0_range)
-        self.mu = self.sample_parameters('uniform', self.mu_range)
-        self.sigma = self.sample_parameters('uniform', self.sigma_range)
+        self.X0 = self.sample_parameter('uniform', self.X0_range)
+        self.mu = self.sample_parameter('uniform', self.mu_range)
+        self.sigma = self.sample_parameter('uniform', self.sigma_range)
 
         for i, sampling_parameter in enumerate([self.X0, self.mu, self.sigma]):
             if len(sampling_parameter)<1:
@@ -110,16 +131,16 @@ class TrajectorySimulator():
             
         #cumsum to build the paths and add the initial value
         #initialize an empty numpy array
-        paths = np.zeros((self.n_simulations, N + 1)) #shape (M, N + 1)
+        paths = np.zeros((self.n_simulations, self.N + 1)) #shape (M, N + 1)
         paths[:, 0] = self.X0 # Set the initial value for all paths
 
-        dt = self.T / self.N
+        self.dt = self.T / self.N
         #drift --- (mu - 0.5 * sigma^2) * dt 
-        drift = (self.mu - 0.5 * self.sigma**2) * dt #type: ignore
+        drift = (self.mu - 0.5 * self.sigma**2) * self.dt #type: ignore
 
         #shocks --- sigma * Z * sqrt(dt) with Z distributed as N(0,1)
         Z = self.rng.standard_normal(size=(self.n_simulations, self.N)) # shape (n_simulations, N)
-        shocks = (self.sigma.reshape(-1,1) * Z) * np.sqrt(dt)
+        shocks = (self.sigma.reshape(-1,1) * Z) * np.sqrt(self.dt)
 
         #Calculate the increments for each step -> (mu - 0.5 * sigma^2) * dt  + sigma * Z * sqrt(dt) with Z distributed as N(0,1)
         increments = drift.reshape(-1,1) + shocks
@@ -127,7 +148,32 @@ class TrajectorySimulator():
         # cumulative sum of increments with start value X0
         paths[:, 1:] = self.X0.reshape(-1,1) + np.cumsum(increments, axis=1)
         self.paths = paths
+        self.X_T = paths[:,-1]
+
         return paths
+    
+    def get_BS_pdf(self, n_steps_ahead:int):
+        """
+        compute the analytical parameters of the normal distribution from BS paths
+        args: 
+            n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt 
+        """
+
+        if self.X_T is None or self.mu is None or self.sigma is None or self.dt is None:
+            raise Exception('Bad initialization of inputs of trajectories')
+
+        # analytical parameters of the step ahead distribution
+        delta_t = n_steps_ahead * self.dt
+        mean = self.X_T - (0.5 * self.sigma * delta_t)
+        variance = (self.sigma ** 2) * delta_t
+
+        if mean.shape == variance.shape:
+            pdf = np.column_stack((mean, variance))
+        else:
+            raise Exception(f'Shape of the mean vector is {mean.shape} while shape of variance vector is {variance.shape}')
+
+        self.pdf = pdf
+        return pdf
     
     def plot(self):
         if self.paths is None:
@@ -148,7 +194,7 @@ class TrajectorySimulator():
         ax.plot(time_grid, self.paths.T, lw=0.8, alpha=0.7)
 
         # --- Formatting the Plot ---
-        ax.set_title(f'{J} Simulated Log-Price Trajectories', fontsize=16)
+        ax.set_title(f'{self.n_simulations} Simulated Log-Price Trajectories', fontsize=16)
         ax.set_xlabel('Time (Years)', fontsize=12)
         ax.set_ylabel('Log Stock Price $X_t = \ln(S_t)$', fontsize=12)
         ax.grid(True, which='both', linestyle='--', linewidth=0.5)
@@ -161,10 +207,9 @@ class TrajectorySimulator():
         #Plot the actual stock price paths
         fig2, ax2 = plt.subplots(figsize=(10, 6))
         ax2.plot(time_grid, price_paths.T, lw=0.8, alpha=0.7)
-        ax2.set_title(f'{J} Simulated Stock Price Trajectories', fontsize=16)
+        ax2.set_title(f'{self.n_simulations} Simulated Stock Price Trajectories', fontsize=16)
         ax2.set_xlabel('Time (Years)', fontsize=12)
         ax2.set_ylabel('Stock Price $S_t$', fontsize=12)
-        ax2.legend()
         plt.tight_layout()
         plt.show()
 
@@ -182,6 +227,9 @@ class TrajectorySimulator():
 
 
 
+
+
+
 if __name__ == '__main__':
     # example
     X0_range = (0.0,1.0)
@@ -193,11 +241,13 @@ if __name__ == '__main__':
     SEED=42
 
     # --- Run the Simulation ---
-    sim = TrajectorySimulator(X0_range=X0_range, mu_range=mu_range, sigma_range=sigma_range, 
+    sim = DataSimulator(X0_range=X0_range, mu_range=mu_range, sigma_range=sigma_range, 
                               T=T, N=N, n_simulations=J, seed=SEED)
     
-    paths = sim.simulate_BS_paths()
+    paths = sim.get_BS_paths()
+    pdfs= sim.get_BS_pdf(n_steps_ahead=10)
     sim.plot()
     
     
     print(paths)
+    print(pdfs)
