@@ -45,8 +45,8 @@ class Generator(nn.Module):
         def block(in_feat, out_feat, normalize=True):
             layers = [nn.Linear(in_feat, out_feat)]
             if normalize:
-                layers.append(nn.BatchNorm1d(out_feat, 0.8))
-            layers.append(nn.LeakyReLU(0.2, inplace=True))
+                layers.append(nn.BatchNorm1d(out_feat, 0.8)) #type:ignore
+            layers.append(nn.LeakyReLU(0.2, inplace=True))#type:ignore
             return layers
 
         self.model = nn.Sequential(
@@ -122,8 +122,8 @@ dataloader = torch.utils.data.DataLoader(
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 
-FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
+FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor #type:ignore
+LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor #type:ignore
 
 
 def sample_image(n_row, batches_done):

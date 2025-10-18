@@ -14,37 +14,9 @@ from typing import Callable
 from utilities import TensorDataset, DataSimulator, prepare_data, pd
 
 
-def get_sample_image(G, n_noise=100):
-    """
-        save sample 100 images
-    """
-    device= torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    img = np.zeros([280, 280])
-    for j in range(10): #class j
-        c = torch.zeros([10, 10]).to(device) #10x10 grid
-        c[:, j] = 1
-        z = torch.randn(10, n_noise).to(device)
-        y_hat = G(z,c).view(10, 28, 28) #generator takes in input z rand vector and c class
-        result = y_hat.cpu().data.numpy()
-        img[j*28:(j+1)*28] = np.concatenate([x for x in result], axis=-1) #produce final grid
-    return img
-
-def to_onehot(x, num_classes=10):
-    assert isinstance(x, int) or isinstance(x, (torch.LongTensor, torch.cuda.LongTensor)) #type:ignore
-    if isinstance(x, int):
-        c = torch.zeros(1, num_classes).long() # vectors of zeros with d=num_classes
-        c[0][x] = 1 #at position x set value to 1
-    else:
-        x = x.cpu()
-        c = torch.LongTensor(x.size(0), num_classes) # create a tensor of size (batch_size, num_classes) where batch size = size of x along dimension 0
-        c.zero_()
-        c.scatter_(1, x, 1) # dim, index, src value -> at second dimension at index x set value to 1
-    return c
-
-
 def get_generated_data(G, trajectory, G_noise=100):
     device= torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    z = torch.randn(G_noise).to(device)
+    z = torch.randn(trajectory.size(0), G_noise).to(device)
     y_hat = G(z,trajectory) #generator takes in input z rand vector and c condition
     result = y_hat.cpu().data.numpy()
 
@@ -174,7 +146,7 @@ class CGAN():
                 # Training Discriminator
                 x = images.to(DEVICE) # observed trajectory - toy model BS
                 y = labels.view(self.batch_size, 1) # n-days probability distribution pdf (parameters S0, sigma) 
-                y = to_onehot(y).to(DEVICE)
+                y = to_onehot(y).to(DEVICE) #type: ignore
                 x_outputs = self.D(x, y)
                 D_x_loss = self.loss_fn(x_outputs, D_labels) #kl?
 
@@ -202,7 +174,7 @@ class CGAN():
                 
                 if step % 1000 == 0:
                     self.G.eval()
-                    img = get_sample_image(self.G, self.z_dim)
+                    img = get_sample_image(self.G, self.z_dim) #type: ignore
                     imsave('samples/{}_step{}.jpg'.format(MODEL_NAME, str(step).zfill(3)), img, cmap='gray')
                     self.G.train()
                 step += 1
@@ -323,25 +295,15 @@ class MyCGAN():
         D_opt = torch.optim.Adam(self.D.parameters(), lr=0.0005, betas=(0.5, 0.999))
         G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0005, betas=(0.5, 0.999))
 
+        df = None
         step=0
-        predictions_list = []
-        targets_list = []
-        condition_list = []
         for epoch in range(self.max_epoch):
-            for idx, (prob_dist, trajectory) in enumerate(data_loader):
-                print(prob_dist.shape)
-                print(trajectory.shape)
-                current_batch_size = trajectory.size(0)
-                print(current_batch_size)
-
-                # Training Discriminator
-                #x = prob_dist.to(self.DEVICE) # () n-days probability distribution pdf (parameters u, sigma) toy model BS -> vector [u, sigma] 
-                #y = trajectory.view(trajectory.size(0), 1) # observed trajectory -> vector of length n --- self.batch_size
-                
-
-                # Ensure proper shapes
-                #x = prob_dist.view(current_batch_size, -1)  # (batch, 2)
-                #y = trajectory.view(current_batch_size, -1)  # (batch, L)
+            predictions_list = []
+            targets_list = []
+            condition_list = []
+            D_loss_list = []
+            G_loss_list = []
+            for idx, (prob_dist, trajectory) in enumerate(data_loader):   
                 x=prob_dist
                 y=trajectory
 
@@ -372,34 +334,46 @@ class MyCGAN():
                 
                 if step % 1000 == 0:
                     self.G.eval()
-                    generated = get_generated_data(self.G, trajectory, self.z_dim)
-                    predictions_list.append(generated)
-                    targets_list.append(prob_dist)
-                    condition_list.append(trajectory)
+                    generated = get_generated_data(self.G, y, self.z_dim) #batch_size number of generated data
+                    for i, row in enumerate(generated):
+                        predictions_list.append(row.tolist())
+                        targets_list.append(x[i, :].cpu().data.tolist())
+                        condition_list.append(y[i, :])
+                        D_loss_list.append(round(float(D_loss), 4))
+                        G_loss_list.append(round(float(G_loss), 4)) #type:ignore
 
 
                     self.G.train()
                 step += 1
 
             # Stack all batches together
-            predictions = np.vstack(predictions_list)  # shape: (num_samples, output_dim)
-            targets = np.vstack(targets_list)          # shape: (num_samples, output_dim)
-            conditions = np.vstack(condition_list)
+            # Build a DataFrame where each list becomes a column
+            if epoch == 0:
+                df = pd.DataFrame({
+                    "epoch": [int(epoch)]*len(predictions_list),
+                    "generated": predictions_list,
+                    "true": targets_list,
+                    "D_loss": D_loss_list,
+                    "G_loss" : G_loss_list
+                    #"condition": condition_list
+                })
 
-            # Combine predictions and targets column-wise
-            data_to_save = np.concatenate((predictions, targets), axis=1)
-            # Save to CSV
-            column_names = []
-            output_dim = predictions.shape[1]
-            target_dim = targets.shape[1]
+            else: #update
+                new_entries = pd.DataFrame({
+                "epoch":[int(epoch)]*len(predictions_list),
+                "generated": predictions_list,
+                "true": targets_list,
+                "D_loss": D_loss_list,
+                "G_loss" : G_loss_list
+                #"condition": condition_list
+                })
 
-            for i in range(output_dim):
-                column_names.append(f"pred_{i}")
-            for i in range(target_dim):
-                column_names.append(f"target_{i}")
+                df = pd.concat([df, new_entries], ignore_index=True)
 
-            df = pd.DataFrame(data_to_save, columns=column_names)
-            df.to_csv("predictions_vs_targets.csv", index=False)
+        if df is not None:
+            df.to_csv("generated_vs_true.csv", index=False)
+        else: 
+            raise Exception("df is null")
 
 
         
@@ -431,6 +405,6 @@ if __name__=="__main__":
 
 
     conditional_gan = MyCGAN()
-    conditional_gan.set_generator(condition_size=paths.shape[0])
-    conditional_gan.set_discriminator(input_size=pdfs.shape[0], condition_size=paths.shape[0])
+    conditional_gan.set_generator(condition_size=paths.shape[1])
+    conditional_gan.set_discriminator(input_size=pdfs.shape[1], condition_size=paths.shape[1])
     conditional_gan.train(mydata)
