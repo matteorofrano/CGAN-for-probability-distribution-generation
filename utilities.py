@@ -74,7 +74,7 @@ class DataSimulator():
         self.N = N
         self.n_simulations = n_simulations
         self.dt = None
-        self.strategies = ['uniform', 'log_uniform']
+        self.sampling_strategies = ['uniform', 'log_uniform']
 
         #to be sampled
         self.X0 = None
@@ -91,8 +91,8 @@ class DataSimulator():
         Function used to sample J initial values, mu and sigma for each trajectory j
         """
 
-        if strategy not in self.strategies:
-            raise Exception(f'The provided strategy: {strategy} is not available. The available strategies are {self.strategies}')
+        if strategy not in self.sampling_strategies:
+            raise Exception(f'The provided strategy: {strategy} is not available. The available strategies are {self.sampling_strategies}')
         
         low = range[0]
         high = range[1]
@@ -164,7 +164,7 @@ class DataSimulator():
 
         # analytical parameters of the step ahead distribution
         delta_t = n_steps_ahead * self.dt
-        mean = self.X_T - (0.5 * self.sigma * delta_t)
+        mean = self.X_T - (0.5 * (self.sigma**2) * delta_t)
         variance = (self.sigma ** 2) * delta_t
 
         if mean.shape == variance.shape:

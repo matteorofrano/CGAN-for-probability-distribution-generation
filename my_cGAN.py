@@ -242,7 +242,7 @@ class MyCGAN():
     """
     Cgan architecture 
     """
-    def __init__(self, max_epoch:int = 100, batch_size = 8, n_critic:int = 1, z_noise_dim:int = 100, loss_fn:Callable =  nn.BCELoss()):
+    def __init__(self, max_epoch:int = 100, batch_size = 32, n_critic:int = 1, z_noise_dim:int = 252, loss_fn:Callable =  nn.BCELoss()):
         """
         """
 
@@ -349,22 +349,27 @@ class MyCGAN():
             # Stack all batches together
             # Build a DataFrame where each list becomes a column
             if epoch == 0:
+                distance = np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
                 df = pd.DataFrame({
                     "epoch": [int(epoch)]*len(predictions_list),
                     "generated": predictions_list,
                     "true": targets_list,
                     "D_loss": D_loss_list,
-                    "G_loss" : G_loss_list
+                    "G_loss" : G_loss_list,
+                    "distance": distance
+
                     #"condition": condition_list
                 })
 
             else: #update
+                distance = np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
                 new_entries = pd.DataFrame({
                 "epoch":[int(epoch)]*len(predictions_list),
                 "generated": predictions_list,
                 "true": targets_list,
                 "D_loss": D_loss_list,
-                "G_loss" : G_loss_list
+                "G_loss" : G_loss_list,
+                "distance": distance
                 #"condition": condition_list
                 })
 
@@ -390,7 +395,7 @@ if __name__=="__main__":
     sigma_range = (0.001, 1.0)
     T = 1.0        # Time horizon (1 year)
     N = 252        # Number of time steps (trading days in a year)
-    J = 1000         # Number of paths to simulate
+    J = 100000        # Number of paths to simulate
     SEED=42
 
     # --- Run the Simulation ---
@@ -404,7 +409,7 @@ if __name__=="__main__":
     mydata = prepare_data(pdfs, paths)
 
 
-    conditional_gan = MyCGAN()
+    conditional_gan = MyCGAN(max_epoch=200)
     conditional_gan.set_generator(condition_size=paths.shape[1])
     conditional_gan.set_discriminator(input_size=pdfs.shape[1], condition_size=paths.shape[1])
     conditional_gan.train(mydata)
