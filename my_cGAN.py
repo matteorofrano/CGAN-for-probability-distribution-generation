@@ -357,8 +357,6 @@ class MyCGAN():
                     "D_loss": D_loss_list,
                     "G_loss" : G_loss_list,
                     "distance": distance
-
-                    #"condition": condition_list
                 })
 
             else: #update
@@ -370,7 +368,6 @@ class MyCGAN():
                 "D_loss": D_loss_list,
                 "G_loss" : G_loss_list,
                 "distance": distance
-                #"condition": condition_list
                 })
 
                 df = pd.concat([df, new_entries], ignore_index=True)
@@ -379,6 +376,9 @@ class MyCGAN():
             df.to_csv("generated_vs_true.csv", index=False)
         else: 
             raise Exception("df is null")
+        
+
+    
 
 
         

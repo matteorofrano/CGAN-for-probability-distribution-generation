@@ -1,2 +1,4 @@
 \babel@toc {english}{}\relax 
 \contentsline {chapter}{\numberline {1}Background}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}CGAN formulation}{4}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Possible improviment to CGAN}{5}{section.1.2}%

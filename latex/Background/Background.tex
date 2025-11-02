@@ -52,3 +52,63 @@ So the data matrix $X$, that in classical implementations of GANs are images, is
 a vector containing the parametrization of the distribution. In this case a vector of two elements:
 the mean and the standard deviation.\\
 
+\section{CGAN formulation}
+GANs are often formalized as a minimax game, where the generator (G) seeks to minimize the value function V while the discriminator (D) aims to maximize it:
+\begin{equation}
+    \label{eq:GAN minimax}
+\min _G \max _D V(D, G)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
+\end{equation}
+
+The discriminator outputs a value $D(x)$, 
+which represents the probability that $x$ is the real vector containing mean and variance of the normal distribution.
+Its goal is to correctly classify the real parameters as real and generated parameters as fake,
+effectively maximizing the likelihood of the observed data.
+To measure this, we use cross-entropy loss, as is common in deep learning,
+expressed as $plog(1-p)$. 
+For real parameters, the true label $p$ equals 1, 
+while for generated parameters the label is 0.
+With this setup, the discriminator's objective becomes:
+\begin{equation}
+    \label{eq:discriminator objective}
+    \max _D V(D)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
+\end{equation}
+
+where $\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]$ define how good the discriminator recognize real parameters.
+and $\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]$ define how good the discriminator recognizes generated parameters.\\
+The generator's objective is to produce distribution parameters that maximize $D(x)$, pushing the discriminator to classify them as real:
+\begin{equation}
+    \label{eq:generator objective}
+\min _G V(G)=\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
+\end{equation}
+
+Where $\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]$ define how good the generator is in fooling the discriminator.\\
+
+In the Conditional GAN (CGAN), the generator learns to generate a fake sample with a specific condition, in our case the past trajectory, rather than a generic sample from unknown noise distribution.
+The CGAN objective function is given by:
+\begin{equation}
+    \label{eq:CGAN minimax}
+    \min _G \max _D V(D, G)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x} \mid \boldsymbol{y})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z} \mid \boldsymbol{y})))]
+\end{equation}
+
+Academic findings highlighted in \cite{background:gan_time_series} suggest that one of the principal failure modes of GANs 
+arises when the generator converges to a parameter configuration that yields only a limited variety of outputs.
+Existing research indicates that the occurrence of mode collapse is attributed to the establishment of a local 
+equilibrium within the minimax optimization framework.
+A further critical challenge involves the vanishing gradient problem,
+which emerges when the discriminator becomes overly proficient,
+causing the generator's gradients to approach zero and consequently impeding its learning process.
+
+
+
+\section{Possible improviment to CGAN}
+Different strategies have been adopted to improve training stability and convergence 
+of GANs.
+\begin{itemize}
+    \item \textbf{Wasserstein GAN (WGAN)}: WGAN \cite{background:wgan} introduces the Wasserstein distance (Earth Mover's Distance) as a new loss function for GANs. This distance metric provides a more meaningful measure of the difference between the real and generated data distributions,
+     leading to improved training stability and convergence. The WGAN objective function is given by $\min _G \max _{D \in \mathcal{D}} E_{\boldsymbol{x} \sim p_d}[D(\boldsymbol{x})]-E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}})]$.
+     \item \textbf{DRAGAN}: this framework was introduced to address these challenges by incorporating a gradient penalty directly into the GAN architecture.
+    The authors in \cite{background:gan_convergence} observed that the local equilibria frequently manifest steep discriminator gradients in the vicinity of certain real data samples.
+    They further demonstrated that such degenerate local equilibria can be mitigated by applying a gradient penalty to the objective function, the method adopted is called DRAGAN.
+    \item A tip suggested in \cite{background:gan_time_series} to do not use batch normalization after adding the gradient penalty in order to improve model performances.
+\end{itemize}
+

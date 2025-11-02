@@ -41,6 +41,21 @@ def prepare_data(X:np.ndarray,C:np.ndarray):
     return dataset
 
 
+def plot_learning_curve(df_csv:str):
+        """
+        A function used to plot the learning curve of the trained model
+        """
+
+        # Load the CSV file
+        df = pd.read_csv(df_csv)
+
+        # Plot distance vs epoch
+        plt.figure()
+        plt.plot(df["epoch"], df["distance"])
+        plt.xlabel("Epoch")
+        plt.ylabel("Distance")
+        plt.title("Distance over Epochs")
+        plt.show()
 
 class DataSimulator():
     """
@@ -221,6 +236,10 @@ class DataSimulator():
         plt.xlabel("S(T)")
         plt.ylabel("frequency")
         plt.show()
+
+
+
+
 
 
 
