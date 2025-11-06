@@ -100,15 +100,17 @@ causing the generator's gradients to approach zero and consequently impeding its
 
 
 
-\section{Possible improviment to CGAN}
+\section{Possible improvement to CGAN}
 Different strategies have been adopted to improve training stability and convergence 
 of GANs.
 \begin{itemize}
-    \item \textbf{Wasserstein GAN (WGAN)}: WGAN \cite{background:wgan} introduces the Wasserstein distance (Earth Mover's Distance) as a new loss function for GANs. This distance metric provides a more meaningful measure of the difference between the real and generated data distributions,
+    \item \textbf{Wasserstein GAN}: WGAN \cite{background:wgan} introduces the Wasserstein distance (Earth Mover's Distance) as a new loss function for GANs. This distance metric provides a more meaningful measure of the difference between the real and generated data distributions,
      leading to improved training stability and convergence. The WGAN objective function is given by $\min _G \max _{D \in \mathcal{D}} E_{\boldsymbol{x} \sim p_d}[D(\boldsymbol{x})]-E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}})]$.
      \item \textbf{DRAGAN}: this framework was introduced to address these challenges by incorporating a gradient penalty directly into the GAN architecture.
-    The authors in \cite{background:gan_convergence} observed that the local equilibria frequently manifest steep discriminator gradients in the vicinity of certain real data samples.
+    The authors in \cite{background:dragan} observed that the local equilibria frequently manifest steep discriminator gradients in the vicinity of certain real data samples.
     They further demonstrated that such degenerate local equilibria can be mitigated by applying a gradient penalty to the objective function, the method adopted is called DRAGAN.
     \item A tip suggested in \cite{background:gan_time_series} to do not use batch normalization after adding the gradient penalty in order to improve model performances.
+    \item in \cite{background:rcgan} both the generator and discriminator are RNN or LSTM networks adopted to better capture the sequential dependencies in time series data.
 \end{itemize}
+
 

@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch 
 from torch.utils.data import TensorDataset
+from scipy.stats import norm
 
 
 
@@ -28,6 +29,8 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
 def prepare_data(X:np.ndarray,C:np.ndarray):
     """
     A auxiliary function to normalize data and load them into a dataloader
+    X is the noise vector or true probability distribution
+    C is the condition vector
     """
     #tensorization
     X_tensor = torch.tensor(X, dtype=torch.float32)
@@ -167,28 +170,56 @@ class DataSimulator():
 
         return paths
     
-    def get_BS_pdf(self, n_steps_ahead:int):
+    def get_BS_pdf(self, n_steps_ahead:int, n_bins:int|None = None):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
-            n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt 
+            n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt
+            bins:int -> if None or 0 then just compute the analytical mean and variance. If greater than 0 compute bins of the distribution
         """
 
         if self.X_T is None or self.mu is None or self.sigma is None or self.dt is None:
             raise Exception('Bad initialization of inputs of trajectories')
 
+        
         # analytical parameters of the step ahead distribution
         delta_t = n_steps_ahead * self.dt
         mean = self.X_T - (0.5 * (self.sigma**2) * delta_t)
         variance = (self.sigma ** 2) * delta_t
-
-        if mean.shape == variance.shape:
+        if mean.shape != variance.shape:
+            raise Exception(f'Shapes does not match. Mean\'s array shape {mean.shape} while variance\'s array shape {variance.shape}')
+        
+        #return vector of parameters
+        if n_bins is None or n_bins==0:
             pdf = np.column_stack((mean, variance))
-        else:
-            raise Exception(f'Shape of the mean vector is {mean.shape} while shape of variance vector is {variance.shape}')
+            self.pdf = pdf
+            return pdf
 
-        self.pdf = pdf
-        return pdf
+        #return distribution approximation
+        else:
+            if n_bins<0:
+                raise Exception('Provide a positive number of bins')
+            
+            # 4-sigma interval
+            x_min = mean - 4*variance
+            x_max = mean + 4*variance
+
+            print(f"x_min shape is {x_min.shape}")
+            print(f"mean shape is {mean.shape}")
+            print(x_min)
+            bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins)
+
+            #use standardized distribution
+            phi = norm.pdf
+            Phi = norm.cdf
+            standardized_bins = (bins - mean)/np.sqrt(variance)
+
+            pdfs = mean * (Phi(b) - Phi(a)) + np.sqrt(variance) * (phi(a) - phi(b))
+            return bins
+
+            
+
+
     
     def plot(self):
         if self.paths is None:

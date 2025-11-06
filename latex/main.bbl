@@ -102,7 +102,7 @@
       \field{pages}{214\bibrangedash 223}
       \range{pages}{10}
     \endentry
-    \entry{background:gan_convergence}{article}{}{}
+    \entry{background:dragan}{article}{}{}
       \name{author}{4}{}{%
         {{hash=349b4848daa30857ac598cc7b4380885}{%
            family={Kodali},
@@ -139,6 +139,40 @@
       \field{labeltitlesource}{title}
       \field{journaltitle}{arXiv preprint arXiv:1705.07215}
       \field{title}{On convergence and stability of gans}
+      \field{year}{2017}
+    \endentry
+    \entry{background:rcgan}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=517370b327f079c29c38bdc28b81b441}{%
+           family={Esteban},
+           familyi={E\bibinitperiod},
+           given={Cristóbal},
+           giveni={C\bibinitperiod}}}%
+        {{hash=adab195ca432a1aea9dc8ef9e5339fc5}{%
+           family={Hyland},
+           familyi={H\bibinitperiod},
+           given={Stephanie\bibnamedelima L},
+           giveni={S\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+        {{hash=ca596a0a9d87ca9f7999db4d71c7e577}{%
+           family={Rätsch},
+           familyi={R\bibinitperiod},
+           given={Gunnar},
+           giveni={G\bibinitperiod}}}%
+      }
+      \strng{namehash}{c364be3164dbae773df3b5d9de39e025}
+      \strng{fullhash}{c364be3164dbae773df3b5d9de39e025}
+      \strng{fullhashraw}{c364be3164dbae773df3b5d9de39e025}
+      \strng{bibnamehash}{c364be3164dbae773df3b5d9de39e025}
+      \strng{authorbibnamehash}{c364be3164dbae773df3b5d9de39e025}
+      \strng{authornamehash}{c364be3164dbae773df3b5d9de39e025}
+      \strng{authorfullhash}{c364be3164dbae773df3b5d9de39e025}
+      \strng{authorfullhashraw}{c364be3164dbae773df3b5d9de39e025}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{arXiv preprint arXiv:1706.02633}
+      \field{title}{Real-valued (medical) time series generation with recurrent conditional gans}
       \field{year}{2017}
     \endentry
   \enddatalist
