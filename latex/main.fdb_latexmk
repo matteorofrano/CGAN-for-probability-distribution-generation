@@ -1,14 +1,14 @@
 # Fdb version 4
-["biber main"] 1762273443.25616 "main.bcf" "main.bbl" "main" 1762273459.20098 0
+["biber main"] 1762273443.25616 "main.bcf" "main.bbl" "main" 1762600666.59424 0
   "bibliografia.bib" 1762273420 1054 8d7f693673a05f5fe03e30ff41290042 ""
-  "main.bcf" 1762273458 108309 01e9a3f98f83c89f65731bdd0dce68b3 "pdflatex"
+  "main.bcf" 1762600666 108309 01e9a3f98f83c89f65731bdd0dce68b3 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1762273455.07521 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1762273459.2032 0
-  "Background/Background.aux" 1762273458 5586 4f365133bea0ccefe58ead449ab1a627 "pdflatex"
-  "Background/Background.tex" 1762273420 7517 5841ad906736fed84d899d3fbd09f0b2 ""
+["pdflatex"] 1762600663.51579 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1762600666.59572 0
+  "Background/Background.aux" 1762600666 5863 949d9632f1db0fd13a3285979e74aa93 "pdflatex"
+  "Background/Background.tex" 1762600662 9159 bd7e93b1c6d3b26e2c2259502aac5ecb ""
   "C:/Users/matte/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1761845748 163288 427e351fbf11aedb9837f7ba4bf3de77 ""
   "C:/Users/matte/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1756761838 13257342 3cdf40aebdc7687414c82debb3f5997f ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ec-tlf.enc" 1736607166 2914 fdbc4a54b9bc76f4551b5303f2737d33 ""
@@ -255,15 +255,15 @@
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xpatch/xpatch.sty" 1585221260 8510 7803f78066c4f9d008405191a4b43073 ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
   "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" 1760550144 2783 2066d908d2496d296087698ac2882dc6 ""
-  "frontespizio.aux" 1762273458 4528 b78c73a55bc166ff3542f10634f484ce "pdflatex"
+  "frontespizio.aux" 1762600665 4528 b78c73a55bc166ff3542f10634f484ce "pdflatex"
   "frontespizio.jpg" 1736278509 79037 56bddb2fb226982fba5b80ae40565e5d ""
   "frontespizio.tex" 1760550144 898 c34a453fa950b09cf7cdbd715488cdf8 ""
-  "main.aux" 1762273458 1275 e0f91cd301a40e7e82d26181ce00e821 "pdflatex"
+  "main.aux" 1762600666 1275 e0f91cd301a40e7e82d26181ce00e821 "pdflatex"
   "main.bbl" 1762273446 7312 90ac6808158b6335512212725afe1282 "biber main"
-  "main.out" 1762273458 433 88293c416a07633aa4ecffc18997535f "pdflatex"
-  "main.run.xml" 1762273458 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
+  "main.out" 1762600666 940 c5fc2be9919839877790c295cc8fc3f1 "pdflatex"
+  "main.run.xml" 1762600666 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
   "main.tex" 1760550144 2783 2066d908d2496d296087698ac2882dc6 ""
-  "main.toc" 1762273458 260 51e9b8acc29d1c50d8caa66ede23b17b "pdflatex"
+  "main.toc" 1762600666 455 ce76488d8ea425e16f8cac7217d3867d "pdflatex"
   (generated)
   "Background/Background.aux"
   "frontespizio.aux"

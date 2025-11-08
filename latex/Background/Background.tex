@@ -45,12 +45,31 @@ The procedure to build the condition data matrix $Y$ is summarized in Algorithm 
 \end{algorithmic}
 \end{algorithm}
 
+
+
+\section{Distribution parameters as input}
 In $t=N dt$ we have the following information: the final log-price $X_{Ndt}^j$ of each trajectory $j$ and the corresponding volatility $\sigma_j$.
 The goal of the cGAN is to learn the distribution of the next time interval $Ndt + \Delta t$ 
-which is a normal distribution $\mathcal{N} \sim (X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$.\\
+which is a normal distribution $\mathcal{N}(X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$.\\
 So the data matrix $X$, that in classical implementations of GANs are images, is in this case 
 a vector containing the parametrization of the distribution. In this case a vector of two elements:
-the mean and the standard deviation.\\
+the mean and the standard deviation.
+
+\section{Approximated distribution via bins as input}
+An alternative approach to represent the distribution at time $Ndt + \Delta t$ is to approximate it via bins.
+In this case the data matrix $X$ is a vector of dimension $B$ where $B$ is the number of bins ranges adopted for the approximation.
+Each element of the vector represents the expected value given that the value falls inside that bin range, so 
+$E[ X_{Ndt}^j | b_i \leq X_{Ndt}^j \leq b_{i+1}]$ for $X_{Ndt}^j \sim \mathcal{N}(X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$, in the following description
+we just define the mean parameter as $\mu_{X^j}$ and the standard deviation parameter as ${\sigma_{X^j}}$.
+To create this representation we first define the bin edges by taking as min and max values the $ \pm 4 \sigma_{X^j}$ values coming from the normal distribution previously defined.
+Then we create $B$ bins uniformly spaced between the min and max values.
+For each bin range $B_i$ defined by the edges $[b_{i}, b_{i+1}]$,
+we compute the expected value for each bin by using the following formula:
+\begin{equation}
+    \mathbb{E}[Z \mid a_i \leq Z \leq a_{i+1}] = \frac{\phi(a) - \phi(a_{i+1})}{\Phi(a) - \Phi(a_{i+1})}
+\end{equation}
+where $a_{i}$ and $a_{i+1}$ are the standardized bins, $\phi(z)=\frac{1}{\sqrt{2\pi}} e^{-z^2/2}$ is the standard normal probability density function and 
+$\Phi(z) = \int_{-\infty}^{z} \phi(t) dt$. Finally, the expected value of $Z$ inside the two standardized bins is converted back to its original scale by multiplying it by ${\sigma_{X^j}}$ and adding $\mu_{X^j}$.
 
 \section{CGAN formulation}
 GANs are often formalized as a minimax game, where the generator (G) seeks to minimize the value function V while the discriminator (D) aims to maximize it:

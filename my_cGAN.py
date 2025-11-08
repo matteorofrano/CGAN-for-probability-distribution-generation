@@ -188,14 +188,14 @@ class MyDiscriminator(nn.Module):
         Simple Discriminator w/ MLP
     """
     # num_classes = 1 because output is real or fake
-    def __init__(self, input_size=260, condition_size=22, num_classes=1):
+    def __init__(self, input_size=260, condition_size=22, output_dim=1):
         super(MyDiscriminator, self).__init__()
         self.layer = nn.Sequential(
             nn.Linear(input_size+condition_size, 256), # x input size + y size
             nn.LeakyReLU(0.2),
             nn.Linear(256, 128),
             nn.LeakyReLU(0.2),
-            nn.Linear(128, num_classes),
+            nn.Linear(128, output_dim),
             nn.Sigmoid(),
         )
     
@@ -212,7 +212,7 @@ class MyGenerator(nn.Module):
     """
         Simple Generator w/ MLP
     """
-    def __init__(self, latent_size=260, condition_size=22, num_classes=2):
+    def __init__(self, latent_size=260, condition_size=22, output_dim=2):
         super(MyGenerator, self).__init__()
         self.layer = nn.Sequential(
             nn.Linear(latent_size+condition_size, 128), # z noise vector + y size
@@ -223,7 +223,7 @@ class MyGenerator(nn.Module):
             nn.Linear(256, 128),
             nn.BatchNorm1d(128),
             nn.LeakyReLU(0.2),
-            nn.Linear(128, num_classes)
+            nn.Linear(128, output_dim)
         )
         
     def forward(self, x, c):
@@ -261,20 +261,20 @@ class MyCGAN():
         self.DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # generator architecture
-    def set_generator(self, condition_size=100, num_classes=2, **generator_params):
+    def set_generator(self, condition_size=100, output_dim=2, **generator_params):
         """
         create the generator
         """
         
-        self.G=MyGenerator(latent_size=self.z_dim, condition_size=condition_size, num_classes=num_classes, **generator_params)
+        self.G=MyGenerator(latent_size=self.z_dim, condition_size=condition_size, output_dim=output_dim, **generator_params)
 
     #discriminator architecture 
-    def set_discriminator(self, input_size=784, condition_size=10, num_classes=1, **discriminator_params):
+    def set_discriminator(self, input_size=784, condition_size=10, output_dim=1, **discriminator_params):
         """
         create the discriminator
         """
 
-        self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size, num_classes=num_classes, **discriminator_params)
+        self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size, output_dim=output_dim, **discriminator_params)
 
 
     def train(self, data: TensorDataset):
@@ -289,9 +289,7 @@ class MyCGAN():
             raise Exception(f"invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
         
         data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True)
-        D_labels = torch.ones([self.batch_size, 1]).to(self.DEVICE) # Discriminator Label to real
-        D_fakes = torch.zeros([self.batch_size, 1]).to(self.DEVICE) # Discriminator Label to fake
-
+        
         D_opt = torch.optim.Adam(self.D.parameters(), lr=0.0005, betas=(0.5, 0.999))
         G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0005, betas=(0.5, 0.999))
 
@@ -306,11 +304,16 @@ class MyCGAN():
             for idx, (prob_dist, trajectory) in enumerate(data_loader):   
                 x=prob_dist
                 y=trajectory
+                current_batch_size = x.size(0)
+
+                # Create labels with correct batch size
+                D_labels = torch.ones([current_batch_size, 1]).to(self.DEVICE) # Discriminator Label to real
+                D_fakes = torch.zeros([current_batch_size, 1]).to(self.DEVICE) # Discriminator Label to fake
 
                 x_outputs = self.D(x, y) # is the observed trajectory from t0 to t1 given the next n days probability distribution real? problem 2
                 D_x_loss = self.loss_fn(x_outputs, D_labels) #kl?
 
-                z = torch.randn(self.batch_size, self.z_dim).to(self.DEVICE)
+                z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
                 z_outputs = self.D(self.G(z, y), y)
                 D_z_loss = self.loss_fn(z_outputs, D_fakes)
                 D_loss = D_x_loss + D_z_loss
@@ -321,7 +324,7 @@ class MyCGAN():
                 
                 if step % self.n_critic == 0:
                     # Training Generator
-                    z = torch.randn(self.batch_size, self.z_dim).to(self.DEVICE)
+                    z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
                     z_outputs = self.D(self.G(z, y), y)
                     G_loss = self.loss_fn(z_outputs, D_labels)
 

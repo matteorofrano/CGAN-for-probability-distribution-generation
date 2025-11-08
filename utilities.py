@@ -237,7 +237,7 @@ class DataSimulator():
             #use standardized distribution
             phi = norm.pdf
             Phi = norm.cdf
-            standardized_bins = (bins - mean.reshape(2,1))/std.reshape(2,1)
+            standardized_bins = (bins - mean.reshape(self.n_simulations,1))/std.reshape(self.n_simulations,1)
 
             pdf = []
             for i, row in enumerate(standardized_bins):
