@@ -47,7 +47,7 @@ The procedure to build the condition data matrix $Y$ is summarized in Algorithm 
 
 In $t=N dt$ we have the following information: the final log-price $X_{Ndt}^j$ of each trajectory $j$ and the corresponding volatility $\sigma_j$.
 The goal of the cGAN is to learn the distribution of the next time interval $Ndt + \Delta t$ 
-which is a normal distribution $\mathcal{N} \sim (X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \Delta t)$.\\
+which is a normal distribution $\mathcal{N} \sim (X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$.\\
 So the data matrix $X$, that in classical implementations of GANs are images, is in this case 
 a vector containing the parametrization of the distribution. In this case a vector of two elements:
 the mean and the standard deviation.\\

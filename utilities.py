@@ -175,7 +175,7 @@ class DataSimulator():
         compute the analytical parameters of the normal distribution from BS paths
         args: 
             n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt
-            bins:int -> if None or 0 then just compute the analytical mean and variance. If greater than 0 compute bins of the distribution
+            bins:int -> if None or 0 then just compute the analytical mean and std. If greater than 0 compute bins of the distribution
         """
 
         if self.X_T is None or self.mu is None or self.sigma is None or self.dt is None:
@@ -185,41 +185,71 @@ class DataSimulator():
         # analytical parameters of the step ahead distribution
         delta_t = n_steps_ahead * self.dt
         mean = self.X_T - (0.5 * (self.sigma**2) * delta_t)
-        variance = (self.sigma ** 2) * delta_t
-        if mean.shape != variance.shape:
-            raise Exception(f'Shapes does not match. Mean\'s array shape {mean.shape} while variance\'s array shape {variance.shape}')
+        std = self.sigma * np.sqrt(delta_t)
+        if mean.shape != std.shape:
+            raise Exception(f'Shapes does not match. Mean\'s array shape {mean.shape} while std\'s array shape {std.shape}')
         
         #return vector of parameters
         if n_bins is None or n_bins==0:
-            pdf = np.column_stack((mean, variance))
+            pdf = np.column_stack((mean, std))
             self.pdf = pdf
             return pdf
 
-        #return distribution approximation
+        #return distribution approximated by bins
         else:
             if n_bins<0:
                 raise Exception('Provide a positive number of bins')
             
+            def truncated_normal_mean(a, b):
+                """Compute E[X | a <= X <= b] for X ~ N(mu, sigma)."""
+                if b <= a:
+                    raise ValueError("Upper bound must be greater than lower bound.")
+                
+                Z = Phi(b) - Phi(a) # difference between CDF of standard normal between lower bound and upper bound
+                if Z<1e-10:
+                    return 0.5 * (a + b)  # fallback for extremely tiny probability mass
+                return (phi(a) - phi(b)) / Z
+            
+            
+            def compute_expected_bin_value(row):
+                if len(row)<2:
+                    return row
+                
+                expected_bin_values = []
+                for j, a in enumerate(row):
+                    if j==len(row)-1:
+                        break
+                    if a>row[j+1]:
+                        raise Exception(f"Next bin should be greater than previous one. Here next bin is {row[j+1]} while current bin is {a}")
+
+                    expected_value_std = truncated_normal_mean(a, row[j+1])
+                    expected_value = i_mean + i_std * expected_value_std
+                    expected_bin_values.append(float(expected_value))
+                    
+                return expected_bin_values
+                
             # 4-sigma interval
-            x_min = mean - 4*variance
-            x_max = mean + 4*variance
-
-            print(f"x_min shape is {x_min.shape}")
-            print(f"mean shape is {mean.shape}")
-            print(x_min)
+            x_min = mean - 4*std
+            x_max = mean + 4*std
+            
             bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins)
-
+        
             #use standardized distribution
             phi = norm.pdf
             Phi = norm.cdf
-            standardized_bins = (bins - mean)/np.sqrt(variance)
+            standardized_bins = (bins - mean.reshape(2,1))/std.reshape(2,1)
 
-            pdfs = mean * (Phi(b) - Phi(a)) + np.sqrt(variance) * (phi(a) - phi(b))
-            return bins
+            pdf = []
+            for i, row in enumerate(standardized_bins):
+                i_mean = mean[i]
+                i_std = std[i]
+                pdf.append(compute_expected_bin_value(row))
+
+            print(bins)
+            print(pdf)
+            return np.array(pdf)
 
             
-
-
     
     def plot(self):
         if self.paths is None:
