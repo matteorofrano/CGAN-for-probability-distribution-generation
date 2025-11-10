@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import torch 
 from torch.utils.data import TensorDataset
 from scipy.stats import norm
+import struct
 
 
 
@@ -193,7 +194,7 @@ class DataSimulator():
         if n_bins is None or n_bins==0:
             pdf = np.column_stack((mean, std))
             self.pdf = pdf
-            return pdf
+            return self.pdf
 
         #return distribution approximated by bins
         else:
@@ -245,9 +246,89 @@ class DataSimulator():
                 i_std = std[i]
                 pdf.append(compute_expected_bin_value(row))
 
-            print(bins)
-            print(pdf)
-            return np.array(pdf)
+            self.pdf = np.array(pdf)
+            return self.pdf
+        
+    
+    def save_binary_file(self, file_name:str):
+        if self.pdf is None or self.paths is None:
+            raise Exception("Trajectory data or probability distribution are not available. " \
+            "First generate those data")
+        
+        if self.pdf.shape[0] != self.paths.shape[0]:
+            raise Exception("Number of generated trajectories and distributions should match." \
+                            f"number of trajectories is {self.pdf.shape[0]} and number of distribution is {self.paths.shape[0]}")
+        
+        dtype_paths = self.paths.dtype.str.encode('utf-8')
+        dtype_pdf   = self.pdf.dtype.str.encode('utf-8')
+        with open(file_name + '.bin', 'wb') as f:
+            f.write(struct.pack('<I', len(dtype_paths))) #writes a 4-byte integer giving the length of the upcoming dtype string
+            f.write(dtype_paths) #writes that 3 dtype string
+            f.write(struct.pack('<I', len(dtype_pdf)))
+            f.write(dtype_pdf)
+
+            for i, path in enumerate(self.paths):
+                f.write(struct.pack("<H", path.size)) # H used for max length of 65535
+                f.write(struct.pack("<H", self.pdf[i, :].size))
+                path.tofile(f)
+                self.pdf[i, :].tofile(f)
+            
+        print(f'file stored in {file_name}.bin')
+
+
+    def load_binary_file(self, file_name:str):
+
+        paths = []
+        pdfs = []
+        with open(file_name, 'rb') as f:
+            
+            # read dtype headers
+            n = struct.unpack('<I', f.read(4))[0] # how many bytes to read next
+            dtype_paths = f.read(n).decode('utf-8') # read exactly that many bytes
+
+            n = struct.unpack('<I', f.read(4))[0]
+            dtype_pdf = f.read(n).decode('utf-8')
+
+            dt_path = np.dtype(dtype_paths)
+            dt_pdf  = np.dtype(dtype_pdf)
+
+            itemsize_path = dt_path.itemsize #Length of one array element in bytes.
+            itemsize_pdf  = dt_pdf.itemsize
+
+            while True:
+                header = f.read(8)  # two 4-byte unsigned ints
+                print(len(header))
+                if not header:
+                    break
+                if len(header) < 8:
+                    raise EOFError("corrupt or truncated file")
+
+                len_path, len_pdf = struct.unpack('<II', header) #read integers containg path and pdf lengths
+
+                nbytes_path = len_path * itemsize_path
+                nbytes_pdf  = len_pdf  * itemsize_pdf
+
+                path = f.read(nbytes_path)
+                if len(path) != nbytes_path:
+                    raise EOFError("truncated path data")
+
+                pdf = f.read(nbytes_pdf)
+                if len(pdf) != nbytes_pdf:
+                    raise EOFError("truncated pdf data")
+
+                arr_path = np.frombuffer(path, dtype=dt_path).copy()
+                arr_pdf  = np.frombuffer(pdf, dtype=dt_pdf).copy()
+
+                paths.append(arr_path)
+                pdfs.append(arr_pdf)
+
+        self.paths = np.vstack(paths)
+        self.pdf = np.vstack(pdfs)
+        print('processed binary file')
+
+        return self.paths, self.pdf
+            
+
 
             
     
