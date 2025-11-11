@@ -268,8 +268,8 @@ class DataSimulator():
             f.write(dtype_pdf)
 
             for i, path in enumerate(self.paths):
-                f.write(struct.pack("<H", path.size)) # H used for max length of 65535
-                f.write(struct.pack("<H", self.pdf[i, :].size))
+                f.write(struct.pack("<I", path.size)) # H used for max length of 65535
+                f.write(struct.pack("<I", self.pdf[i, :].size))
                 path.tofile(f)
                 self.pdf[i, :].tofile(f)
             
@@ -297,7 +297,6 @@ class DataSimulator():
 
             while True:
                 header = f.read(8)  # two 4-byte unsigned ints
-                print(len(header))
                 if not header:
                     break
                 if len(header) < 8:
