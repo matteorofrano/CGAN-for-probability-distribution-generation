@@ -7,10 +7,9 @@ from torchvision import datasets
 from torchvision import transforms
 from torchvision.utils import save_image
 import numpy as np
-import datetime
-import os, sys
 from matplotlib.pyplot import imshow, imsave
 from typing import Callable
+import json
 from utilities import TensorDataset, DataSimulator, prepare_data, pd
 
 
@@ -288,8 +287,11 @@ class MyCGAN():
         if isinstance(data, TensorDataset)==False:
             raise Exception(f"invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
         
-        data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True)
+        # Move models to device
+        self.G.to(self.DEVICE)
+        self.D.to(self.DEVICE)
         
+        data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True)
         D_opt = torch.optim.Adam(self.D.parameters(), lr=0.0005, betas=(0.5, 0.999))
         G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0005, betas=(0.5, 0.999))
 
@@ -301,33 +303,39 @@ class MyCGAN():
             condition_list = []
             D_loss_list = []
             G_loss_list = []
+            
             for idx, (prob_dist, trajectory) in enumerate(data_loader):   
-                x=prob_dist
-                y=trajectory
+                x=prob_dist.to(self.DEVICE)
+                y=trajectory.to(self.DEVICE)
                 current_batch_size = x.size(0)
 
                 # Create labels with correct batch size
                 D_labels = torch.ones([current_batch_size, 1]).to(self.DEVICE) # Discriminator Label to real
                 D_fakes = torch.zeros([current_batch_size, 1]).to(self.DEVICE) # Discriminator Label to fake
 
+                #TRAIN DISCRIMINATOR
+                #real samples
                 x_outputs = self.D(x, y) # is the observed trajectory from t0 to t1 given the next n days probability distribution real? problem 2
                 D_x_loss = self.loss_fn(x_outputs, D_labels) #kl?
 
+                #fake samples
                 z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
                 z_outputs = self.D(self.G(z, y), y)
                 D_z_loss = self.loss_fn(z_outputs, D_fakes)
-                D_loss = D_x_loss + D_z_loss
-                
+
+                #backpropagation
+                D_loss = D_x_loss + D_z_loss 
                 self.D.zero_grad()
                 D_loss.backward()
                 D_opt.step()
                 
                 if step % self.n_critic == 0:
-                    # Training Generator
+                    # TRAIN GENERATOR
                     z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
                     z_outputs = self.D(self.G(z, y), y)
                     G_loss = self.loss_fn(z_outputs, D_labels)
-
+                    
+                    #backpropagation
                     self.G.zero_grad()
                     G_loss.backward()
                     G_opt.step()
@@ -340,8 +348,8 @@ class MyCGAN():
                     generated = get_generated_data(self.G, y, self.z_dim) #batch_size number of generated data
                     for i, row in enumerate(generated):
                         predictions_list.append(row.tolist())
-                        targets_list.append(x[i, :].cpu().data.tolist())
-                        condition_list.append(y[i, :])
+                        targets_list.append(x[i, :].cpu().tolist())
+                        condition_list.append(y[i, :].cpu().tolist())
                         D_loss_list.append(round(float(D_loss), 4))
                         G_loss_list.append(round(float(G_loss), 4)) #type:ignore
 
@@ -355,8 +363,8 @@ class MyCGAN():
                 distance = np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
                 df = pd.DataFrame({
                     "epoch": [int(epoch)]*len(predictions_list),
-                    "generated": predictions_list,
-                    "true": targets_list,
+                    "generated": [json.dumps(pred) for pred in predictions_list],
+                    "true": [json.dumps(true) for true in targets_list],
                     "D_loss": D_loss_list,
                     "G_loss" : G_loss_list,
                     "distance": distance
@@ -366,8 +374,8 @@ class MyCGAN():
                 distance = np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
                 new_entries = pd.DataFrame({
                 "epoch":[int(epoch)]*len(predictions_list),
-                "generated": predictions_list,
-                "true": targets_list,
+                "generated": [json.dumps(pred) for pred in predictions_list],
+                "true": [json.dumps(true) for true in targets_list],
                 "D_loss": D_loss_list,
                 "G_loss" : G_loss_list,
                 "distance": distance
@@ -380,6 +388,60 @@ class MyCGAN():
         else: 
             raise Exception("df is null")
         
+
+    def predict(self, data: TensorDataset):
+        """
+        Generate predictions using the trained Generator
+        
+        Args:
+            data: TensorDataset containing conditions (trajectory data)
+
+        Returns:
+            predictions: Generated probability distributions
+            conditions: Corresponding trajectory conditions
+        """
+        
+        if self.G is None:
+            raise Exception("Generator is not defined. Train the model first or use set_generator to initialize it")
+        
+        if isinstance(data, TensorDataset) == False:
+            raise Exception(f"Invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
+        
+        self.G.eval()
+        self.G.to(self.DEVICE)
+        
+        data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=False)
+        
+        predictions_list = []
+        conditions_list = []
+        
+        with torch.no_grad():
+            for idx, batch in enumerate(data_loader):
+                # Handle both (prob_dist, trajectory) and (trajectory,) formats
+                if len(batch) == 2:
+                    _, trajectory = batch
+                else:
+                    trajectory = batch[0]
+                
+                y = trajectory.to(self.DEVICE)
+                current_batch_size = y.size(0)
+                
+                # Generate samples
+                z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
+                generated = self.G(z, y)
+                
+                predictions_list.append(generated.cpu())
+                conditions_list.append(y.cpu())
+        
+        # Concatenate all predictions
+        predictions = torch.cat(predictions_list, dim=0)
+        conditions = torch.cat(conditions_list, dim=0)
+        
+        return predictions, conditions
+
+        
+
+
 
     
 
