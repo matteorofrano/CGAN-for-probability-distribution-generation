@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import TensorDataset
 from scipy.stats import norm
 import struct
+import ast
 
 
 
@@ -60,6 +61,19 @@ def plot_learning_curve(df_csv:str):
         plt.ylabel("Distance")
         plt.title("Distance over Epochs")
         plt.show()
+
+
+
+
+def manage_csv_results(csv:str):
+
+    df = pd.read_csv(csv)
+    df["generated"] = df["generated"].apply(ast.literal_eval)
+    df["true"] = df["true"].apply(ast.literal_eval)
+
+    return df
+
+
 
 class DataSimulator():
     """
