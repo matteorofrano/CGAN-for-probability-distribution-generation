@@ -8,6 +8,8 @@ from torch.utils.data import TensorDataset
 from scipy.stats import norm
 import struct
 import ast
+import seaborn as sns
+from scipy.stats import ttest_1samp
 
 
 
@@ -28,7 +30,7 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
 
 
 
-def prepare_data(X:np.ndarray,C:np.ndarray):
+def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-8):
     """
     A auxiliary function to normalize data and load them into a dataloader
     X is the noise vector or true probability distribution
@@ -39,8 +41,8 @@ def prepare_data(X:np.ndarray,C:np.ndarray):
     C_tensor = torch.tensor(C, dtype=torch.float32)
 
     #standardization
-    X_tensor = (X_tensor - X_tensor.mean(dim=0)) / X_tensor.std(dim=0)
-    C_tensor = (C_tensor - C_tensor.mean(dim=0)) / C_tensor.std(dim=0)
+    X_tensor = (X_tensor - X_tensor.mean(dim=0)) / (X_tensor.std(dim=0) + eps)
+    C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
 
     dataset = TensorDataset(X_tensor, C_tensor)
     return dataset
@@ -78,19 +80,44 @@ def analyze_error_distribution(csv:str):
 
     df = pd.read_csv(csv)
 
-    errors = [s for s in df.columns if s.startswith('error_')]
+    errors = [c for c in df.columns if c.startswith("error_")]
     means = df[errors].mean()
-    stds  = df[errors].std()
+    stds = df[errors].std()
+    tests = []
+
+    for col in errors:
+        values = df[col].dropna()
+        _, p_value = ttest_1samp(values, 0.0)
+        tests.append(p_value>0.01) #type:ignore
+
+    summary = pd.DataFrame({
+        "mean":     means,
+        "std":      stds,
+        "median":   df[errors].median(),
+        "skew":     df[errors].skew(),
+        "kurtosis": df[errors].kurt(),
+        "is_zero_test": tests
+    })
 
     plt.figure(figsize=(10, 5))
-    plt.bar(means.index, means.values, yerr=stds.values)  #type:ignore
+
+    #distribution
+    sns.violinplot(data=df[errors], inner=None)
+
+    #mean markers
+    plt.scatter(range(len(errors)), means.values, color="black", zorder=3, label="Mean")#type:ignore
+
+    #std bars
+    plt.errorbar(range(len(errors)),means.values,yerr=stds.values,fmt="none",ecolor="black",capsize=6,zorder=2) #type:ignore
+
+    plt.title("Error Distributions with Mean ± Std")
+    plt.xticks(range(len(errors)), errors, rotation=45, ha="right")
     plt.ylabel("Value")
-    plt.title("Error Metrics (mean ± std)")
-    plt.xticks(rotation=45, ha="right")
+    plt.legend()
     plt.tight_layout()
     plt.show()
 
-    return means, stds
+    return means, stds, summary
     
 
 
@@ -166,7 +193,7 @@ class DataSimulator():
 
         return sampled_values
     
-    def get_BS_paths(self):
+    def get_paths(self):
         """
         Simulates log prices with Brownian Motion.
         This function simulates M trajectories of the log stock price process over the time horizon [0, T] using N time steps.
@@ -206,7 +233,7 @@ class DataSimulator():
 
         return paths
     
-    def get_BS_pdf(self, n_steps_ahead:int, n_bins:int|None = None):
+    def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None, use_cdf:bool = True):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
@@ -222,6 +249,7 @@ class DataSimulator():
         delta_t = n_steps_ahead * self.dt
         mean = self.X_T - (0.5 * (self.sigma**2) * delta_t)
         std = self.sigma * np.sqrt(delta_t)
+
         if mean.shape != std.shape:
             raise Exception(f'Shapes does not match. Mean\'s array shape {mean.shape} while std\'s array shape {std.shape}')
         
@@ -233,7 +261,7 @@ class DataSimulator():
 
         #return distribution approximated by bins
         else:
-            if n_bins<0:
+            if n_bins<1:
                 raise Exception('Provide a positive number of bins')
             
             def truncated_normal_mean(a, b):
@@ -269,20 +297,35 @@ class DataSimulator():
             x_max = mean + 4*std
             
             bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins)
-        
-            #use standardized distribution
-            phi = norm.pdf
-            Phi = norm.cdf
             standardized_bins = (bins - mean.reshape(self.n_simulations,1))/std.reshape(self.n_simulations,1)
 
-            pdf = []
-            for i, row in enumerate(standardized_bins):
-                i_mean = mean[i]
-                i_std = std[i]
-                pdf.append(compute_expected_bin_value(row))
+            if use_cdf!=True:
+                #use standardized distribution
+                phi = norm.pdf
+                Phi = norm.cdf
+                
+                pdf = []
+                for i, row in enumerate(standardized_bins):
+                    i_mean = mean[i]
+                    i_std = std[i]
+                    pdf.append(compute_expected_bin_value(row))
 
-            self.pdf = np.array(pdf)
-            return self.pdf
+                self.pdf = np.array(pdf)
+                return self.pdf
+            
+            else:
+                probabilities = np.zeros((self.n_simulations, n_bins))
+                cdf_values = norm.cdf(standardized_bins)
+                
+                # Probability for each bin is the difference between consecutive CDF values
+                probabilities = np.diff(cdf_values, axis=1)
+            
+                #normalize 
+                probabilities = probabilities / probabilities.sum(axis=1, keepdims=True)
+                
+                self.pdf = probabilities
+                return self.pdf
+
         
     
     def save_binary_file(self, file_name:str):
@@ -439,8 +482,8 @@ if __name__ == '__main__':
     sim = DataSimulator(X0_range=X0_range, mu_range=mu_range, sigma_range=sigma_range, 
                               T=T, N=N, n_simulations=J, seed=SEED)
     
-    paths = sim.get_BS_paths()
-    pdfs= sim.get_BS_pdf(n_steps_ahead=10)
+    paths = sim.get_paths()
+    pdfs= sim.get_pdf(n_steps_ahead=10)
     sim.plot()
     
     

@@ -695,8 +695,8 @@ if __name__=="__main__":
     sim = DataSimulator(X0_range=X0_range, mu_range=mu_range, sigma_range=sigma_range, 
                                 T=T, N=N, n_simulations=J, seed=SEED)
 
-    paths = sim.get_BS_paths()
-    pdfs= sim.get_BS_pdf(n_steps_ahead=10)
+    paths = sim.get_paths()
+    pdfs= sim.get_pdf(n_steps_ahead=10)
 
     #train myCGAN
     mydata = prepare_data(pdfs, paths)
