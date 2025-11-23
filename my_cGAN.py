@@ -345,7 +345,7 @@ class MyCGAN():
         self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size, output_dim=output_dim, **discriminator_params)
 
 
-    def train(self, data: TensorDataset):
+    def train(self, data: TensorDataset, save_history:bool = False):
         """
         train process
         """
@@ -360,7 +360,7 @@ class MyCGAN():
         self.G.to(self.DEVICE)
         self.D.to(self.DEVICE)
         
-        data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True)
+        data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True, drop_last=True)
         D_opt = torch.optim.Adam(self.D.parameters(), lr=0.0005, betas=(0.5, 0.999))
         G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0005, betas=(0.5, 0.999))
 
@@ -412,23 +412,27 @@ class MyCGAN():
                 if step % 500 == 0:
                     print('Epoch: {}/{}, Step: {}, D Loss: {}, G Loss: {}'.format(epoch, self.max_epoch, step, D_loss.item(), G_loss.item())) #type:ignore
                 
-                if step % 1000 == 0:
+
+                #store history for each middle batch of the epoch
+                if save_history and idx == int(len(data_loader)/2): 
                     self.G.eval()
                     generated = get_generated_data(self.G, y, self.z_dim) #batch_size number of generated data
                     for i, row in enumerate(generated):
-                        predictions_list.append(row.tolist())
-                        targets_list.append(x[i, :].cpu().tolist())
+                        pred = row.tolist()
+                        true = x[i, :].cpu().tolist()
+                        predictions_list.append(pred)
+                        targets_list.append(true)
+
                         condition_list.append(y[i, :].cpu().tolist())
                         D_loss_list.append(round(float(D_loss), 4))
                         G_loss_list.append(round(float(G_loss), 4)) #type:ignore
-
-
+                        
                     self.G.train()
+
                 step += 1
 
-            # Stack all batches together
             # Build a DataFrame where each list becomes a column
-            if predictions_list:
+            if len(predictions_list)>1:
                 distance = np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
                 entries = pd.DataFrame({
                     "epoch": [int(epoch)]*len(predictions_list),
@@ -446,9 +450,8 @@ class MyCGAN():
 
         if df is not None:
             df.to_csv("generated_vs_true.csv", index=False)
-        else: 
-            raise Exception("df is null")
         
+
 
     def predict(self, data: TensorDataset):
         """

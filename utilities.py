@@ -74,6 +74,27 @@ def manage_csv_results(csv:str):
     return df
 
 
+def analyze_error_distribution(csv:str):
+
+    df = pd.read_csv(csv)
+
+    errors = [s for s in df.columns if s.startswith('error_')]
+    means = df[errors].mean()
+    stds  = df[errors].std()
+
+    plt.figure(figsize=(10, 5))
+    plt.bar(means.index, means.values, yerr=stds.values)  #type:ignore
+    plt.ylabel("Value")
+    plt.title("Error Metrics (mean ± std)")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    plt.show()
+
+    return means, stds
+    
+
+
+
 
 class DataSimulator():
     """
