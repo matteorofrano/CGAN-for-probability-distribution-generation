@@ -99,7 +99,10 @@ def analyze_error_distribution(csv:str):
         "is_zero_test": tests
     })
 
-    plt.figure(figsize=(10, 5))
+    if len(errors)<20:
+        plt.figure(figsize=(10, 5))
+    else:
+        plt.figure(figsize=(30, 8))
 
     #distribution
     sns.violinplot(data=df[errors], inner=None)
