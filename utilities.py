@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch 
 from torch.utils.data import TensorDataset
-from scipy.stats import norm
+from scipy.stats import norm, kstwobign
 import struct
 import ast
 import seaborn as sns
@@ -39,13 +39,15 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-8):
     #tensorization
     X_tensor = torch.tensor(X, dtype=torch.float32)
     C_tensor = torch.tensor(C, dtype=torch.float32)
+    X_mean = X_tensor.mean(dim=0)
+    X_std = X_tensor.std(dim=0) + eps
 
     #standardization
-    X_tensor = (X_tensor - X_tensor.mean(dim=0)) / (X_tensor.std(dim=0) + eps)
+    X_tensor = (X_tensor - X_mean) / X_std
     C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
 
     dataset = TensorDataset(X_tensor, C_tensor)
-    return dataset
+    return dataset, X_mean, X_std
 
 
 def plot_learning_curve(df_csv:str):
@@ -123,6 +125,32 @@ def analyze_error_distribution(csv:str):
     return means, stds, summary
     
 
+
+def ks_test_gan_cdf(generated_probs, true_probs):
+    """
+    Perform KS test comparing generated and true probability distributions.
+    
+    Parameters:
+    -----------
+    generated_probs : array of shape (n_bins,)
+        GAN-generated bin probabilities
+    true_probs : array of shape (n_bins,)
+        True bin probabilities from normal distribution
+    
+    """
+    # Convert probabilities to CDFs
+    generated_cdf = np.cumsum(generated_probs)
+    true_cdf = np.cumsum(true_probs)
+    
+    # Compute KS statistic
+    ks_statistic = np.max(np.abs(generated_cdf - true_cdf))
+    
+    # Compute p-value
+    # For discrete distributions with n bins, use sqrt(n) scaling
+    n = len(generated_probs)
+    p_value = kstwobign.sf(ks_statistic * np.sqrt(n))
+    
+    return ks_statistic, p_value
 
 
 

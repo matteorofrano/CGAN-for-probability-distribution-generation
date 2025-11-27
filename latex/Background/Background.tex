@@ -71,6 +71,42 @@ we compute the expected value for each bin by using the following formula:
 where $a_{i}$ and $a_{i+1}$ are the standardized bins, $\phi(z)=\frac{1}{\sqrt{2\pi}} e^{-z^2/2}$ is the standard normal probability density function and 
 $\Phi(z) = \int_{-\infty}^{z} \phi(t) dt$. Finally, the expected value of $Z$ inside the two standardized bins is converted back to its original scale by multiplying it by ${\sigma_{X^j}}$ and adding $\mu_{X^j}$.
 
+
+
+\subsection{The Kolmogorov-Smirnov test}
+The Kolmogorov-Smirnov (KS) goodness-of-fit test evaluates whether an empirical distribution is consistent with a fully specified continuous reference distribution. 
+Let $F(x)$ denote the hypothesized cumulative distribution function (CDF), 
+and let $F_{n}(x)$ be the empirical CDF constructed from a sample of size $n$. 
+The KS statistic is defined as:
+\begin{equation}
+    D_{n}=\sup_{x}\lvert F_{n}(x)-F(x)\rvert
+\end{equation}
+representing the maximum vertical deviation between the empirical and theoretical CDFs.
+Under the null hypothesis $H_{0}: F_{n}(x)=F(x)$
+the scaled distribution $\sqrt{n}D_{n}$ converges to the Kolmogorov distribution, enabling computation of p-values via:
+\begin{equation*}
+    P(\sqrt{n}D_{n}\le t)=1-2\sum_{k=1}^{\infty}(-1)^{k-1}e^{-2k^{2}t^{2}}
+\end{equation*}
+Large values of $D_{n}$ lead to rejection of $H_{0}$, indicating
+incompatibility between the empirical and theoretical distributions.\\
+
+When applying the KS framework to generated outputs from the proposed GAN, the empirical object is a vector of bin probabilities
+$(p_{1},\dots,p_{K})$  These represent a discretized approximation of the model’s PDF. To construct the empirical CDF, 
+define cumulative probabilities:
+\begin{equation*}
+    F_{\text{GAN}}(x_{k})=\sum_{i=1}^{k}p_{i}
+\end{equation*}
+
+where $x_k$ indexes the bin boundaries. For comparison with a normal distribution, compute the theoretical CDF
+$F_{\mathcal N}(x_{k})$ at the same grid. The KS statistic becomes:
+\begin{equation*}
+    D=\max_{k}\lvert F_{\text{GAN}}(x_{k})-F_{\mathcal N}(x_{k})\rvert
+\end{equation*}
+
+This yields a valid discrepancy measure, although interpreting p-values requires specifying an effective sample size, since the GAN vector itself is not an empirical sample.
+Nonetheless, $D$ remains a rigorous, distribution-free indicator of alignment between the GAN-generated distribution and the target normal CDF.
+We can actually compute the the p-value of the test using the survival function of the kolmogorov distribution since $P(D_n ≥ \hat{D_n} | H_0)$.
+
 \section{CGAN formulation}
 GANs are often formalized as a minimax game, where the generator (G) seeks to minimize the value function V while the discriminator (D) aims to maximize it:
 \begin{equation}

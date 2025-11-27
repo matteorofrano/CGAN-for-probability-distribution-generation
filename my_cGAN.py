@@ -699,7 +699,7 @@ if __name__=="__main__":
     pdfs= sim.get_pdf(n_steps_ahead=10)
 
     #train myCGAN
-    mydata = prepare_data(pdfs, paths)
+    mydata, mean, std = prepare_data(pdfs, paths)
 
 
     conditional_gan = MyCGAN(max_epoch=200)
