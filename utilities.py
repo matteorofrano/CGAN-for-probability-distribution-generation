@@ -10,6 +10,7 @@ import struct
 import ast
 import seaborn as sns
 from scipy.stats import ttest_1samp
+from scipy.spatial.distance import jensenshannon
 
 
 
@@ -30,7 +31,7 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
 
 
 
-def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-8):
+def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-8, preprocess:str|None = None):
     """
     A auxiliary function to normalize data and load them into a dataloader
     X is the noise vector or true probability distribution
@@ -39,15 +40,28 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-8):
     #tensorization
     X_tensor = torch.tensor(X, dtype=torch.float32)
     C_tensor = torch.tensor(C, dtype=torch.float32)
-    X_mean = X_tensor.mean(dim=0)
-    X_std = X_tensor.std(dim=0) + eps
+    X_mean = None
+    X_std = None
 
-    #standardization
-    X_tensor = (X_tensor - X_mean) / X_std
-    C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
+    if preprocess:       
+        if preprocess == 'standardization':
+            X_mean = X_tensor.mean(dim=0)
+            X_std = X_tensor.std(dim=0) + eps
 
+            #standardization
+            X_tensor = (X_tensor - X_mean) / X_std
+            C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
+        
+        elif preprocess == 'log':
+            X_tensor = torch.log(X_tensor + 1e-9) #only target if probabilities
+        
+        else:
+            raise Exception('Select an available preprocess step. Available are \"standardization\", \"log\"')
+    
     dataset = TensorDataset(X_tensor, C_tensor)
     return dataset, X_mean, X_std
+        
+        
 
 
 def plot_learning_curve(df_csv:str):
@@ -67,6 +81,25 @@ def plot_learning_curve(df_csv:str):
         plt.show()
 
 
+def plot_bin_dist(true, pred):
+
+    if len(true)!=len(pred):
+        raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
+
+    # Create a vector of bin indices
+    bins = np.arange(len(pred))
+
+    plt.figure(figsize=(10,5))
+
+    plt.plot(bins, true, label="True histogram", linewidth=2)
+    plt.plot(bins, pred, label="Generated histogram", linewidth=2)
+
+    plt.xlabel("Bin index")
+    plt.ylabel("Probability")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 
 def manage_csv_results(csv:str):
@@ -76,6 +109,7 @@ def manage_csv_results(csv:str):
     df["true"] = df["true"].apply(ast.literal_eval)
 
     return df
+
 
 
 def analyze_error_distribution(csv:str):
@@ -124,6 +158,25 @@ def analyze_error_distribution(csv:str):
 
     return means, stds, summary
     
+
+def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
+
+    js_distances = []
+    epsilon = 1e-10 # Small epsilon for numerical stability
+
+    for p, t in zip(generated_arr, true_arr): 
+        if is_log:
+            p = np.exp(p)
+            t = np.exp(t)
+
+        #normalization
+        p = p / (np.sum(p) + epsilon)
+        t = t / (np.sum(t) + epsilon)
+        
+        # compute JSD
+        js_distances.append(jensenshannon(p, t))
+
+    return js_distances
 
 
 def ks_test_gan_cdf(generated_probs, true_probs):
@@ -264,7 +317,8 @@ class DataSimulator():
 
         return paths
     
-    def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None, use_cdf:bool = True):
+    def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
+                 use_cdf:bool = True, verbose:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
@@ -284,6 +338,14 @@ class DataSimulator():
         if mean.shape != std.shape:
             raise Exception(f'Shapes does not match. Mean\'s array shape {mean.shape} while std\'s array shape {std.shape}')
         
+
+        if verbose:
+            print(f"Mean values - unique: {np.unique(mean).shape}, min: {mean.min()}, max: {mean.max()}")
+            print(f"Std values - unique: {np.unique(std).shape}, min: {std.min()}, max: {std.max()}")
+            print(f"First 5 means: {mean[:5]}")
+            print(f"First 5 stds: {std[:5]}")
+
+
         #return vector of parameters
         if n_bins is None or n_bins==0:
             pdf = np.column_stack((mean, std))
@@ -326,11 +388,20 @@ class DataSimulator():
             # 4-sigma interval
             x_min = mean - 4*std
             x_max = mean + 4*std
-            
+                        
             bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins)
             standardized_bins = (bins - mean.reshape(self.n_simulations,1))/std.reshape(self.n_simulations,1)
 
-            if use_cdf!=True:
+            if verbose:
+                print(f"First 3 samples' first 5 bin edges:")
+                print(bins[:3, :5])
+                print(f"Are all rows identical? {np.allclose(bins[0], bins[1])}")
+
+                print(f"First 3 samples' first 5 bin edges standardized:")
+                print(standardized_bins[:3, :5])
+                print(f"Are all rows identical standardized? {np.allclose(standardized_bins[0], standardized_bins[1])}")
+
+            if use_cdf==False:
                 #use standardized distribution
                 phi = norm.pdf
                 Phi = norm.cdf
@@ -345,16 +416,17 @@ class DataSimulator():
                 return self.pdf
             
             else:
+                
                 probabilities = np.zeros((self.n_simulations, n_bins))
-                cdf_values = norm.cdf(standardized_bins)
+                cdf_values = norm.cdf(bins, loc=mean.reshape(self.n_simulations, 1), 
+                                        scale=std.reshape(self.n_simulations, 1))
                 
                 # Probability for each bin is the difference between consecutive CDF values
                 probabilities = np.diff(cdf_values, axis=1)
-            
-                #normalize 
-                probabilities = probabilities / probabilities.sum(axis=1, keepdims=True)
                 
+                print(f"Are all probability rows identical? {np.allclose(probabilities[0], probabilities[1])}")
                 self.pdf = probabilities
+
                 return self.pdf
 
         

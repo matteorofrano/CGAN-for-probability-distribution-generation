@@ -11,17 +11,8 @@ from matplotlib.pyplot import imshow, imsave
 from typing import Callable, Optional, List, Dict
 import os
 import json
-from utilities import TensorDataset, DataSimulator, prepare_data, pd
-
-
-def get_generated_data(G, trajectory, G_noise=100):
-    device= torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    z = torch.randn(trajectory.size(0), G_noise).to(device)
-    y_hat = G(z,trajectory) #generator takes in input z rand vector and c condition
-    result = y_hat.cpu().data.numpy()
-
-    return result
-
+import time
+from utilities import TensorDataset, DataSimulator, prepare_data, compute_js, pd
 
 
 class MyDiscriminator(nn.Module):
@@ -62,7 +53,8 @@ class MyDiscriminator(nn.Module):
 
         
         layers.append(nn.Linear(input_dim, output_dim))
-        layers.append(nn.Sigmoid())
+        #layers.append(nn.Sigmoid()) not used if loss_fn is BCEwithLogitLoss
+
         self.layer = nn.Sequential(*layers)
 
 
@@ -169,7 +161,7 @@ class MyGenerator(nn.Module):
 
     def __init__(self, latent_size:int=260, condition_size:int=22, output_dim:int=2, 
                  hidden_dims:List[int] = [128, 256, 128], use_batch_norm:bool = True, 
-                 activation:str = 'leaky_relu', dropout:float = 0.0):
+                 activation:str = 'leaky_relu', dropout:float = 0.0, is_prob:bool = False):
         
 
         
@@ -202,6 +194,8 @@ class MyGenerator(nn.Module):
             input_dim = hidden_dim
             
         layers.append(nn.Linear(input_dim, output_dim))
+        if is_prob:
+            layers.append(nn.LogSoftmax(dim=1)) # dim=1 for batch dimension
 
         #Sequential model
         self.layer = nn.Sequential(*layers)
@@ -310,7 +304,7 @@ class MyCGAN():
     Cgan architecture 
     """
     def __init__(self, max_epoch:int = 100, batch_size = 32, n_critic:int = 1,
-                  z_noise_dim:int = 252, loss_fn:Callable =  nn.BCELoss(), name:str = 'ConditionalGAN'):
+                  z_noise_dim:int = 252, loss_fn:Callable =  nn.BCEWithLogitsLoss(), name:str = 'ConditionalGAN'):
         """
         """
 
@@ -366,6 +360,8 @@ class MyCGAN():
 
         df = None
         step=0
+        self.D.train()
+        start_time = time.time()
         for epoch in range(self.max_epoch):
             predictions_list = []
             targets_list = []
@@ -383,29 +379,30 @@ class MyCGAN():
                 D_fakes = torch.zeros([current_batch_size, 1]).to(self.DEVICE) # Discriminator Label to fake
 
                 #TRAIN DISCRIMINATOR
+                D_opt.zero_grad()
+                
                 #real samples
                 x_outputs = self.D(x, y) # is the observed trajectory from t0 to t1 given the next n days probability distribution real? problem 2
                 D_x_loss = self.loss_fn(x_outputs, D_labels) #kl?
 
                 #fake samples
-                z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
-                z_outputs = self.D(self.G(z, y), y)
+                z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
+                z_outputs = self.D(self.G(z, y).detach(), y)
                 D_z_loss = self.loss_fn(z_outputs, D_fakes)
 
                 #backpropagation
                 D_loss = D_x_loss + D_z_loss 
-                self.D.zero_grad()
                 D_loss.backward()
                 D_opt.step()
                 
                 if step % self.n_critic == 0:
                     # TRAIN GENERATOR
-                    z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
+                    G_opt.zero_grad()
+                    z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
                     z_outputs = self.D(self.G(z, y), y)
                     G_loss = self.loss_fn(z_outputs, D_labels)
                     
                     #backpropagation
-                    self.G.zero_grad()
                     G_loss.backward()
                     G_opt.step()
                 
@@ -416,14 +413,16 @@ class MyCGAN():
                 #store history for each middle batch of the epoch
                 if save_history and idx == int(len(data_loader)/2): 
                     self.G.eval()
-                    generated = get_generated_data(self.G, y, self.z_dim) #batch_size number of generated data
+                    with torch.no_grad():
+                        z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
+                        generated = self.G(z, y).cpu().numpy()
                     for i, row in enumerate(generated):
                         pred = row.tolist()
                         true = x[i, :].cpu().tolist()
                         predictions_list.append(pred)
                         targets_list.append(true)
-
                         condition_list.append(y[i, :].cpu().tolist())
+
                         D_loss_list.append(round(float(D_loss), 4))
                         G_loss_list.append(round(float(G_loss), 4)) #type:ignore
                         
@@ -433,7 +432,8 @@ class MyCGAN():
 
             # Build a DataFrame where each list becomes a column
             if len(predictions_list)>1:
-                distance = np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
+                js_divergence = compute_js(np.array(predictions_list), np.array(targets_list))
+                distance = np.mean(js_divergence)  #np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
                 entries = pd.DataFrame({
                     "epoch": [int(epoch)]*len(predictions_list),
                     "generated": [json.dumps(pred) for pred in predictions_list],
@@ -453,12 +453,12 @@ class MyCGAN():
         
 
 
-    def predict(self, data: TensorDataset):
+    def generate(self, data: TensorDataset):
         """
         Generate predictions using the trained Generator
         
         Args:
-            data: TensorDataset containing conditions (trajectory data)
+            data: TensorDataset containing true values and conditions (pdf, trajectory)
 
         Returns:
             predictions: Generated probability distributions
@@ -474,6 +474,7 @@ class MyCGAN():
         self.G.eval()
         self.G.to(self.DEVICE)
         
+
         data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=False)
         
         predictions_list = []
@@ -491,15 +492,15 @@ class MyCGAN():
                 current_batch_size = y.size(0)
                 
                 # Generate samples
-                z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
+                z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
                 generated = self.G(z, y)
                 
                 predictions_list.append(generated.cpu())
                 conditions_list.append(y.cpu())
         
         # Concatenate all predictions
-        predictions = torch.cat(predictions_list, dim=0)
-        conditions = torch.cat(conditions_list, dim=0)
+        predictions = torch.cat(predictions_list, dim=0).numpy()
+        conditions = torch.cat(conditions_list, dim=0).numpy()
         
         return predictions, conditions
     
@@ -519,12 +520,10 @@ class MyCGAN():
         true = data.tensors[0].numpy()
         
         # Use existing predict method
-        generated, conditions = self.predict(data)
-        generated = generated.numpy()
-        conditions = conditions.numpy()
-        
+        generated, conditions = self.generate(data)
+
         # Compute errors
-        errors = generated - true
+        errors = (generated - true)/true
         
         stats = {
             "errors": errors,
@@ -554,8 +553,6 @@ class MyCGAN():
         return stats
     
 
-        
-
     def save_generator(self, filepath: Optional[str] = None):
         """Save the generator using its built-in save method"""
         if self.G is None:
@@ -565,7 +562,6 @@ class MyCGAN():
             filepath = f"{self.MODEL_NAME}_generator.pth"
         
         self.G.save(filepath)
-
 
 
     def save_discriminator(self, filepath: Optional[str] = None):
