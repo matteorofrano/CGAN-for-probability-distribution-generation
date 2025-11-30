@@ -364,7 +364,6 @@ class MyCGAN():
         step=0
         self.D.train()
         start_time = time.time()
-        w_before = copy.deepcopy(self.G.layer[0].weight.data)
         for epoch in range(self.max_epoch):
             predictions_list = []
             targets_list = []
@@ -435,8 +434,6 @@ class MyCGAN():
 
             # Build a DataFrame where each list becomes a column
             if len(predictions_list)>1:
-                print(f'pred: {np.array(predictions_list)[0, :5]}, true: {np.array(targets_list)[0, :5]} \n')
-                print()
                 js_divergence = compute_js(np.array(predictions_list), np.array(targets_list))
                 distance = np.mean(js_divergence)  #np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
                 entries = pd.DataFrame({
@@ -454,8 +451,6 @@ class MyCGAN():
                     df = pd.concat([df, entries], ignore_index=True)
 
         end_time = time.time()
-        w_after = self.G.layer[0].weight.data
-        print("Weight change:", (w_before - w_after).abs().sum())
         if df is not None:
             df.to_csv("generated_vs_true.csv", index=False)
         
