@@ -1,17 +1,11 @@
-import torch
-import torchvision
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision import transforms
-from torchvision.utils import save_image
-import numpy as np
-from matplotlib.pyplot import imshow, imsave
-from typing import Callable, Optional, List, Dict
 import os
 import json
 import time
+import numpy as np
+from typing import Callable, Optional, List, Dict
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
 from utilities import TensorDataset, DataSimulator, prepare_data, compute_js, pd
 
 
@@ -525,9 +519,14 @@ class MyCGAN():
         # Use existing predict method
         generated, conditions = self.generate(data)
 
-        # Compute errors
-        errors = (generated - true)/true
+        # Compute SMAPE errors
+        den = np.abs(true) + np.abs(generated)
+        mask = den != 0
+        if not mask.any():
+            raise ValueError("SMAPE undefined: all denominators are zero.")
         
+        errors = np.zeros_like(den, dtype=float)
+        errors[mask] = 2*np.abs(generated[mask] - true[mask])/den[mask]  
         stats = {
             "errors": errors,
             "generated": generated,

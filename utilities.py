@@ -8,6 +8,8 @@ from torch.utils.data import TensorDataset
 from scipy.stats import norm, kstwobign
 import struct
 import ast
+import math
+import os 
 import seaborn as sns
 from scipy.stats import ttest_1samp
 from scipy.spatial.distance import jensenshannon
@@ -119,12 +121,16 @@ def analyze_error_distribution(csv:str):
     errors = [c for c in df.columns if c.startswith("error_")]
     means = df[errors].mean()
     stds = df[errors].std()
+
+    if means.isna().any():
+        raise Exception(f'there is a NaN value when computing means in {means[means.isna()]}')
+    
     tests = []
 
     for col in errors:
         values = df[col].dropna()
         _, p_value = ttest_1samp(values, 0.0)
-        tests.append(p_value>0.01) #type:ignore
+        tests.append(p_value>0.05) #type:ignore
 
     summary = pd.DataFrame({
         "mean":     means,
@@ -160,7 +166,9 @@ def analyze_error_distribution(csv:str):
     
 
 def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
-
+    """
+    Compute the Jenson-Shannon measure 
+    """
     js_distances = []
     epsilon = 1e-10 # Small epsilon for numerical stability
 
@@ -318,7 +326,7 @@ class DataSimulator():
         return paths
     
     def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
-                 use_cdf:bool = True, verbose:bool = False):
+                 use_cdf:bool = True, verbose:bool = False, use_global:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
@@ -368,7 +376,7 @@ class DataSimulator():
                 return (phi(a) - phi(b)) / Z
             
             
-            def compute_expected_bin_value(row):
+            def compute_expected_bin_values(row):
                 if len(row)<2:
                     return row
                 
@@ -379,15 +387,40 @@ class DataSimulator():
                     if a>row[j+1]:
                         raise Exception(f"Next bin should be greater than previous one. Here next bin is {row[j+1]} while current bin is {a}")
 
-                    expected_value_std = truncated_normal_mean(a, row[j+1])
-                    expected_value = i_mean + i_std * expected_value_std
-                    expected_bin_values.append(float(expected_value))
+                    expected_value_z = truncated_normal_mean(a, row[j+1])
+                    expected_value = i_mean + i_std * expected_value_z
+
+                    if math.isnan(expected_value) or math.isinf(expected_value):
+                        raise Exception(f'the expected value calculated is {expected_value} which is not allowed')
                     
+                    expected_bin_values.append(float(expected_value))      
                 return expected_bin_values
+            
                 
             # 4-sigma interval
             x_min = mean - 4*std
             x_max = mean + 4*std
+
+            if use_global:
+                # Use the SAME absolute bin edges for all simulations
+                global_x_min = x_min.min()
+                global_x_max = x_max.max()
+                common_bins = np.linspace(global_x_min, global_x_max, n_bins + 1)
+
+                # Evaluate all distributions on the same bins
+                cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), 
+                                    scale=std.reshape(self.n_simulations, 1))
+                probabilities = np.diff(cdf_values, axis=1)
+
+                # zero out small values
+                probabilities[probabilities < 1e-7] = 0.0
+
+                # Renormalize
+                row_sums = probabilities.sum(axis=1, keepdims=True)
+                probabilities = probabilities / row_sums
+                self.pdf = probabilities
+                return self.pdf
+            
                         
             bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins)
             standardized_bins = (bins - mean.reshape(self.n_simulations,1))/std.reshape(self.n_simulations,1)
@@ -410,7 +443,7 @@ class DataSimulator():
                 for i, row in enumerate(standardized_bins):
                     i_mean = mean[i]
                     i_std = std[i]
-                    pdf.append(compute_expected_bin_value(row))
+                    pdf.append(compute_expected_bin_values(row))
 
                 self.pdf = np.array(pdf)
                 return self.pdf
@@ -442,19 +475,51 @@ class DataSimulator():
         
         dtype_paths = self.paths.dtype.str.encode('utf-8')
         dtype_pdf   = self.pdf.dtype.str.encode('utf-8')
-        with open(file_name + '.bin', 'wb') as f:
-            f.write(struct.pack('<I', len(dtype_paths))) #writes a 4-byte integer giving the length of the upcoming dtype string
-            f.write(dtype_paths) #writes that 3 dtype string
-            f.write(struct.pack('<I', len(dtype_pdf)))
-            f.write(dtype_pdf)
 
+        file_path = file_name + '.bin'
+        if not os.path.exists(file_path):
+            mode = 'wb'
+            write_header = True
+        else:
+            mode = 'ab'
+            write_header = False
+
+            #check datatype match
+            with open(file_path, 'rb') as file:
+                n1 = struct.unpack('<I', file.read(4))[0] #now the pointer is in position 4
+                stored_dtype1 = file.read(n1) 
+
+                n2 = struct.unpack('<I', file.read(4))[0]
+                stored_dtype2 = file.read(n2)
+
+                if stored_dtype1 != dtype_paths:
+                        raise ValueError(
+                        f"Incompatible dtype for paths: file has {stored_dtype1!r}\n "
+                        f"new data has {dtype_paths!r}"
+                        )
+                
+                if stored_dtype2 != dtype_pdf:
+                        raise ValueError(
+                        f"Incompatible dtype for paths: file has {stored_dtype2!r}\n "
+                        f"new data has {dtype_pdf!r}"
+                        )
+                
+        with open(file_path, mode) as f:
+            if write_header:
+                #write datatypes header
+                f.write(struct.pack('<I', len(dtype_paths))) #writes a 4-byte integer giving the length of the upcoming dtype string
+                f.write(dtype_paths) #writes that dtype
+                f.write(struct.pack('<I', len(dtype_pdf)))
+                f.write(dtype_pdf)
+
+            #write rows 
             for i, path in enumerate(self.paths):
                 f.write(struct.pack("<I", path.size)) # H used for max length of 65535
                 f.write(struct.pack("<I", self.pdf[i, :].size))
                 path.tofile(f)
                 self.pdf[i, :].tofile(f)
             
-        print(f'file stored in {file_name}.bin')
+        print(f'file stored in {file_path}')
 
 
     def load_binary_file(self, file_name:str):
@@ -572,23 +637,25 @@ class DataSimulator():
 
 
 if __name__ == '__main__':
-    # example
+    # data simulation 
     X0_range = (0.0,1.0)
     mu_range = (0.0, 0.0)
     sigma_range = (0.001, 1.0)
     T = 1.0        # Time horizon (1 year)
-    N = 252        # Number of time steps (trading days in a year)
-    J = 50         # Number of paths to simulate
+    N = 3        # Number of time steps
+    J = 2        # Number of paths to simulate
     SEED=42
 
     # --- Run the Simulation ---
     sim = DataSimulator(X0_range=X0_range, mu_range=mu_range, sigma_range=sigma_range, 
-                              T=T, N=N, n_simulations=J, seed=SEED)
-    
-    paths = sim.get_paths()
-    pdfs= sim.get_pdf(n_steps_ahead=10)
-    sim.plot()
-    
-    
-    print(paths)
-    print(pdfs)
+                                T=T, N=N, n_simulations=J, seed=SEED)
+
+    sim.get_paths()
+    sim.get_pdf(n_steps_ahead=10, n_bins=3)
+    sim.save_binary_file('data/demo')
+    print(sim.paths)
+    print(sim.pdf)
+
+    file_paths, file_pdf = sim.load_binary_file('data/inputs/demo.bin')
+    print(file_paths)
+    print(file_pdf)
