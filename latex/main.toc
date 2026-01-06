@@ -1,6 +1,14 @@
 \babel@toc {english}{}\relax 
 \contentsline {chapter}{\numberline {1}Background}{3}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Distribution parameters as input}{4}{section.1.1}%
-\contentsline {section}{\numberline {1.2}Approximated distribution via bins as input}{4}{section.1.2}%
-\contentsline {section}{\numberline {1.3}CGAN formulation}{4}{section.1.3}%
-\contentsline {section}{\numberline {1.4}Possible improvement to CGAN}{5}{section.1.4}%
+\contentsline {section}{\numberline {1.1}CGAN formulation}{3}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Data generation process}{4}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Distribution's parameters as output}{5}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Discretized distribution through bins as output}{5}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}Conditional expected value of the bin as output}{5}{subsection.1.2.3}%
+\contentsline {section}{\numberline {1.3}The Kolmogorov-Smirnov test}{6}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Possible improvement to CGAN}{7}{section.1.4}%
+\contentsline {section}{\numberline {1.5}training process}{7}{section.1.5}%
+\contentsline {subsection}{\numberline {1.5.1}mean and std as output}{8}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.2}conditional expected values as output}{9}{subsection.1.5.2}%
+\contentsline {subsection}{\numberline {1.5.3}bins probabilities as output}{10}{subsection.1.5.3}%
+\contentsline {section}{\numberline {1.6}Possible improvements to target modeling}{14}{section.1.6}%

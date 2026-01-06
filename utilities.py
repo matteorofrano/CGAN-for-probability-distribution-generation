@@ -33,7 +33,7 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
 
 
 
-def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-8, preprocess:str|None = None):
+def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None):
     """
     A auxiliary function to normalize data and load them into a dataloader
     X is the noise vector or true probability distribution
@@ -55,7 +55,7 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-8, preprocess:str|None = None
             C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
         
         elif preprocess == 'log':
-            X_tensor = torch.log(X_tensor + 1e-9) #only target if probabilities
+            X_tensor = torch.log(X_tensor + eps) #only target if probabilities
         
         else:
             raise Exception('Select an available preprocess step. Available are \"standardization\", \"log\"')
@@ -83,20 +83,25 @@ def plot_learning_curve(df_csv:str):
         plt.show()
 
 
-def plot_bin_dist(true, pred):
+def plot_bin_dist(true:np.ndarray, pred:np.ndarray,
+                   bins_values:np.ndarray, X_T: float|None = None):
 
     if len(true)!=len(pred):
         raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
 
-    # Create a vector of bin indices
-    bins = np.arange(len(pred))
-
     plt.figure(figsize=(10,5))
+    plt.plot(bins_values[:-1], true, label="True histogram", linewidth=2)
+    plt.plot(bins_values[:-1], pred, label="Generated histogram", linewidth=2)
 
-    plt.plot(bins, true, label="True histogram", linewidth=2)
-    plt.plot(bins, pred, label="Generated histogram", linewidth=2)
 
-    plt.xlabel("Bin index")
+    if X_T is not None:
+        plt.axvline(
+            x=X_T,
+            linestyle="--",
+            linewidth=2,
+            label=f"final price at the end of trajectory is X_T = {round(X_T, 3)}")
+
+    plt.xlabel("Bin values")
     plt.ylabel("Probability")
     plt.legend()
     plt.tight_layout()
@@ -126,11 +131,13 @@ def analyze_error_distribution(csv:str):
         raise Exception(f'there is a NaN value when computing means in {means[means.isna()]}')
     
     tests = []
+    ci = []
 
     for col in errors:
         values = df[col].dropna()
-        _, p_value = ttest_1samp(values, 0.0)
-        tests.append(p_value>0.05) #type:ignore
+        result = ttest_1samp(values, 0.0)
+        tests.append(result.pvalue >0.05) #type:ignore
+        ci.append((result.confidence_interval()))
 
     summary = pd.DataFrame({
         "mean":     means,
@@ -138,7 +145,8 @@ def analyze_error_distribution(csv:str):
         "median":   df[errors].median(),
         "skew":     df[errors].skew(),
         "kurtosis": df[errors].kurt(),
-        "is_zero_test": tests
+        "is_zero_test": tests,
+        "confidence_interval": ci
     })
 
     if len(errors)<20:
@@ -191,13 +199,8 @@ def ks_test_gan_cdf(generated_probs, true_probs):
     """
     Perform KS test comparing generated and true probability distributions.
     
-    Parameters:
-    -----------
     generated_probs : array of shape (n_bins,)
-        GAN-generated bin probabilities
     true_probs : array of shape (n_bins,)
-        True bin probabilities from normal distribution
-    
     """
     # Convert probabilities to CDFs
     generated_cdf = np.cumsum(generated_probs)
@@ -207,7 +210,6 @@ def ks_test_gan_cdf(generated_probs, true_probs):
     ks_statistic = np.max(np.abs(generated_cdf - true_cdf))
     
     # Compute p-value
-    # For discrete distributions with n bins, use sqrt(n) scaling
     n = len(generated_probs)
     p_value = kstwobign.sf(ks_statistic * np.sqrt(n))
     
@@ -254,10 +256,11 @@ class DataSimulator():
         self.mu = None
         self.sigma = None
 
-        #trajectories
+        #trajectories, probability density functions and bins
         self.paths=None
         self.X_T = None
         self.pdf=None
+        self.bins = None
 
     def sample_parameter(self, strategy:Text, range: tuple):
         """
@@ -326,7 +329,7 @@ class DataSimulator():
         return paths
     
     def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
-                 use_cdf:bool = True, verbose:bool = False, use_global:bool = False):
+                verbose:bool = False, use_global:bool = False, n_dimensional:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
@@ -364,66 +367,35 @@ class DataSimulator():
         else:
             if n_bins<1:
                 raise Exception('Provide a positive number of bins')
-            
-            def truncated_normal_mean(a, b):
-                """Compute E[X | a <= X <= b] for X ~ N(mu, sigma)."""
-                if b <= a:
-                    raise ValueError("Upper bound must be greater than lower bound.")
-                
-                Z = Phi(b) - Phi(a) # difference between CDF of standard normal between lower bound and upper bound
-                if Z<1e-10:
-                    return 0.5 * (a + b)  # fallback for extremely tiny probability mass
-                return (phi(a) - phi(b)) / Z
-            
-            
-            def compute_expected_bin_values(row):
-                if len(row)<2:
-                    return row
-                
-                expected_bin_values = []
-                for j, a in enumerate(row):
-                    if j==len(row)-1:
-                        break
-                    if a>row[j+1]:
-                        raise Exception(f"Next bin should be greater than previous one. Here next bin is {row[j+1]} while current bin is {a}")
-
-                    expected_value_z = truncated_normal_mean(a, row[j+1])
-                    expected_value = i_mean + i_std * expected_value_z
-
-                    if math.isnan(expected_value) or math.isinf(expected_value):
-                        raise Exception(f'the expected value calculated is {expected_value} which is not allowed')
-                    
-                    expected_bin_values.append(float(expected_value))      
-                return expected_bin_values
-            
                 
             # 4-sigma interval
             x_min = mean - 4*std
             x_max = mean + 4*std
 
             if use_global:
-                # Use the SAME absolute bin edges for all simulations
+                # use the SAME absolute bin edges for all simulations
                 global_x_min = x_min.min()
                 global_x_max = x_max.max()
                 common_bins = np.linspace(global_x_min, global_x_max, n_bins + 1)
+                self.bins = common_bins
 
-                # Evaluate all distributions on the same bins
+                # evaluate all distributions on the same bins  ?
                 cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), 
                                     scale=std.reshape(self.n_simulations, 1))
                 probabilities = np.diff(cdf_values, axis=1)
 
-                # zero out small values
+                # zero-out small values and renormalize
                 probabilities[probabilities < 1e-7] = 0.0
-
-                # Renormalize
                 row_sums = probabilities.sum(axis=1, keepdims=True)
                 probabilities = probabilities / row_sums
                 self.pdf = probabilities
+
                 return self.pdf
             
-                        
-            bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins)
+            # each sample has its own bin edges           
+            bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins+1)
             standardized_bins = (bins - mean.reshape(self.n_simulations,1))/std.reshape(self.n_simulations,1)
+            self.bins = bins
 
             if verbose:
                 print(f"First 3 samples' first 5 bin edges:")
@@ -434,33 +406,17 @@ class DataSimulator():
                 print(standardized_bins[:3, :5])
                 print(f"Are all rows identical standardized? {np.allclose(standardized_bins[0], standardized_bins[1])}")
 
-            if use_cdf==False:
-                #use standardized distribution
-                phi = norm.pdf
-                Phi = norm.cdf
-                
-                pdf = []
-                for i, row in enumerate(standardized_bins):
-                    i_mean = mean[i]
-                    i_std = std[i]
-                    pdf.append(compute_expected_bin_values(row))
-
-                self.pdf = np.array(pdf)
-                return self.pdf
+            probabilities = np.zeros((self.n_simulations, n_bins))
+            cdf_values = norm.cdf(bins, loc=mean.reshape(self.n_simulations, 1), 
+                                    scale=std.reshape(self.n_simulations, 1))
             
-            else:
-                
-                probabilities = np.zeros((self.n_simulations, n_bins))
-                cdf_values = norm.cdf(bins, loc=mean.reshape(self.n_simulations, 1), 
-                                        scale=std.reshape(self.n_simulations, 1))
-                
-                # Probability for each bin is the difference between consecutive CDF values
-                probabilities = np.diff(cdf_values, axis=1)
-                
-                print(f"Are all probability rows identical? {np.allclose(probabilities[0], probabilities[1])}")
-                self.pdf = probabilities
+            # Probability for each bin is the difference between consecutive CDF values
+            probabilities = np.diff(cdf_values, axis=1)
+            
+            print(f"Are all probability rows identical? {np.allclose(probabilities[0], probabilities[1])}")
+            self.pdf = probabilities
 
-                return self.pdf
+            return self.pdf
 
         
     

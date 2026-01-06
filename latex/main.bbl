@@ -63,6 +63,37 @@
       \field{title}{Time series simulation by conditional generative adversarial net}
       \field{year}{2019}
     \endentry
+    \entry{background:ks_test}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=61cfab2004dce53675c07da633f01ad1}{%
+           family={Massey\bibnamedelima Jr},
+           familyi={M\bibinitperiod\bibinitdelim J\bibinitperiod},
+           given={Frank\bibnamedelima J},
+           giveni={F\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Taylor \& Francis}%
+      }
+      \strng{namehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{fullhash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{fullhashraw}{61cfab2004dce53675c07da633f01ad1}
+      \strng{bibnamehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authorbibnamehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authornamehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authorfullhash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authorfullhashraw}{61cfab2004dce53675c07da633f01ad1}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of the American statistical Association}
+      \field{number}{253}
+      \field{title}{The Kolmogorov-Smirnov test for goodness of fit}
+      \field{volume}{46}
+      \field{year}{1951}
+      \field{pages}{68\bibrangedash 78}
+      \range{pages}{11}
+    \endentry
     \entry{background:wgan}{inproceedings}{}{}
       \name{author}{3}{}{%
         {{hash=ab4a5e058dea2d852ff02aa4e10045c3}{%
@@ -92,8 +123,8 @@
       \strng{authornamehash}{f587dda04e83e5dc90f2168faf0f4796}
       \strng{authorfullhash}{f587dda04e83e5dc90f2168faf0f4796}
       \strng{authorfullhashraw}{f587dda04e83e5dc90f2168faf0f4796}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{booktitle}{International conference on machine learning}
@@ -133,8 +164,8 @@
       \strng{authornamehash}{2f44aa6f8879d8ccd393228c8a7bd57b}
       \strng{authorfullhash}{e374405774f5015ac16ecdf7da6875b5}
       \strng{authorfullhashraw}{e374405774f5015ac16ecdf7da6875b5}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{arXiv preprint arXiv:1705.07215}
@@ -167,8 +198,8 @@
       \strng{authornamehash}{c364be3164dbae773df3b5d9de39e025}
       \strng{authorfullhash}{c364be3164dbae773df3b5d9de39e025}
       \strng{authorfullhashraw}{c364be3164dbae773df3b5d9de39e025}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{arXiv preprint arXiv:1706.02633}
