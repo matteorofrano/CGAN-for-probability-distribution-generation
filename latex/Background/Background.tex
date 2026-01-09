@@ -347,7 +347,7 @@ If global bins are used, then a trade-off between resolution and coverage is fac
 The resolution is the ability to capture fine-grained structure in the predictive distribution, while the coverage ensures that discretization bins meaningfully encompass the observed data.
 When globally defined bins are employed, resolution is degraded because the probability mass is often concentrated within a narrow subset of the overall range, rendering much of the discretization uninformative.\\
 
-Some possible solutions are:
+Some possible solutions are discussed in \cite{background:forgan} and \cite{background:md_cgan}:
 \begin{itemize}
     \item Model standardized log-returns rather than absolute prices.
     \item Predict the values corresponding to a fixed set of quantiles. 
@@ -356,6 +356,8 @@ Some possible solutions are:
     \item The generated output can be a single scalar expected value of the next time step, and then,
     at inference time, the distribution can be recovered by repeatedly evaluating the generator for a fixed input trajectory while varying the random noise.
     The collection of generated outputs, for example 1000 samples, constitutes an empirical approximation of the conditional predictive distribution.
+    \item The output is a multidimensional vector, where the first row contains the probability mass function while the other rows contain bin information. 
+    However, in this case it is not trivial to define a loss function that takes into account both the accuracy of the predicted probabilities and the correctness of the bin definitions.
     \item Add a term to the generator's loss that penalizes it if the mean and variance of a batch of generated samples don't match the mean and variance of the "real" theoretical samples.
 \end{itemize}
 

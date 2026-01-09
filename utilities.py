@@ -9,7 +9,9 @@ from scipy.stats import norm, kstwobign
 import struct
 import ast
 import math
-import os 
+import os
+import json 
+from pathlib import Path
 import seaborn as sns
 from scipy.stats import ttest_1samp
 from scipy.spatial.distance import jensenshannon
@@ -328,13 +330,13 @@ class DataSimulator():
 
         return paths
     
-    def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
-                verbose:bool = False, use_global:bool = False, n_dimensional:bool = False):
+    def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None, verbose:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
             n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt
-            bins:int -> if None or 0 then just compute the analytical mean and std. If greater than 0 compute bins of the distribution
+            n_bins:int -> if None or 0 then just compute the analytical mean and std. If greater than 0 compute bins of the distribution
+            bins: -> 1D array of custome bins. Usually used in inference time to load training bins
         """
 
         if self.X_T is None or self.mu is None or self.sigma is None or self.dt is None:
@@ -357,69 +359,80 @@ class DataSimulator():
             print(f"First 5 stds: {std[:5]}")
 
 
-        #return vector of parameters
-        if n_bins is None or n_bins==0:
-            pdf = np.column_stack((mean, std))
-            self.pdf = pdf
-            return self.pdf
-
-        #return distribution approximated by bins
+        # if bins already created
+        if self.bins is not None:
+            common_bins = self.bins
+        # if not created yet 
         else:
-            if n_bins<1:
-                raise Exception('Provide a positive number of bins')
-                
-            # 4-sigma interval
-            x_min = mean - 4*std
-            x_max = mean + 4*std
+            # use distribution parameters
+            if n_bins is None or n_bins<1:
+                pdf = np.column_stack((mean, std))
+                self.pdf = pdf
+                return self.pdf
+            # compute bins
+            else:
+                x_min = mean - 4*std
+                x_max = mean + 4*std
 
-            if use_global:
                 # use the SAME absolute bin edges for all simulations
                 global_x_min = x_min.min()
                 global_x_max = x_max.max()
                 common_bins = np.linspace(global_x_min, global_x_max, n_bins + 1)
                 self.bins = common_bins
 
-                # evaluate all distributions on the same bins  ?
-                cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), 
-                                    scale=std.reshape(self.n_simulations, 1))
-                probabilities = np.diff(cdf_values, axis=1)
+        # evaluate all distributions on the same bins  ?
+        cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), 
+                            scale=std.reshape(self.n_simulations, 1))
+        probabilities = np.diff(cdf_values, axis=1)
 
-                # zero-out small values and renormalize
-                probabilities[probabilities < 1e-7] = 0.0
-                row_sums = probabilities.sum(axis=1, keepdims=True)
-                probabilities = probabilities / row_sums
-                self.pdf = probabilities
+        # zero-out small values and renormalize
+        probabilities[probabilities < 1e-7] = 0.0
+        row_sums = probabilities.sum(axis=1, keepdims=True)
+        probabilities = probabilities / row_sums
+        self.pdf = probabilities
 
-                return self.pdf
+        return self.pdf
             
-            # each sample has its own bin edges           
-            bins = np.linspace(x_min, x_max, n_bins + 1).T #shape (n_simulation, n_bins+1)
-            standardized_bins = (bins - mean.reshape(self.n_simulations,1))/std.reshape(self.n_simulations,1)
-            self.bins = bins
 
-            if verbose:
-                print(f"First 3 samples' first 5 bin edges:")
-                print(bins[:3, :5])
-                print(f"Are all rows identical? {np.allclose(bins[0], bins[1])}")
+    def save_configuration(self, filepath: str):
+        """
+        Save the bins to a JSON file for later use in inference. 
+        """
 
-                print(f"First 3 samples' first 5 bin edges standardized:")
-                print(standardized_bins[:3, :5])
-                print(f"Are all rows identical standardized? {np.allclose(standardized_bins[0], standardized_bins[1])}")
-
-            probabilities = np.zeros((self.n_simulations, n_bins))
-            cdf_values = norm.cdf(bins, loc=mean.reshape(self.n_simulations, 1), 
-                                    scale=std.reshape(self.n_simulations, 1))
-            
-            # Probability for each bin is the difference between consecutive CDF values
-            probabilities = np.diff(cdf_values, axis=1)
-            
-            print(f"Are all probability rows identical? {np.allclose(probabilities[0], probabilities[1])}")
-            self.pdf = probabilities
-
-            return self.pdf
-
+        if self.bins is None:
+            raise ValueError("No bins available to save. Run get_pdf() with n_bins > 0 first.")
         
+        filepath = Path(filepath)
+        bins_list = self.bins.tolist()
+        
+        # save as JSON
+        with open(filepath, 'w') as f:
+            json.dump({'bins': bins_list}, f)
+        
+        print(f"Bins saved to {filepath}")
+
+
+
+    def load_configuration(self, filepath: str):
+        """
+        Load the bins from a saved JSON file.
+        """
+        filepath = Path(filepath)
+        
+        if not filepath.exists():
+            raise FileNotFoundError(f"Configuration file not found: {filepath}")
+        
+        # load JSON
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+        
+        self.bins = np.array(data['bins'])
+        print(f"Bins loaded from {filepath}")
+        print(f"Loaded {len(self.bins)} bins")
+        
+        return self.bins
     
+
     def save_binary_file(self, file_name:str):
         if self.pdf is None or self.paths is None:
             raise Exception("Trajectory data or probability distribution are not available. " \

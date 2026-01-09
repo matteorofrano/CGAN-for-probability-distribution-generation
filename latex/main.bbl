@@ -206,6 +206,87 @@
       \field{title}{Real-valued (medical) time series generation with recurrent conditional gans}
       \field{year}{2017}
     \endentry
+    \entry{background:forgan}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=3078690b8ba97ec61c413d69c4cfc1bd}{%
+           family={Koochali},
+           familyi={K\bibinitperiod},
+           given={Alireza},
+           giveni={A\bibinitperiod}}}%
+        {{hash=61f46fd1c3bf1ec12b55f111bc94e4ff}{%
+           family={Schichtel},
+           familyi={S\bibinitperiod},
+           given={Peter},
+           giveni={P\bibinitperiod}}}%
+        {{hash=39509991baf1f5b54ef9eede853edd37}{%
+           family={Dengel},
+           familyi={D\bibinitperiod},
+           given={Andreas},
+           giveni={A\bibinitperiod}}}%
+        {{hash=7407b7acfa262023851056a7cd752a26}{%
+           family={Ahmed},
+           familyi={A\bibinitperiod},
+           given={Sheraz},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{c6b7fbd1de94fc6987154b98f6414c22}
+      \strng{fullhash}{67098f1852a845cf3c441491c7f90980}
+      \strng{fullhashraw}{67098f1852a845cf3c441491c7f90980}
+      \strng{bibnamehash}{c6b7fbd1de94fc6987154b98f6414c22}
+      \strng{authorbibnamehash}{c6b7fbd1de94fc6987154b98f6414c22}
+      \strng{authornamehash}{c6b7fbd1de94fc6987154b98f6414c22}
+      \strng{authorfullhash}{67098f1852a845cf3c441491c7f90980}
+      \strng{authorfullhashraw}{67098f1852a845cf3c441491c7f90980}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Access}
+      \field{title}{Probabilistic forecasting of sensory data with generative adversarial networks--forgan}
+      \field{volume}{7}
+      \field{year}{2019}
+      \field{pages}{63868\bibrangedash 63880}
+      \range{pages}{13}
+    \endentry
+    \entry{background:md_cgan}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=53a79d81d740a4257879b94f3faf2795}{%
+           family={Zand},
+           familyi={Z\bibinitperiod},
+           given={Jaleh},
+           giveni={J\bibinitperiod}}}%
+        {{hash=05bb95ccbf018512823b22dffd9503bb}{%
+           family={Roberts},
+           familyi={R\bibinitperiod},
+           given={Stephen},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {MDPI}%
+      }
+      \strng{namehash}{8ec2659a774edc2497baae03cac7d64a}
+      \strng{fullhash}{8ec2659a774edc2497baae03cac7d64a}
+      \strng{fullhashraw}{8ec2659a774edc2497baae03cac7d64a}
+      \strng{bibnamehash}{8ec2659a774edc2497baae03cac7d64a}
+      \strng{authorbibnamehash}{8ec2659a774edc2497baae03cac7d64a}
+      \strng{authornamehash}{8ec2659a774edc2497baae03cac7d64a}
+      \strng{authorfullhash}{8ec2659a774edc2497baae03cac7d64a}
+      \strng{authorfullhashraw}{8ec2659a774edc2497baae03cac7d64a}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Signals}
+      \field{number}{3}
+      \field{title}{Mixture density conditional generative adversarial network models (MD-CGAN)}
+      \field{volume}{2}
+      \field{year}{2021}
+      \field{pages}{559\bibrangedash 569}
+      \range{pages}{11}
+    \endentry
   \enddatalist
 \endrefsection
 \endinput
