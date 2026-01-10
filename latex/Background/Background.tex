@@ -60,8 +60,8 @@ the SDE of the log-price $X_t^j$ as:
     \end{equation} 
 
 Where $S_0^j$ is the raw price at time $0$ of trajectory $j$, $\sigma_j$ is the volatility of trajectory $j$ and $W_t$ is a standard Brownian motion.\\
-$x_0^j$ and $\sigma_j$ are randomly sampled for each trajectory such that 
-$x_0^j \in [0, 10]$ and $\sigma_j \in (0.0, 1.0]$.\\
+$X_0^j$ and $\sigma_j$ are randomly sampled for each trajectory such that 
+$X_0^j \in [-1, 1]$ and $\sigma_j \in (0.0, 0.5]$.\\
 
 In this context our condition label $y_j$ for a general data observation $j$ is given by
 a vector containing the trajectory $y_j=[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$.
@@ -85,7 +85,7 @@ The procedure to build the condition data matrix $Y$ is summarized in Algorithm 
 \STATE Initialize an empty data matrix $Y$ of shape $J\times N$.
 \STATE Set iteration counter $j \leftarrow 0$.
 \REPEAT
-    \STATE Randomly sample $X_0^j \in [0.0, 10.0]$ and $\sigma_j \in (0.0, 1.0]$.
+    \STATE Randomly sample $X_0^j \in [-1.0, 1.0]$ and $\sigma_j \in (0.0, 0.5]$.
     \STATE Evolve $X_t^j$ based on the discretized SDE for $0, dt, ..., Ndt$ steps.
     \STATE Store the trajectory $[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$ in the $j$-th row of $Y$.
     \STATE Increment counter $j \leftarrow j + 1$.
@@ -98,8 +98,8 @@ The procedure to build the condition data matrix $Y$ is summarized in Algorithm 
 
 \subsection{Distribution's parameters as output}
 In $T=N dt$ we have the following information: the final log-price $X_{Ndt}^j$ of each trajectory $j$ and the corresponding volatility $\sigma_j$.
-The goal of the cGAN is to learn the distribution of the next time interval $Ndt + \Delta t$ 
-which is a normal distribution $\mathcal{N}(X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$.\\
+The goal of the cGAN is to learn the distribution of final values of the stochastic process at next time interval $Ndt + \Delta t$. 
+A theoretical closed form can be used as ground truth. It is given by a normal distribution $\mathcal{N}(X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$ where $\Delta t = dt \times \tau$ with $\tau$ the number of days ahead horizon.\\
 So the data matrix $X$ which has to be generated, that in classical implementations of GANs are images, is in this case 
 a vector containing the parametrization of the distribution. In this case a vector of two elements:
 the mean and the standard deviation.
@@ -115,8 +115,8 @@ In this case the data matrix $X$ is a vector of dimension $B$ where $B$ is the n
     In this simple scenario it is easy to observe that every sample is the same discretized standard normal distribution.
     \item \textbf{global constraints on the bin representation}: in this case, for each trajectory $j$,
     the normal distribution is discretized by taking as extreme values the minimum value of the vector obtained by $\mu - 4\sigma$ and the maximum value of the vector
-    obtained by $\mu + 4\sigma$. Then $100$ evenly spaced bins edges are created between these two extreme values. 
-    Again, in order to compute the density inside each bin range, bins' edges in matrix $B$ are standardized using the mean and standard deviation of the resulting normal distribution for sample $j$,
+    obtained by $\mu + 4\sigma$. Then $100$ evenly spaced bins are created between these two extreme values. 
+    Again, in order to compute the density inside each bin range, bins' edges in matrix $B$ are standardized using the mean and standard deviation of the resulting theoretical normal distribution for sample $j$,
     then the standard cumulative distribution function is applied to each bin edge, and finally the difference between two consecutive bin edges is computed.\\
     A drawback of this method is that the output vectors tends to be sparse since many bins will have a density equal to zero.
 \end{itemize}
@@ -146,8 +146,8 @@ The KS statistic is defined as:
     D_{n}=\sup_{x}\lvert F_{n}(x)-F(x)\rvert
 \end{equation}
 representing the maximum vertical deviation between the empirical and theoretical CDFs.
-Under the null hypothesis $H_{0}: F_{n}(x)=F(x)$
-the scaled distribution $\sqrt{n}D_{n}$ converges to the Kolmogorov distribution, enabling computation of p-values via:
+Under the null hypothesis $H_{0}: F_{n}(x)=F(x)$,
+the scaled distribution $\sqrt{n}D_{n}$ converges to the Kolmogorov distribution, enabling computation of p-values by using its CDF:
 \begin{equation*}
     P(\sqrt{n}D_{n}\le t)=1-2\sum_{k=1}^{\infty}(-1)^{k-1}e^{-2k^{2}t^{2}}
 \end{equation*}
@@ -155,50 +155,38 @@ Large values of $D_{n}$ lead to rejection of $H_{0}$, indicating
 incompatibility between the empirical and theoretical distributions.\\
 
 When applying the KS framework to generated outputs from the proposed GAN, the empirical object is a vector of bin probabilities
-$(p_{1},\dots,p_{K})$  These represent a discretized approximation of the model’s PDF. To construct the empirical CDF, 
-define cumulative probabilities:
+$(p_{1},\dots,p_{K})$.  These represent a discretized approximation of the model's PDF. To construct the empirical CDF, 
+the cumulative probabilities are computed as:
 \begin{equation*}
     F_{\text{GAN}}(x_{k})=\sum_{i=1}^{k}p_{i}
 \end{equation*}
 
-where $x_k$ indexes the bin boundaries. For comparison with a normal distribution, compute the theoretical CDF
-$F_{\mathcal N}(x_{k})$ at the same grid. The KS statistic becomes:
+where $x_k$ indexes the bin boundaries. For comparison with a normal distribution, the theoretical CDF
+$F_{\mathcal N}(x_{k})$ is computed at the same grid. The KS statistic becomes:
 \begin{equation*}
     D=\max_{k}\lvert F_{\text{GAN}}(x_{k})-F_{\mathcal N}(x_{k})\rvert
 \end{equation*}
 
-This yields a valid discrepancy measure, although interpreting p-values requires specifying an effective sample size, since the GAN vector itself is not an empirical sample.
+This yields a valid discrepancy measure, although interpreting p-values requires specifying an effective sample size.
 Nonetheless, $D$ remains a rigorous, distribution-free indicator of alignment between the GAN-generated distribution and the target normal CDF.
-We can actually compute the p\-value of the test using the survival function of the kolmogorov distribution since $P(D_n \geq \hat{D_n} | H_0)$.
+Actually, in order to compute the p\-value of the test the survival function of the Kolmogorov distribution is used $P(\sqrt{n}D_n \geq \sqrt{n}\hat{D_n} | H_0)$ 
+where $\hat{D_n}$ is the observed test statistic. 
+The effective sample size $n$ has been set equal to the number of bins $B$ used to discretize the distribution.
 
 
-
-
-\section{Possible improvement to CGAN}
-Different strategies have been adopted to improve training stability and convergence 
-of GANs.
-\begin{itemize}
-    \item \textbf{Wasserstein GAN}: WGAN \cite{background:wgan} introduces the Wasserstein distance (Earth Mover's Distance) as a new loss function for GANs. This distance metric provides a more meaningful measure of the difference between the real and generated data distributions,
-     leading to improved training stability and convergence. The WGAN objective function is given by $\min _G \max _{D \in \mathcal{D}} E_{\boldsymbol{x} \sim p_d}[D(\boldsymbol{x})]-E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}})]$.
-     \item \textbf{DRAGAN}: this framework was introduced to address these challenges by incorporating a gradient penalty directly into the GAN architecture.
-    The authors in \cite{background:dragan} observed that the local equilibria frequently manifest steep discriminator gradients in the vicinity of certain real data samples.
-    They further demonstrated that such degenerate local equilibria can be mitigated by applying a gradient penalty to the objective function, the method adopted is called DRAGAN.
-    \item A tip suggested in \cite{background:gan_time_series} to do not use batch normalization after adding the gradient penalty in order to improve model performances.
-    \item in \cite{background:rcgan} both the generator and discriminator are RNN or LSTM networks adopted to better capture the sequential dependencies in time series data.
-\end{itemize}
 
 
 \section{training process}
 During the training process of the proposed CGAN, a preprocess step is adopted 
 depending on the output representation selected. The following setup for the experiments has been used:\\
 \begin{itemize}
-    \item \textbf{Initial price range}: $X_0 \in (0.0, 1.0)$
+    \item \textbf{Initial price range}: $X_0 \in (-1.0, 1.0)$
     \item \textbf{Drift range}: $\mu \in (0.0, 0.0)$
-    \item \textbf{Volatility range}: $\sigma \in (0.001, 1.0)$
+    \item \textbf{Volatility range}: $\sigma \in (0.001, 0.5)$
     \item \textbf{Time horizon}: $T = 1.0$ year
     \item \textbf{Number of time steps}: $N = 252$
     \item \textbf{Number of simulated paths}: $J = 100{,}000$
-    \item \textbf{n-steps ahead}: $\Delta_t = 10$
+    \item \textbf{n-steps ahead}: $\tau = 10$
 \end{itemize}
 
 The experimental setup is based on a synthetic data generation process designed to emulate realistic financial price dynamics exploiting Geometric Brownian motion behaviour
@@ -255,7 +243,7 @@ and the norm $L_2$ between the real and generated vectors is used to measure the
     \centering
     \includegraphics[width=0.9\textwidth]{Background/images/bins_ev_sample.png}
     \caption{Sample of real and generated conditional expected values of the normal distribution.}
-    \label{bins_local_sample}
+    \label{bins_ev_sample}
 \end{figure}
 
 
@@ -293,7 +281,10 @@ to evaluate the goodness of fit of the generated distributions.
 The resulting p-values are on average around $0.99$ meaning that we cannot reject the null hypothesis
 that the two distributions are the same.\\
 
-The same procedure is applied when global bin representation is used.
+The same procedure is applied when global bin representation is used. 
+However, instead of using just the Mean Absolute Percentage Error (MAPE) to run the error analysis between real and generated bins probabilities,
+the Simmetric Mean Absolute Percentage Error (SMAPE) is used in order to take into account all those cases where
+the real bin probability is equal to zero and that would lead to an infinite percentage error.
 
 \begin{figure}[H]
     \centering
@@ -309,45 +300,57 @@ The same procedure is applied when global bin representation is used.
     \label{bins_global_error}
 \end{figure}
 
+From the results shown above in Figure \ref{bins_global_error}, it is possible to notice that tail bins have small error values since both real and generated probabilities tends to be close to zero.
+Most of errors are concentrated in central bins where the probabilities are higher. It is also important to notice the presence of error spikes,
+suggesting that for some pairs of theoretical and genereted distributions huge differences are present.\\
 Also in this case the Kolmogorov-Smirnov test has been performed between 100 real and generated bins probabilities, and
-the resulting p-values are rejected 5\% of times, meaning that we can reject the null hypothesis
-that the two distributions are the same.\\
+the resulting p-values are rejected 95\% of times, meaning that we can reject the null hypothesis
+that the generated distribution are equivalent to the theoretical ones.\\
 
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{Background/images/bins_global_sample.png}
-    \caption{All samples are drawn such that $X_0 = 0.8$ and $\sigma = 0.4$.\\
-    \textbf{a - } Sample of real and generated bins probabilities using global bins over 1000 samples.\\
-    \textbf{b - } Sample of real and generated bins probabilities using global bins over 1 sample.}
+    \caption{A sample obtained using $X_0 = 0.8$ and $\sigma = 0.4$.}
     \label{bins_global_sample}
 \end{figure}
 
-As can be seen from figure \ref{bins_global_sample} the main problem faced when using global bins
-is that during the training phase the generator is exposed to bins values which are very far away from each other,
-since they are based on the min and max values of the entire dataset, which can approach to milions of observations.
-This makes the shape of the generated distribution very concentrated to few bins on average, as we can see from the spikes of the generated distributions.
-However, when looking at few trajectories for which we would like to generate the future final price distribution,
-the real distributions are not so concentrated since the bins are computed from the min and max values of that specific trajectories.
-This leads to a poor quality of the generated distributions when global bins are used.
+In order to test the generalization capabilities of the model,
+different samples have been drawn such that every sampling parameter is fixed except for the volatility $\sigma$.
+In particular, six different samples are shown below where
+the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
+$\sigma = [0.001, 0.01, 0.05, 0.1, 0.5, 0.8]$. Notice that the last value has a sigma of $0.8$ which is outside the training range.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Background/images/bins_samples_sigma.png}
+    \caption{A sample obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.001, 0.01, 0.05, 0.1, 0.5, 0.8]$.}
+    \label{bins_global_sample_sigma}
+\end{figure}
+
+From the results shown above, it is possible to observe that the model is able to
+effectively capture the first moment of the distribution since it is usually alligned with the theoretical distribution.
+However, it struggles to accurately model the second moment, especially when the volatility is high.
+This would lead to underestimate or overestimate tail risk in financial applications.
 
 
+\section{Possible improvements}
+The main issue that need to be addressed in order to produce coherent distributions is to effectively capture the variance of the target distribution, 
+in order to avoid underestimation or overestimation of extreme events.
+After a brief literature review, some improvement can be made both from a problem modeling side and from a GAN architecture side.\\
+In fact, different strategies have been adopted to improve training stability and convergence of GANs.
+\begin{itemize}
+    \item \textbf{Wasserstein GAN}: WGAN \cite{background:wgan} introduces the Wasserstein distance (Earth Mover's Distance) as a new loss function for GANs. This distance metric provides a more meaningful measure of the difference between the real and generated data distributions,
+     leading to improved training stability and convergence. The WGAN objective function is given by $\min _G \max _{D \in \mathcal{D}} E_{\boldsymbol{x} \sim p_d}[D(\boldsymbol{x})]-E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}})]$.
+     \item \textbf{DRAGAN}: this framework was introduced to address these challenges by incorporating a gradient penalty directly into the GAN architecture.
+    The authors in \cite{background:dragan} observed that the local equilibria frequently manifest steep discriminator gradients in the vicinity of certain real data samples.
+    They further demonstrated that such degenerate local equilibria can be mitigated by applying a gradient penalty to the objective function, the method adopted is called DRAGAN.
+    \item A tip suggested in \cite{background:gan_time_series} to do not use batch normalization after adding the gradient penalty in order to improve model performances.
+    \item in \cite{background:rcgan} both the generator and discriminator are RNN or LSTM networks adopted to better capture the sequential dependencies in time series data.
+\end{itemize}
 
-\section{Possible improvements to target modeling}
-The main issue faced when modeling the target distribution is how to
-actually define the output representation of the distribution to be learned.
-If local bins are used, by exploiting values at $\mu \pm 4\sigma$ for each trajectory,
-then the resulting bins probabilities vectors are all the same for each trajectory, since
-a standardization procedure is needed to compute the bins probabilities. In fact,
-for each trajectory the minimum bin edge will be $-4$ since $(\mu - 4\sigma - \mu)/\sigma = -4$
-and the maximum bin edge will be $4$ since $(\mu + 4\sigma - \mu)/\sigma = 4$. So at the end, 
-the same standard normal distribution is discretized for each trajectory.\\
-
-If global bins are used, then a trade-off between resolution and coverage is faced.
-The resolution is the ability to capture fine-grained structure in the predictive distribution, while the coverage ensures that discretization bins meaningfully encompass the observed data.
-When globally defined bins are employed, resolution is degraded because the probability mass is often concentrated within a narrow subset of the overall range, rendering much of the discretization uninformative.\\
-
-Some possible solutions are discussed in \cite{background:forgan} and \cite{background:md_cgan}:
+Moreover, specific techniques can be employed to better capture the distributional characteristics of financial time series data.
+Some of these techniques are discussed in academic papers like \cite{background:forgan} and \cite{background:md_cgan}:
 \begin{itemize}
     \item Model standardized log-returns rather than absolute prices.
     \item Predict the values corresponding to a fixed set of quantiles. 
@@ -356,10 +359,5 @@ Some possible solutions are discussed in \cite{background:forgan} and \cite{back
     \item The generated output can be a single scalar expected value of the next time step, and then,
     at inference time, the distribution can be recovered by repeatedly evaluating the generator for a fixed input trajectory while varying the random noise.
     The collection of generated outputs, for example 1000 samples, constitutes an empirical approximation of the conditional predictive distribution.
-    \item The output is a multidimensional vector, where the first row contains the probability mass function while the other rows contain bin information. 
-    However, in this case it is not trivial to define a loss function that takes into account both the accuracy of the predicted probabilities and the correctness of the bin definitions.
-    \item Add a term to the generator's loss that penalizes it if the mean and variance of a batch of generated samples don't match the mean and variance of the "real" theoretical samples.
+    \item Adding a term to the generator's loss that penalizes it if the mean and variance of a batch of generated samples don't match the mean and variance of the "real" theoretical samples.
 \end{itemize}
-
-
-Possible approach is to compute the quantiles of the real normal distribution and use them as output representation.

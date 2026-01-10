@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Text
+from typing import Union, Tuple, Text, List
 import pandas as pd 
 import yfinance as yf
 import numpy as np
@@ -85,29 +85,52 @@ def plot_learning_curve(df_csv:str):
         plt.show()
 
 
-def plot_bin_dist(true:np.ndarray, pred:np.ndarray,
-                   bins_values:np.ndarray, X_T: float|None = None):
+def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
+                   bins_values:np.ndarray, X_T: List[float]|None = None, ncols=3):
 
-    if len(true)!=len(pred):
-        raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
+    n = len(trues)
+    nrows = math.ceil(n/ncols)
+    if n!= len(preds):
+        raise ValueError('trues and genereted must have the same length')
+    
+    fig, axes = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=(5 * ncols, 4 * nrows),
+        sharex=True,
+        sharey=True
+    )
 
-    plt.figure(figsize=(10,5))
-    plt.plot(bins_values[:-1], true, label="True histogram", linewidth=2)
-    plt.plot(bins_values[:-1], pred, label="Generated histogram", linewidth=2)
+    axes = axes.flatten()
+    for i, (true, pred) in enumerate(zip(trues, preds)):
+        if len(true)!=len(pred):
+            raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
 
+        ax = axes[i]
+        ax.plot(bins_values[:-1], true, label="True histogram", linewidth=2)
+        ax.plot(bins_values[:-1], pred, label="Generated histogram", linewidth=2)
 
-    if X_T is not None:
-        plt.axvline(
-            x=X_T,
-            linestyle="--",
-            linewidth=2,
-            label=f"final price at the end of trajectory is X_T = {round(X_T, 3)}")
+        if X_T is not None:
+            ax.axvline(
+                x=X_T[i],
+                linestyle=":",
+                linewidth=2,
+                label=f"X_T={round(X_T[i], 3)}"
+            )
 
-    plt.xlabel("Bin values")
-    plt.ylabel("Probability")
-    plt.legend()
+        ax.set_title(f"Histogram {i}")
+        ax.set_xlabel("Bin values")
+        ax.set_ylabel("Probability")
+        ax.legend()
+
+    # Remove unused axes
+    for j in range(n, len(axes)):
+        fig.delaxes(axes[j])
+
     plt.tight_layout()
     plt.show()
+
+    
 
 
 
@@ -237,7 +260,9 @@ class DataSimulator():
     """
 
     def __init__(self,
-                  X0_range: Tuple[float, float], mu_range: Tuple[float, float], sigma_range: Tuple[float, float],
+                  X0_range: Union[Tuple[float, float], List[float]],
+                  mu_range: Union[Tuple[float, float], List[float]],
+                  sigma_range: Union[Tuple[float, float], List[float]],
                   T: float, N: int, n_simulations: int, seed:int|None = None):
         
         # Create one generator when the object is created
@@ -250,7 +275,7 @@ class DataSimulator():
         self.T=T
         self.N = N
         self.n_simulations = n_simulations
-        self.dt = None
+        self.dt = T/N
         self.sampling_strategies = ['uniform', 'log_uniform']
 
         #to be sampled
@@ -298,9 +323,27 @@ class DataSimulator():
 
         """
 
-        self.X0 = self.sample_parameter('uniform', self.X0_range)
-        self.mu = self.sample_parameter('uniform', self.mu_range)
-        self.sigma = self.sample_parameter('uniform', self.sigma_range)
+        if isinstance(self.X0_range, Tuple):  
+            self.X0 = self.sample_parameter('uniform', self.X0_range)
+        elif isinstance(self.X0_range, List):
+            self.X0 = np.array(self.X0_range)
+        else:
+            raise ValueError('X0_range parameter require either a tuple of the form (start,end) or a list of floating values')
+
+        if isinstance(self.mu_range, Tuple):  
+            self.mu = self.sample_parameter('uniform', self.mu_range)
+        elif isinstance(self.mu_range, List):
+            self.mu = np.array(self.mu_range)
+        else:
+            raise ValueError('mu_range parameter require either a tuple of the form (start,end) or a list of floating values')
+        
+        if isinstance(self.sigma_range, Tuple):  
+            self.sigma = self.sample_parameter('uniform', self.sigma_range)
+        elif isinstance(self.sigma_range, List):
+            self.sigma = np.array(self.sigma_range)
+        else:
+            raise ValueError('sigma_range parameter require either a tuple of the form (start,end) or a list of floating values')
+        
 
         for i, sampling_parameter in enumerate([self.X0, self.mu, self.sigma]):
             if len(sampling_parameter)<1:
@@ -312,7 +355,7 @@ class DataSimulator():
         paths = np.zeros((self.n_simulations, self.N + 1)) #shape (M, N + 1)
         paths[:, 0] = self.X0 # Set the initial value for all paths
 
-        self.dt = self.T / self.N
+        
         #drift --- (mu - 0.5 * sigma^2) * dt 
         drift = (self.mu - 0.5 * self.sigma**2) * self.dt #type: ignore
 
@@ -345,7 +388,7 @@ class DataSimulator():
         
         # analytical parameters of the step ahead distribution
         delta_t = n_steps_ahead * self.dt
-        mean = self.X_T - (0.5 * (self.sigma**2) * delta_t)
+        mean = self.X_T - ((self.mu - 0.5 * self.sigma**2) * delta_t)
         std = self.sigma * np.sqrt(delta_t)
 
         if mean.shape != std.shape:
@@ -404,10 +447,11 @@ class DataSimulator():
         
         filepath = Path(filepath)
         bins_list = self.bins.tolist()
+        json_dict = {'bins': bins_list, 'dt':self.dt}
         
         # save as JSON
         with open(filepath, 'w') as f:
-            json.dump({'bins': bins_list}, f)
+            json.dump(json_dict, f)
         
         print(f"Bins saved to {filepath}")
 
@@ -427,6 +471,7 @@ class DataSimulator():
             data = json.load(f)
         
         self.bins = np.array(data['bins'])
+        #self.dt = data['dt']
         print(f"Bins loaded from {filepath}")
         print(f"Loaded {len(self.bins)} bins")
         
