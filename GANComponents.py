@@ -11,7 +11,7 @@ class MyDiscriminator(nn.Module):
     """
     # num_classes = 1 because output is real or fake
     def __init__(self, input_size=260, condition_size=22, output_dim=1, 
-                 hidden_dims:List[int] = [256, 128], use_batch_norm:bool = False,
+                 hidden_dims:List[int] = [256, 128], use_layer_norm:bool = False,
                  activation:str = 'leaky_relu', dropout:float = 0.0):
         
         super(MyDiscriminator, self).__init__()
@@ -21,7 +21,7 @@ class MyDiscriminator(nn.Module):
         self.condition_size = condition_size
         self.output_dim = output_dim
         self.hidden_dims = hidden_dims
-        self.use_batch_norm = use_batch_norm
+        self.use_batch_norm = use_layer_norm
         self.activation = activation
         self.dropout = dropout
         self.act_fn = self._get_activation(activation)
@@ -31,8 +31,8 @@ class MyDiscriminator(nn.Module):
         for i, hidden_dim in enumerate(hidden_dims):
             layers.append(nn.Linear(input_dim, hidden_dim))
 
-            if use_batch_norm:
-                layers.append(nn.BatchNorm1d(hidden_dim))
+            if use_layer_norm:
+                layers.append(nn.LayerNorm(hidden_dim))
 
             layers.append(self.act_fn)
 
@@ -64,7 +64,7 @@ class MyDiscriminator(nn.Module):
             'condition_size': self.condition_size,
             'output_dim': self.output_dim,
             'hidden_dims': self.hidden_dims,
-            'use_batch_norm': self.use_batch_norm,
+            'use_layer_norm': self.use_batch_norm,
             'activation': self.activation,
             'dropout': self.dropout
         }
@@ -151,7 +151,7 @@ class MyGenerator(nn.Module):
 
     def __init__(self, latent_size:int=260, condition_size:int=22, output_dim:int=2, 
                  hidden_dims:List[int] = [128, 256, 128], use_batch_norm:bool = True, 
-                 activation:str = 'leaky_relu', dropout:float = 0.0, is_prob:bool = False):
+                 activation:str = 'relu', dropout:float = 0.0, is_prob:bool = False):
         
 
         

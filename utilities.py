@@ -58,7 +58,7 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None
         
         elif preprocess == 'log':
             X_tensor = torch.log(X_tensor + eps) #only target if probabilities
-        
+            
         else:
             raise Exception('Select an available preprocess step. Available are \"standardization\", \"log\"')
     

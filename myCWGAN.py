@@ -287,7 +287,6 @@ class MyCWGAN(MyCGAN):
         C_loss = float('inf')
         start_time = time.time()
         
-        wasserstein_history = []
         for epoch in range(self.max_epoch):
             predictions_list = []
             targets_list = []
@@ -374,15 +373,14 @@ class MyCWGAN(MyCGAN):
             epoch_time = time.time() - epoch_start_time
             # -----EARLY STOP CHECK-----
             if epoch > early_stopping_waiting:
-                avg_w_distance = self.compute_epoch_wasserstein_distance(data_loader)
-                wasserstein_history.append(avg_w_distance) 
-                print(f"\n📊 Epoch {epoch} Summary:")
+                avg_w_distance = self.compute_epoch_wasserstein_distance(data_loader) 
+                print(f"\n Epoch {epoch} Summary:")
                 print(f"   Avg W-distance: {avg_w_distance:.4f}")
                 print(f"   Epoch time: {epoch_time:.2f}s")
                 
                 # Check early stopping
                 if self.early_stop_check(avg_w_distance, epoch):
-                    print(f"\n✅ Training stopped early after {epoch + 1} epochs")
+                    print(f"\n Training stopped early after {epoch + 1} epochs")
                     break
             
             # Clear CUDA cache periodically to prevent memory buildup
@@ -410,8 +408,6 @@ class MyCWGAN(MyCGAN):
         
         end_time = time.time()
         print(f"\n  Total training time: {end_time - start_time:.2f} seconds")
-        print(f" W-distance improvement: {wasserstein_history[0]:.4f} → {wasserstein_history[-1]:.4f}")
-        
         
         if df is not None:
             df.to_csv("wcgan_generated_vs_true.csv", index=False)

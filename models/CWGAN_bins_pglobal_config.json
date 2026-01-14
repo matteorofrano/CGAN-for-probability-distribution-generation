@@ -1,5 +1,5 @@
 {
-  "max_epoch": 200,
+  "max_epoch": 100,
   "batch_size": 32,
   "n_critic": 5,
   "z_dim": 252,
