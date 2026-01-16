@@ -1,182 +1,5 @@
-\chapter{Background}
+\chapter{Experimental results}
 
-
-\section{CGAN formulation}
-GANs are often formalized as a minimax game, where the generator (G) seeks to minimize the value function V while the discriminator (D) aims to maximize it:
-\begin{equation}
-    \label{eq:GAN minimax}
-\min _G \max _D V(D, G)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
-\end{equation}
-
-The discriminator outputs a value $D(x)$, 
-which represents the probability that $x$ is the real vector containing mean and variance of the normal distribution.
-Its goal is to correctly classify the real parameters as real and generated parameters as fake,
-effectively maximizing the likelihood of the observed data.
-To measure this, we use cross-entropy loss, as is common in deep learning,
-expressed as $plog(1-p)$. 
-For real parameters, the true label $p$ equals 1, 
-while for generated parameters the label is 0.
-With this setup, the discriminator's objective becomes:
-\begin{equation}
-    \label{eq:discriminator objective}
-    \max _D V(D)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
-\end{equation}
-
-where $\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]$ define how good the discriminator recognize real parameters.
-and $\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]$ define how good the discriminator recognizes generated parameters.\\
-The generator's objective is to produce distribution parameters that maximize $D(x)$, pushing the discriminator to classify them as real:
-\begin{equation}
-    \label{eq:generator objective}
-\min _G V(G)=\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
-\end{equation}
-
-Where $\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]$ define how good the generator is in fooling the discriminator.\\
-
-In the Conditional GAN (CGAN), the generator learns to generate a fake sample with a specific condition, in our case the past trajectory, rather than a generic sample from unknown noise distribution.
-The CGAN objective function is given by:
-\begin{equation}
-    \label{eq:CGAN minimax}
-    \min _G \max _D V(D, G)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x} \mid \boldsymbol{y})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z} \mid \boldsymbol{y})))]
-\end{equation}
-
-Academic findings highlighted in \cite{background:gan_time_series} suggest that one of the principal failure modes of GANs 
-arises when the generator converges to a parameter configuration that yields only a limited variety of outputs.
-Existing research indicates that the occurrence of mode collapse is attributed to the establishment of a local 
-equilibrium within the minimax optimization framework.
-A further critical challenge involves the vanishing gradient problem,
-which emerges when the discriminator becomes overly proficient,
-causing the generator's gradients to approach zero and consequently impeding its learning process.
-
-\section{Data generation process}
-
-for each trajectory $j = 1, ..., J$ we define 
-the SDE of the log-price $X_t^j$ as:
-\begin{equation}
-    \label{log-price SDE}
-    \begin{aligned}
-       &dX_t^j = -\frac{1}{2}\sigma_j^2 dt + \sigma_j dW_t\\
-         &\text{with } X_0^j = \log(S_0^j)
-    \end{aligned}
-    \end{equation} 
-
-Where $S_0^j$ is the raw price at time $0$ of trajectory $j$, $\sigma_j$ is the volatility of trajectory $j$ and $W_t$ is a standard Brownian motion.\\
-$X_0^j$ and $\sigma_j$ are randomly sampled for each trajectory such that 
-$X_0^j \in [-1, 1]$ and $\sigma_j \in (0.0, 0.5]$.\\
-
-In this context our condition label $y_j$ for a general data observation $j$ is given by
-a vector containing the trajectory $y_j=[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$.
-So our condition data matrix $Y$ has shape $J\times N$ where $J$ is the number of trajectories (data points)
- and $N$ is the number of time steps in each trajectory.\\
- 
- The SDE is discretized over a uniform time space $N dt = T$ obtaining the following form
- adopted for the simulation of the trajectories:
- \begin{equation}
-    X_{t+dt}^j = X_0^j -\frac{1}{2}\sigma_j^2 dt + \sigma_j \sqrt{dt} Z_t
- \end{equation}
- Where $Z_t \sim \mathcal{N}(0,1)$.\\
-The procedure to build the condition data matrix $Y$ is summarized in Algorithm \ref{alg:y condition}.
-
-\begin{algorithm}[H]
-\caption{Algorithm for the condition data matrix $Y$ creation}
-\label{alg:y condition}
-\begin{algorithmic}[1]
-
-\STATE Define the number of simulation $J$.
-\STATE Initialize an empty data matrix $Y$ of shape $J\times N$.
-\STATE Set iteration counter $j \leftarrow 0$.
-\REPEAT
-    \STATE Randomly sample $X_0^j \in [-1.0, 1.0]$ and $\sigma_j \in (0.0, 0.5]$.
-    \STATE Evolve $X_t^j$ based on the discretized SDE for $0, dt, ..., Ndt$ steps.
-    \STATE Store the trajectory $[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$ in the $j$-th row of $Y$.
-    \STATE Increment counter $j \leftarrow j + 1$.
-\UNTIL{$j = J$}
-\RETURN $Y$
-\end{algorithmic}
-\end{algorithm}
-
-
-
-\subsection{Distribution's parameters as output}
-In $T=N dt$ we have the following information: the final log-price $X_{Ndt}^j$ of each trajectory $j$ and the corresponding volatility $\sigma_j$.
-The goal of the cGAN is to learn the distribution of final values of the stochastic process at next time interval $Ndt + \Delta t$. 
-A theoretical closed form can be used as ground truth. It is given by a normal distribution $\mathcal{N}(X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$ where $\Delta t = dt \times \tau$ with $\tau$ the number of days ahead horizon.\\
-So the data matrix $X$ which has to be generated, that in classical implementations of GANs are images, is in this case 
-a vector containing the parametrization of the distribution. In this case a vector of two elements:
-the mean and the standard deviation.
-
-\subsection{Discretized distribution through bins as output}
-An alternative approach to represent the distribution at time $T + \Delta t$, is to approximate it through bins.
-In this case the data matrix $X$ is a vector of dimension $B$ where $B$ is the number of bins' ranges adopted for the approximation.
-\begin{itemize}
-    \item \textbf{local constraints on the bin representation}: in this case, for each trajectory $j$,
-    the normal distribution is discretized by using a common bin representation obtained by taking as extreme values $\mu_j \pm 4\sigma_j$. Then $100$ evenly spaced bins edges are created between these two extreme values. 
-    In order to compute the density inside each bin range, bins' edges in matrix $B$ are standardized using the mean and standard deviation of the resulting normal distribution for sample $j$,
-    then the standard cumulative distribution function is applied to each bin edge, and finally the difference between two consecutive bin edges is computed.\\
-    In this simple scenario it is easy to observe that every sample is the same discretized standard normal distribution.
-    \item \textbf{global constraints on the bin representation}: in this case, for each trajectory $j$,
-    the normal distribution is discretized by taking as extreme values the minimum value of the vector obtained by $\mu - 4\sigma$ and the maximum value of the vector
-    obtained by $\mu + 4\sigma$. Then $100$ evenly spaced bins are created between these two extreme values. 
-    Again, in order to compute the density inside each bin range, bins' edges in matrix $B$ are standardized using the mean and standard deviation of the resulting theoretical normal distribution for sample $j$,
-    then the standard cumulative distribution function is applied to each bin edge, and finally the difference between two consecutive bin edges is computed.\\
-    A drawback of this method is that the output vectors tends to be sparse since many bins will have a density equal to zero.
-\end{itemize}
-
-\subsection{Conditional expected value of the bin as output}
-Each element of the vector represents the expected value given that the value falls inside that bin range, so 
-$E[ X_{Ndt}^j | b_i \leq X_{Ndt}^j \leq b_{i+1}]$ for $X_{Ndt}^j \sim \mathcal{N}(X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})$, in the following description
-we just define the mean parameter as $\mu_{X^j}$ and the standard deviation parameter as ${\sigma_{X^j}}$.
-To create this representation we first define the bin edges by taking as min and max values the $ \pm 4 \sigma_{X^j}$ values coming from the normal distribution previously defined.
-Then we create $B$ bins uniformly spaced between the min and max values.
-For each bin range $B_i$ defined by the edges $[b_{i}, b_{i+1}]$,
-we compute the expected value for each bin by using the following formula:
-\begin{equation}
-    \mathbb{E}[Z \mid a_i \leq Z \leq a_{i+1}] = \frac{\phi(a) - \phi(a_{i+1})}{\Phi(a) - \Phi(a_{i+1})}
-\end{equation}
-where $a_{i}$ and $a_{i+1}$ are the standardized bins, $\phi(z)=\frac{1}{\sqrt{2\pi}} e^{-z^2/2}$ is the standard normal probability density function and 
-$\Phi(z) = \int_{-\infty}^{z} \phi(t) dt$. Finally, the expected value of $Z$ inside the two standardized bins is converted back to its original scale by multiplying it by ${\sigma_{X^j}}$ and adding $\mu_{X^j}$.
-
-
-
-\section{The Kolmogorov-Smirnov test}
-The Kolmogorov-Smirnov (KS) as defined in \cite{background:ks_test}, is a goodness of fit test that evaluates whether an empirical distribution is consistent with a fully specified continuous reference distribution. 
-Let $F(x)$ denote the hypothesized cumulative distribution function (CDF), 
-and let $F_{n}(x)$ be the empirical CDF constructed from a sample of size $n$. 
-The KS statistic is defined as:
-\begin{equation}
-    D_{n}=\sup_{x}\lvert F_{n}(x)-F(x)\rvert
-\end{equation}
-representing the maximum vertical deviation between the empirical and theoretical CDFs.
-Under the null hypothesis $H_{0}: F_{n}(x)=F(x)$,
-the scaled distribution $\sqrt{n}D_{n}$ converges to the Kolmogorov distribution, enabling computation of p-values by using its CDF:
-\begin{equation*}
-    P(\sqrt{n}D_{n}\le t)=1-2\sum_{k=1}^{\infty}(-1)^{k-1}e^{-2k^{2}t^{2}}
-\end{equation*}
-Large values of $D_{n}$ lead to rejection of $H_{0}$, indicating
-incompatibility between the empirical and theoretical distributions.\\
-
-When applying the KS framework to generated outputs from the proposed GAN, the empirical object is a vector of bin probabilities
-$(p_{1},\dots,p_{K})$.  These represent a discretized approximation of the model's PDF. To construct the empirical CDF, 
-the cumulative probabilities are computed as:
-\begin{equation*}
-    F_{\text{GAN}}(x_{k})=\sum_{i=1}^{k}p_{i}
-\end{equation*}
-
-where $x_k$ indexes the bin boundaries. For comparison with a normal distribution, the theoretical CDF
-$F_{\mathcal N}(x_{k})$ is computed at the same grid. The KS statistic becomes:
-\begin{equation*}
-    D=\max_{k}\lvert F_{\text{GAN}}(x_{k})-F_{\mathcal N}(x_{k})\rvert
-\end{equation*}
-
-This yields a valid discrepancy measure, although interpreting p-values requires specifying an effective sample size.
-Nonetheless, $D$ remains a rigorous, distribution-free indicator of alignment between the GAN-generated distribution and the target normal CDF.
-Actually, in order to compute the p\-value of the test the survival function of the Kolmogorov distribution is used $P(\sqrt{n}D_n \geq \sqrt{n}\hat{D_n} | H_0)$ 
-where $\hat{D_n}$ is the observed test statistic. 
-The effective sample size $n$ has been set equal to the number of bins $B$ used to discretize the distribution.
-
-
-
-
-\section{training process}
 During the training process of the proposed CGAN, a preprocess step is adopted 
 depending on the output representation selected. The following setup for the experiments has been used:\\
 \begin{itemize}
@@ -189,17 +12,18 @@ depending on the output representation selected. The following setup for the exp
     \item \textbf{n-steps ahead}: $\tau = 10$
 \end{itemize}
 
-The experimental setup is based on a synthetic data generation process designed to emulate realistic financial price dynamics exploiting Geometric Brownian motion behaviour
+The experimental setup is based on a data generation process designed to emulate realistic financial price dynamics exploiting Geometric Brownian motion behavior
 for training and evaluating the GAN model. 
-Asset price trajectories are simulated over a fixed time horizon of one year, discretized into $N=252$ time steps corresponding to daily observations.
+The asset price trajectories are simulated over a fixed time horizon of one year, discretized into $N=252$ time steps corresponding to daily observations.
 For each experiment, $J=100{,}000$ independent paths are generated, ensuring sufficient sample diversity and statistical robustness.
-The initial asset price $X_0$ is drawn from a uniform range $(0.0,1.0)$, while the drift parameter $\mu$ is fixed at zero to isolate the model's ability to learn volatility-driven dynamics.
-The volatility parameter $\sigma$ is sampled from a wide range $(0.001,1.0)$ to capture varying market conditions, from near-deterministic to highly stochastic regimes.
+The initial asset price $X_0$ is drawn from a uniform range $(-1.0, 1.0)$, while the drift parameter $\mu$ is fixed at zero to isolate the model's ability to learn volatility-driven dynamics.
+The volatility parameter $\sigma$ is sampled from a wide range $(0.001,0.5)$ to capture varying market conditions, from near-deterministic to highly stochastic regimes.
 The PDF to be learned refers to the $10$-th step ahead distribution, that is the distribution of asset prices at time $T + 10$ (or $N dt + 10$) given information up to time $T$.
 
-\subsection{mean and std as output}
+
+\section{Mean and Standard Deviation as target}
 When the output representation is the mean and standard deviation of the normal distribution,
-a standardization preprocess is applied to both the condition data matrix $Y$ and the target data matrix $X$.
+a standardization preprocess is applied to both the condition data matrix $Y$ and the target data matrix $X$ before training phase begins.
 This involves centering the data to have zero mean and scaling it to have unit variance.\\
 
 In this case, the distance between the real and generated distribution is measured by the norm $L_2$ between the real and generated parameters vectors.
@@ -219,73 +43,19 @@ In this case, the distance between the real and generated distribution is measur
 \end{figure}
 
 
-\subsection{conditional expected values as output}
-When the output representation is the conditional expected values inside each bin of the normal distribution,
-a standardization preprocess is applied to both the condition data matrix $Y$ and the target data matrix $X$.
-and the norm $L_2$ between the real and generated vectors is used to measure the distance between the real and generated distribution.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{Background/images/bins_ev_cgan.png}
-    \caption{Distance between real and generated conditional expected values.}
-    \label{ev_distance}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{Background/images/error_ev_bins.png}
-    \caption{Error distribution between real and generated conditional expected values.}
-    \label{ev_error}
-\end{figure}
 
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{Background/images/bins_ev_sample.png}
-    \caption{Sample of real and generated conditional expected values of the normal distribution.}
-    \label{bins_ev_sample}
-\end{figure}
-
-
-
-\subsection{bins probabilities as output}
+\section{Bins probabilities as target}
 When the output representation is the bins probabilities of the normal distribution,
-a log-transform preprocess is applied to the target data matrix $X$.
-This involves applying the natural logarithm to each element of the data matrix.\\
-In this case the distance between the real and generated distribution is measured by the Shennon entropy
-between the real and generated bins probabilities vectors.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{Background/images/bins_distribution_cgan.png}
-    \caption{Distance between real and generated probability density function of the standard normal distribution over epochs.}
-    \label{bins_local_distance}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{Background/images/error_bins.png}
-    \caption{Error distribution between real and generated bins probabilities of the standard normal distribution.}
-    \label{bins_local_error}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{Background/images/bins_sample.png}
-    \caption{Sample of real and generated bins probabilities of the standard normal distribution.}
-    \label{bins_local_sample}
-\end{figure}
-
-A Kolmogorov-Smirnov test has been performed between 100 real and generated bins probabilities
-to evaluate the goodness of fit of the generated distributions.
-The resulting p-values are on average around $0.99$ meaning that we cannot reject the null hypothesis
-that the two distributions are the same.\\
-
-The same procedure is applied when global bin representation is used. 
+then logarithm transformation of the output data matrix $X$ is needed in order to avoid numerical issues and have a more stable training process.\\
+In this case the distance between the real and generated distribution is measured by the Jensen-Shannon divergence
+between the real and generated bins probabilities vectors.\\
 However, instead of using just the Mean Absolute Percentage Error (MAPE) to run the error analysis between real and generated bins probabilities,
-the Simmetric Mean Absolute Percentage Error (SMAPE) is used in order to take into account all those cases where
+the Symmetric Mean Absolute Percentage Error (SMAPE) is used in order to take into account all those cases where
 the real bin probability is equal to zero and that would lead to an infinite percentage error.
 
+
+\subsection{Conditional GAN results}
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{Background/images/bins_global_distribution_cgan.png}
@@ -301,8 +71,8 @@ the real bin probability is equal to zero and that would lead to an infinite per
 \end{figure}
 
 From the results shown above in Figure \ref{bins_global_error}, it is possible to notice that tail bins have small error values since both real and generated probabilities tends to be close to zero.
-Most of errors are concentrated in central bins where the probabilities are higher. It is also important to notice the presence of error spikes,
-suggesting that for some pairs of theoretical and genereted distributions huge differences are present.\\
+Most of the errors are concentrated in central bins where the probabilities are higher. It is also important to notice the presence of error spikes,
+suggesting that for some pairs of theoretical and generated distributions huge differences are present.\\
 Also in this case the Kolmogorov-Smirnov test has been performed between 100 real and generated bins probabilities, and
 the resulting p-values are rejected 95\% of times, meaning that we can reject the null hypothesis
 that the generated distribution are equivalent to the theoretical ones.\\
@@ -332,6 +102,46 @@ From the results shown above, it is possible to observe that the model is able t
 effectively capture the first moment of the distribution since it is usually alligned with the theoretical distribution.
 However, it struggles to accurately model the second moment, especially when the volatility is high.
 This would lead to underestimate or overestimate tail risk in financial applications.
+
+\subsection{Conditional Wasserstein GAN results}
+In this section, we present the results obtained from training the CWGAN architecture on the same dataset used for the CGAN experiments, 
+by following the same data simulation, preprocessing, and evaluation procedures described before.\\
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Background2/images/CWGAN_learning_curve.png}
+    \caption{Distance between real and generated probability density function of the standard normal distribution over epochs.}
+    \label{cwgan_global_error}
+\end{figure}
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Background2/images/CWGAN_error_dist.png}
+    \caption{Error distribution between real and generated bins probabilities using global bins.}
+    \label{cwgan_global_error}
+\end{figure}
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Background2/images/CWGAN_bins_samples_v2.png}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.001, 0.01, 0.05, 0.1, 0.5, 0.8]$.}
+    \label{cwgan_sample_sigma}
+\end{figure}
+
+
+As can be seen from \ref{cwgan_sample_sigma} the quality of the generated distributions is significantly improved with respect to the CGAN results shown in \ref{bins_global_sample_sigma}.
+This is also confirmed by running the Kolmogorov-Smirnov test over 1000 generated samples. The results show that
+30\% of the generated samples are accepted at a significance level of 1\%, compared to only 2.5\% acceptance rate for the CGAN model.\\
+However, the model is still not perfect since for higher values of $\sigma$ the generated distributions still deviate from the real ones.
+Further hyperparameter tuning and model architecture adjustments may be necessary to achieve better performance.
+
+
 
 
 \section{Possible improvements}

@@ -207,15 +207,15 @@ class MyCGAN():
                 else:
                     trajectory = batch[0]
                 
-                y = trajectory.to(self.DEVICE)
-                current_batch_size = y.size(0)
+                c = trajectory.to(self.DEVICE)
+                current_batch_size = c.size(0)
                 
                 # Generate samples
                 z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                generated = self.G(z, y)
+                generated = self.G(z, c)
                 
                 predictions_list.append(generated.cpu())
-                conditions_list.append(y.cpu())
+                conditions_list.append(c.cpu())
         
         # Concatenate all predictions
         predictions = torch.cat(predictions_list, dim=0).numpy()
@@ -224,7 +224,7 @@ class MyCGAN():
         return predictions, conditions
     
 
-    def evaluate_error_distribution(self, data: TensorDataset, save_to:str|None = None) -> dict:
+    def evaluate_error_distribution(self, data: TensorDataset, save_to:str|None = None, eps:float = 1e-6) -> dict:
         """
         Compute element-wise error distribution between generated and true samples.
         
@@ -235,20 +235,13 @@ class MyCGAN():
         Returns:
             Dictionary containing errors and statistics
         """
-        # Get true values from dataset
-        true = data.tensors[0].numpy()
-        
-        # Use existing predict method
-        generated, conditions = self.generate(data)
 
-        # Compute SMAPE errors
-        den = np.abs(true) + np.abs(generated)
-        mask = den != 0
-        if not mask.any():
-            raise ValueError("SMAPE undefined: all denominators are zero.")
-        
-        errors = np.zeros_like(den, dtype=float)
-        errors[mask] = 2*np.abs(generated[mask] - true[mask])/den[mask]  
+        true = data.tensors[0].numpy()
+        generated, conditions = self.generate(data)
+        true = np.clip(true, eps, 1.0)
+        generated = np.clip(generated, eps, 1.0)
+
+        errors = 2 * np.abs(true - generated) / (true + generated + eps)
         stats = {
             "errors": errors,
             "generated": generated,

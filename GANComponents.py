@@ -43,7 +43,7 @@ class MyDiscriminator(nn.Module):
 
         
         layers.append(nn.Linear(input_dim, output_dim))
-        #layers.append(nn.Sigmoid()) not used if loss_fn is BCEwithLogitLoss or if CWGAN is used
+        #layers.append(nn.Sigmoid()) not used if loss_fn is BCEwithLogitLoss or if Wasserstein distance is used
 
         self.layer = nn.Sequential(*layers)
 

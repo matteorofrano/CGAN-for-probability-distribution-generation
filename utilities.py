@@ -37,7 +37,7 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
 
 def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None):
     """
-    A auxiliary function to normalize data and load them into a dataloader
+    An auxiliary function to normalize data and load them into a dataloader
     X is the noise vector or true probability distribution
     C is the condition vector
     """
@@ -57,7 +57,7 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None
             C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
         
         elif preprocess == 'log':
-            X_tensor = torch.log(X_tensor + eps) #only target if probabilities
+            X_tensor = torch.log(X_tensor + eps) # only target if probabilities
             
         else:
             raise Exception('Select an available preprocess step. Available are \"standardization\", \"log\"')
