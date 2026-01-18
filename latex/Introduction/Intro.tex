@@ -130,7 +130,7 @@ while for generated parameters the label is 0.
 With this setup, the discriminator's objective becomes:
 \begin{equation}
     \label{eq:discriminator objective}
-    \max _D V(D)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
+    \max _D V(D)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {d}}(\boldsymbol{x})}[\log D(\boldsymbol{x})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z})))]
 \end{equation}
 
 where $\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x})]$ define how good the discriminator recognize real parameters.
@@ -161,7 +161,7 @@ causing the generator's gradients to approach zero and consequently impeding its
 \subsection{Wasserstein CGAN formulation}
 
 In the following section the Conditional Wasserstein Generative Adversarial Network (CWGAN) architecture is introduced.
-It extends the traditional conditional GAN framework by means of the Wasserstein distance exploitation.\\
+It extends the traditional conditional GAN framework by means of the Wasserstein distance exploitation, resulting in a more stable training and convergence.\\
 
 The main changes that characterize the CWGAN with respect to the CGAN are:
 \begin{itemize}
@@ -169,14 +169,41 @@ The main changes that characterize the CWGAN with respect to the CGAN are:
     \item The discriminator, which in Wasserstein GAN architecture is called critic, is designed to output real-valued scores instead of probabilities, allowing it to better capture the differences between real and generated data distributions.
     For this reason, the discriminator network does not use a sigmoid activation function in the output layer.
     \item The training procedure requires as a good practice to optimize the critic multiple times per generator update to ensure that the critic provides accurate gradients for the generator.
-    \item The use of gradient penalty term in the loss function has the objective to enforce the Lipschitz constraint required for the Wasserstein distance computation.  
+    \item The use of gradient penalty term in the loss function has the objective to enforce the Lipschitz constraint required for the Wasserstein distance computation.    
 \end{itemize}
 
 
-Now the critic maximizes the following loss function $E_{\boldsymbol{x} \sim p_d}[D(\boldsymbol{x})]-E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}})]$ where $\boldsymbol{x}$ are real data samples from the data distribution $p_d$ and $\widehat{\boldsymbol{x}}$ are generated samples from the generator distribution $p_g$.
-On the other hand, the generator minimizes the loss function $-E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}})]$.\\
+Now the critic minimizes the following Wasserstein loss function 
+\begin{equation}
+    \label{eq:wgan_critic_loss}
+    -E_{\boldsymbol{x} \sim p_d}[D(\boldsymbol{x|c})]+E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}}|c)]
+\end{equation}
+
+where $\boldsymbol{x}$ are real data samples from the data distribution $p_d$ and $\widehat{\boldsymbol{x}}$ are generated samples from the generator distribution $p_g$.
+On the other hand, the generator minimizes the loss function:
+\begin{equation}
+    \label{eq:wgan_generator_loss}
+    -E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}}|c)]
+\end{equation}
+
 Given this setup, there is no need anymore for true and fake data labels since the critic outputs real-valued scores.\\
-An additional advatage of using the Wasserstein distance is that it provides a meaningful measure of the distance between the real and generated data distributions, which allows for the implementation of an early stopping technique which
+In order to enforce the Lipschitz constraint required by the Wasserstein distance,
+a gradient penalty is added to the loss function as suggested in \cite{background2:gp_wgan}, the gradient penalty term is defined as:
+    \begin{equation}
+        \label{eq:GP_term}
+        GP =  \mathbb{E}\left[\left(\left\|\nabla_{\widetilde{\boldsymbol{x}}} D(\widetilde{\boldsymbol{x}})\right\|_{2}-1\right)^{2}\right]
+    \end{equation}
+where $\widetilde{\boldsymbol{x}}$ are samples interpolated between real and generated data points such that 
+$\widetilde{\boldsymbol{x}} = \epsilon \boldsymbol{x} + (1 - \epsilon) \widehat{\boldsymbol{x}}$ with $\epsilon \sim \mathcal{U}(0,1)$. \\
+So the final objective function for the Conditional Wasserstein GAN with gradient penalty (CWGAN-GP) becomes:
+
+\begin{equation}
+    \begin{aligned}
+        \min _G \max _D V(D, G) = & \mathbb{E}_{\boldsymbol{x} \sim p_{\text {d}}}[D(\boldsymbol{x} \mid \boldsymbol{c})] - \mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}}[D(G(\boldsymbol{z} \mid \boldsymbol{c}))] + \lambda GP
+    \end{aligned}
+\end{equation}
+where $\lambda$ is a hyperparameter that controls the strength of the penalty and it is usually set to $10$ as suggested in \cite{background2:gp_wgan}.\\
+An additional advantage of using the Wasserstein distance is that it provides a meaningful measure of the distance between the real and generated data distributions, which allows for the implementation of an early stopping technique which
 improve the training efficiency.\\
 
 

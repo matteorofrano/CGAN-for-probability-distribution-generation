@@ -100,8 +100,8 @@ class MyCGAN():
                 D_opt.zero_grad()
                 
                 #real samples
-                x_outputs = self.D(x, c) # is the observed trajectory from t0 to t1 given the next n days probability distribution real? problem 2
-                D_x_loss = self.loss_fn(x_outputs, D_labels) #kl?
+                x_outputs = self.D(x, c) 
+                D_x_loss = self.loss_fn(x_outputs, D_labels) 
 
                 #fake samples
                 z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)

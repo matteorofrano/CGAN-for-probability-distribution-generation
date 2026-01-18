@@ -321,7 +321,7 @@ class MyCWGAN(MyCGAN):
                 C_opt.step()
 
 
-                # -----TRINING THE GENERATOR-----
+                # -----TRAINING THE GENERATOR-----
                 if step % self.n_critic == 0:
                     G_opt.zero_grad()
 
