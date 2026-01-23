@@ -172,7 +172,6 @@ class MyGenerator(nn.Module):
         input_dim = latent_size+condition_size
         layers = []
         for i, hidden_dim in enumerate(hidden_dims):
-            # for now just linear layer
             layers.append(nn.Linear(input_dim, hidden_dim))
 
             if use_batch_norm and i > 0:  
@@ -193,7 +192,7 @@ class MyGenerator(nn.Module):
         
     def forward(self, x, c):
         x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
-        v = torch.cat((x, c), 1) # v: [input, label] concatenated vector
+        v = torch.cat((c, x), 1) # v: [trajectory, noise] concatenated vector
         y_ = self.layer(v)
         return y_    
 

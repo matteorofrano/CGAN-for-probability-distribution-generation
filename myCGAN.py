@@ -172,12 +172,13 @@ class MyCGAN():
         
 
 
-    def generate(self, data: TensorDataset):
+    def generate(self, data: TensorDataset, get_pdf:bool = False):
         """
         Generate predictions using the trained Generator
         
         Args:
             data: TensorDataset containing true values and conditions (pdf, trajectory)
+            get_pdf: Boolean -> define if multiple generation using different noise vector is needed to compute the probability distribution of the outcome
 
         Returns:
             predictions: Generated probability distributions
@@ -198,6 +199,7 @@ class MyCGAN():
         
         predictions_list = []
         conditions_list = []
+        pdf_list = []
         
         with torch.no_grad():
             for idx, batch in enumerate(data_loader):
@@ -211,17 +213,29 @@ class MyCGAN():
                 current_batch_size = c.size(0)
                 
                 # Generate samples
-                z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                generated = self.G(z, c)
-                
-                predictions_list.append(generated.cpu())
-                conditions_list.append(c.cpu())
+                if get_pdf:
+                    sample_pdf = []
+                    for _ in range(1000):
+                        z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
+                        generated = self.G(z, c)
+                        sample_pdf.append(generated.cpu())
+                    
+                    pdf_list.append(sample_pdf)
+                    predictions_list.append(np.array(sample_pdf).mean())
+                    conditions_list.append(c.cpu())
+                else:
+                    z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
+                    generated = self.G(z, c)
+                    
+                    predictions_list.append(generated.cpu())
+                    conditions_list.append(c.cpu())
         
         # Concatenate all predictions
         predictions = torch.cat(predictions_list, dim=0).numpy()
         conditions = torch.cat(conditions_list, dim=0).numpy()
+        pdf_list = torch.cat(pdf_list, dim=0).numpy()
         
-        return predictions, conditions
+        return predictions, conditions, pdf_list
     
 
     def evaluate_error_distribution(self, data: TensorDataset, save_to:str|None = None, eps:float = 1e-6) -> dict:
@@ -237,7 +251,7 @@ class MyCGAN():
         """
 
         true = data.tensors[0].numpy()
-        generated, conditions = self.generate(data)
+        generated, conditions, distribution = self.generate(data)
         true = np.clip(true, eps, 1.0)
         generated = np.clip(generated, eps, 1.0)
 
