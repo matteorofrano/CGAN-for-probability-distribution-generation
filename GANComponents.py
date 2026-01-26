@@ -192,7 +192,7 @@ class MyGenerator(nn.Module):
         
     def forward(self, x, c):
         x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
-        v = torch.cat((c, x), 1) # v: [trajectory, noise] concatenated vector
+        v = torch.cat((x, c), 1) # v: [trajectory, noise] concatenated vector
         y_ = self.layer(v)
         return y_    
 

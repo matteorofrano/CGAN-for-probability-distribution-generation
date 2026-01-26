@@ -219,9 +219,8 @@ class MyCGAN():
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
                         generated = self.G(z, c)
                         sample_pdf.append(generated.cpu())
-                    
+                   
                     pdf_list.append(sample_pdf)
-                    predictions_list.append(np.array(sample_pdf).mean())
                     conditions_list.append(c.cpu())
                 else:
                     z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
@@ -231,9 +230,15 @@ class MyCGAN():
                     conditions_list.append(c.cpu())
         
         # Concatenate all predictions
-        predictions = torch.cat(predictions_list, dim=0).numpy()
         conditions = torch.cat(conditions_list, dim=0).numpy()
-        pdf_list = torch.cat(pdf_list, dim=0).numpy()
+        if pdf_list:
+            pdf_array = np.array(pdf_list).squeeze(-1)
+            pdf_array = pdf_array.transpose(0, 2, 1) # shape (n_batch, batch_samples, 1000)
+            print(f'shape array {pdf_array.shape}')
+            predictions =pdf_array.mean(axis=2) # mean over the 1000 samples
+            pdf_list = np.concatenate(pdf_array, axis=0)
+        else:
+            predictions = torch.cat(predictions_list, dim=0).numpy()
         
         return predictions, conditions, pdf_list
     
