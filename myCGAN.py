@@ -172,7 +172,7 @@ class MyCGAN():
         
 
 
-    def generate(self, data: TensorDataset, get_pdf:bool = False):
+    def generate(self, data: TensorDataset, get_pdf:bool = False, bins: np.ndarray|None = None):
         """
         Generate predictions using the trained Generator
         
@@ -199,7 +199,7 @@ class MyCGAN():
         
         predictions_list = []
         conditions_list = []
-        pdf_list = []
+        simulation_list = []
         
         with torch.no_grad():
             for idx, batch in enumerate(data_loader):
@@ -214,13 +214,13 @@ class MyCGAN():
                 
                 # Generate samples
                 if get_pdf:
-                    sample_pdf = []
+                    sample_values = []
                     for _ in range(1000):
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
                         generated = self.G(z, c)
-                        sample_pdf.append(generated.cpu())
+                        sample_values.append(generated.cpu())
                    
-                    pdf_list.append(sample_pdf)
+                    simulation_list.append(sample_values)
                     conditions_list.append(c.cpu())
                 else:
                     z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
@@ -228,19 +228,31 @@ class MyCGAN():
                     
                     predictions_list.append(generated.cpu())
                     conditions_list.append(c.cpu())
+
         
-        # Concatenate all predictions
         conditions = torch.cat(conditions_list, dim=0).numpy()
-        if pdf_list:
-            pdf_array = np.array(pdf_list).squeeze(-1)
-            pdf_array = pdf_array.transpose(0, 2, 1) # shape (n_batch, batch_samples, 1000)
-            print(f'shape array {pdf_array.shape}')
-            predictions =pdf_array.mean(axis=2) # mean over the 1000 samples
-            pdf_list = np.concatenate(pdf_array, axis=0)
+        # IF GENERATED SAMPLES ARE AVAILABLE THEN BUILD THE PDF 
+        if simulation_list:
+            sim_array = np.array(simulation_list).squeeze(-1)
+            sim_array = sim_array.transpose(0, 2, 1) # shape (n_batch, batch_samples, 1000)
+            print(f'shape array {sim_array.shape}')
+            means =sim_array.mean(axis=2) # mean over the 1000 samples
+            simulations= np.concatenate(sim_array, axis=0)
+
+            # compute the pdf using available bins 
+            if bins is not None:
+                predictions = np.zeros((simulations.shape[0], bins.shape[0]-1))
+                for i in range(simulations.shape[0]):
+                    hist, _ = np.histogram(simulations[i], bins = bins)
+                    predictions[i] = hist/hist.sum()
+            else:
+                predictions = simulations
+
+        # IF PDF IS AVAILABLE THEN JUST RETURN IT
         else:
             predictions = torch.cat(predictions_list, dim=0).numpy()
         
-        return predictions, conditions, pdf_list
+        return conditions, predictions
     
 
     def evaluate_error_distribution(self, data: TensorDataset, save_to:str|None = None, eps:float = 1e-6) -> dict:
@@ -256,7 +268,7 @@ class MyCGAN():
         """
 
         true = data.tensors[0].numpy()
-        generated, conditions, distribution = self.generate(data)
+        conditions, generated = self.generate(data)
         true = np.clip(true, eps, 1.0)
         generated = np.clip(generated, eps, 1.0)
 
