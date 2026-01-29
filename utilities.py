@@ -89,6 +89,7 @@ def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
 
     n = len(trues)
     nrows = math.ceil(n/ncols)
+    bin_centers = 0.5 * (bins_values[:-1] + bins_values[1:])
     if n!= len(preds):
         raise ValueError('trues and genereted must have the same length')
     
@@ -106,8 +107,8 @@ def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
             raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
 
         ax = axes[i]
-        ax.plot(bins_values[:-1], true, label="True histogram", linewidth=2)
-        ax.plot(bins_values[:-1], pred, label="Generated histogram", linewidth=2)
+        ax.plot(bin_centers, true, label="True histogram", linewidth=2)
+        ax.plot(bin_centers, pred, label="Generated histogram", linewidth=2)
 
         if X_T is not None:
             ax.axvline(
@@ -283,6 +284,7 @@ class DataSimulator():
         self.sigma = None
 
         #trajectories, probability density functions and bins
+        self.Z = None
         self.paths=None
         self.X_T = None
         self.pdf=None
@@ -349,7 +351,7 @@ class DataSimulator():
                 dict_map = {0:"X0", 1:"mu", 2:"sigma"}
                 raise Exception(f'No sampled parameter available for {dict_map[i]}')
             
-        #cumsum to build the paths and add the initial value
+        
         #initialize an empty numpy array
         paths = np.zeros((self.n_simulations, self.N + 1)) #shape (M, N + 1)
         paths[:, 0] = self.X0 # Set the initial value for all paths
@@ -357,10 +359,13 @@ class DataSimulator():
         
         #drift --- (mu - 0.5 * sigma^2) * dt 
         drift = (self.mu - 0.5 * self.sigma**2) * self.dt #type: ignore
+        self.drift = drift
 
         #shocks --- sigma * Z * sqrt(dt) with Z distributed as N(0,1)
         Z = self.rng.standard_normal(size=(self.n_simulations, self.N)) # shape (n_simulations, N)
+        self.Z = Z
         shocks = (self.sigma.reshape(-1,1) * Z) * np.sqrt(self.dt)
+        self.diffusion = shocks
 
         #Calculate the increments for each step -> (mu - 0.5 * sigma^2) * dt  + sigma * Z * sqrt(dt) with Z distributed as N(0,1)
         increments = drift.reshape(-1,1) + shocks
@@ -372,12 +377,14 @@ class DataSimulator():
 
         return paths
     
-    def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None, verbose:bool = False):
+    def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
+                 P:np.ndarray|None=None, verbose:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
             n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt
             n_bins:int -> if None or 0 then just compute the analytical mean and std. If greater than 0 compute bins of the distribution
+            P: np.ndarray -> array of latest price information
             bins: -> 1D array of custome bins. Usually used in inference time to load training bins
         """
 
@@ -386,8 +393,9 @@ class DataSimulator():
 
         
         # analytical parameters of the step ahead distribution
+        XT = P if P is not None else self.X_T
         delta_t = n_steps_ahead * self.dt
-        mean = self.X_T - ((self.mu - 0.5 * self.sigma**2) * delta_t)
+        mean = XT - ((self.mu - 0.5 * self.sigma**2) * delta_t)
         std = self.sigma * np.sqrt(delta_t)
 
         if mean.shape != std.shape:
@@ -422,7 +430,7 @@ class DataSimulator():
                 common_bins = np.linspace(global_x_min, global_x_max, n_bins + 1)
                 self.bins = common_bins
 
-        # evaluate all distributions on the same bins  ?
+        # evaluate all distributions on the same bins
         cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), 
                             scale=std.reshape(self.n_simulations, 1))
         probabilities = np.diff(cdf_values, axis=1)

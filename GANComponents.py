@@ -51,7 +51,7 @@ class MyDiscriminator(nn.Module):
     
     def forward(self, x, c):        
         x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
-        v = torch.cat((x, c), 1) # v: [input, label] concatenated vector
+        v = torch.cat((x, c), 1) # v: [input, condition] concatenated vector
         y_ = self.layer(v)
         return y_
     
