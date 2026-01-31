@@ -241,7 +241,8 @@ class MyCWGAN(MyCGAN):
         return total_w_dist / num_batches if num_batches > 0 else float('inf')
 
 
-    def train(self, data: TensorDataset, save_history: bool = False, early_stopping_waiting: int = 0):
+    def train(self, data: TensorDataset, save_history: bool = False,
+               distance_metric:str = 'js_divergence', early_stopping_waiting: int = 0):
         """
         Override training method with Wasserstein loss and gradient penalty
 

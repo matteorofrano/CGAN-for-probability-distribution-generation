@@ -97,7 +97,7 @@ def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
         nrows=nrows,
         ncols=ncols,
         figsize=(5 * ncols, 4 * nrows),
-        sharex=True,
+        #sharex=True,
         sharey=True
     )
 
@@ -106,9 +106,23 @@ def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
         if len(true)!=len(pred):
             raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
 
+        # find indices to zoom the distribution
+        indices = np.where(true > 1e-7)[0]
+
+        if len(indices) > 0:
+            first_idx = indices[0]   
+            last_idx = indices[-1] 
+            start = int(first_idx - np.ceil(0.1*first_idx)) 
+            end = int(last_idx + np.ceil(0.1*(true.shape[0]-last_idx)))
+            true = true[start:end]
+            pred = pred[start:end]
+            bin_centers_row = bin_centers[start:end]
+        else:
+            raise ValueError('the true distribution does not have any positive probability')
+        
         ax = axes[i]
-        ax.plot(bin_centers, true, label="True histogram", linewidth=2)
-        ax.plot(bin_centers, pred, label="Generated histogram", linewidth=2)
+        ax.plot(bin_centers_row, true, label="True histogram", linewidth=2)
+        ax.plot(bin_centers_row, pred, label="Generated histogram", linewidth=2)
 
         if X_T is not None:
             ax.axvline(
@@ -180,10 +194,10 @@ def analyze_error_distribution(csv:str):
         plt.figure(figsize=(30, 8))
 
     #distribution
-    sns.violinplot(data=df[errors], inner=None)
-
+    sns.violinplot(data=df[errors], inner=None, cut=0)
+    
     #mean markers
-    plt.scatter(range(len(errors)), means.values, color="black", zorder=3, label="Mean")#type:ignore
+    plt.scatter(range(len(errors)), means.values, color="black", zorder=3, label="Mean") #type:ignore
 
     #std bars
     plt.errorbar(range(len(errors)),means.values,yerr=stds.values,fmt="none",ecolor="black",capsize=6,zorder=2) #type:ignore
