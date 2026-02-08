@@ -99,7 +99,7 @@ Then results obtained from training the CGAN architecture on the simulated datas
 From the results shown above in Figure \ref{bins_global_error}, it is possible to notice that tail bins have small error values since both real and generated probabilities tends to be close to zero.
 Most of the errors are concentrated in central bins where the probabilities are higher. It is also important to notice the presence of error spikes,
 suggesting that for some pairs of theoretical and generated distributions huge differences are present.\\
-Also in this case the Kolmogorov-Smirnov test has been performed between 100 real and generated bins probabilities, and
+Also in this case the Kolmogorov-Smirnov test has been performed between 1000 real and generated bins probabilities, and
 the resulting p-values are rejected 65\% of times, meaning that we can reject the null hypothesis
 that the generated distribution are equivalent to the theoretical ones.\\
 
@@ -108,12 +108,11 @@ In order to test the generalization capabilities of the model,
 different samples have been drawn such that every sampling parameter is fixed except for the volatility $\sigma$.
 In particular, six different samples are shown below where
 the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
-$\sigma = [0.001, 0.01, 0.05, 0.1, 0.5, 0.8]$. Notice that the last value has a sigma of $0.8$ which is outside the training range.
-
+$\sigma = [0.001, 0.01, 0.05, 0.1, 0.3, 0.6]$. 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Background/images/bins_samples_sigma.png}
-    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.001, 0.01, 0.05, 0.1, 0.5, 0.8]$.}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}
     \label{bins_global_sample_sigma}
 \end{figure}
 
@@ -151,7 +150,7 @@ by following the same data simulation, preprocessing, and evaluation procedures 
     \centering
     \includegraphics[width=0.9\textwidth]{Background/images/bins_global_distribution_cwgan.png}
     \caption{Distance between real and generated probability density function of the standard normal distribution over epochs.}
-    \label{cwgan_global_error}
+    \label{cwgan_curve}
 \end{figure}
 
 
@@ -168,19 +167,103 @@ by following the same data simulation, preprocessing, and evaluation procedures 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Background/images/cwgan_samples_sigma.png}
-    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.001, 0.01, 0.05, 0.1, 0.5, 0.8]$.}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}
     \label{cwgan_sample_sigma}
 \end{figure}
 
 
 As can be seen from \ref{cwgan_sample_sigma} the quality of the generated distributions is significantly improved with respect to the CGAN results shown in \ref{bins_global_sample_sigma}.
 This is also confirmed by running the Kolmogorov-Smirnov test over 1000 generated samples. The results show that
-47\% of the generated samples are accepted at a significance level of 1\%, compared to only 35\% acceptance rate for the CGAN model.\\
-However, the model is still not perfect since for higher values of $\sigma$ the generated distributions still deviate from the real ones.
+53\% of the generated samples are accepted at a significance level of 1\%, compared to only 35\% acceptance rate for the CGAN model.\\
+However, the model is still not perfect since for higher values of $\sigma$ the generated distributions still tends to be rejected from the KS test in certain cases.
+Moreover, the average Jenshen-Shannon divergence between real and generated distributions over the 1000 samples is around 0.20 which is still not an excellent result considering that the JS-divergence is bounded between 0 and 1.
 Further hyperparameter tuning and model architecture adjustments may be necessary to achieve better performance.
 
 
+\subsection{ForGAN results}
 
+The training algorithm and data flow used for training the ForGAN model shows just some changes related to the output and the way the probability distribution is generated.
+
+\begin{algorithm}[H]
+    \caption{Training process for ForGAN model}
+    \label{alg:forGAN train}
+    \begin{algorithmic}[1]
+
+    \STATE Compute trajectories matrix $C_T$ and next value $c_{T + \tau}$ and its probability distribution $X$ using algorithm \ref{alg:y condition} and \ref{alg:x target}.
+    \FOR{$i$ in $max\_epoch = 100$}
+        \STATE Compute discriminator loss over true data samples $\mathcal{L}_{\text{BCE}}^{true}(1,D(c_{T + \tau},c_T))
+            = - \left[ 1 \log(D(c_{T + \tau},c_T))\right]$ and then over generated data samples
+            $\mathcal{L}_{\text{BCE}}^{fake}(0,D(G(z,c_T),c_T)) = - \left[  1\log(1 - D(G(z,c_T),c_T)) \right]$
+        \STATE The Discriminator loss is then computed as $\mathcal{L}_D = \mathcal{L}_{\text{BCE}}^{true} + \mathcal{L}_{\text{BCE}}^{fake}$
+        \STATE Update discriminator weights by backpropagating the loss $\mathcal{L}_D$.
+        \STATE Compute generator loss over generated data samples
+            $\mathcal{L}_{\text{BCE}}^{gen}(1,D(G(z,c_T),c_T)) = - \left[ 1 \log(D(G(z,c_T),c_T))\right]$   
+        \STATE Update generator weights by backpropagating the loss $\mathcal{L}_G = \mathcal{L}_{\text{BCE}}^{gen}$.
+    \ENDFOR
+    \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
+    \end{algorithmic}
+\end{algorithm}
+
+The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
+the resulting p-values are rejected 63\% of times, which is inline with the results obtained for the CGAN model.\\
+Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.29 which is worse than the CWGAN-GP model, suggesting that Wasserstein distance provides a better training convergence.
+These results strongly suggest trying to improve the performances of the proposed ForGAN by adopting the Wasserstein distance instead of the BCE loss.\\
+In order to visually assess the capabilities of the model,
+different samples have been drawn such that every sampling parameter is fixed except for the volatility $\sigma$.
+In particular, six different samples are shown below where
+the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
+$\sigma = [0.001, 0.01, 0.05, 0.1, 0.3, 0.6]$. From the results can be notices that also this new architecture
+struggles to effectively capture the variance of the target distribution when the volatility parameter is high.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan_simple.png}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}
+    \label{forgan_simple_sample_sigma}
+\end{figure}
+
+
+
+\subsection{ForWGAN results}
+Also in this case the training algorithm and data flow used for training the ForWGAN model have been adapted to the new output setup.
+
+\begin{algorithm}[H]
+    \caption{Training process for CWGAN-GP model}
+    \label{alg:ForWGAN train}
+    \begin{algorithmic}[1]
+
+    \STATE Compute trajectories matrix $C_T$ and next value $c_{T + \tau}$ and its probability distribution $X$ using algorithm \ref{alg:y condition} and \ref{alg:x target}.
+    \FOR{$i$ in $max\_epoch = 100$}
+        \STATE Compute the critic real value output for true data samples $D(c_{T + \tau},c_T)$ and then for generated data samples $D(G(z,c_T),c_T)$.
+        \STATE Compute the gradient penalty term $GP$ as defined in \ref{eq:GP_term}.
+        \STATE Compute critic loss $\mathcal{L}_D$ defined in \ref{eq:wgan_critic_loss} with the addition of the gradient penalty term.
+        \STATE Update critic weights by backpropagating the loss $\mathcal{L}_D$.
+        \STATE Compute generator loss $\mathcal{L}_G$ defined in \ref{eq:wgan_generator_loss}.
+        \STATE Update generator weights by backpropagating the loss $\mathcal{L}_G$.
+    \ENDFOR
+    \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
+    \end{algorithmic}
+\end{algorithm}
+
+The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
+the resulting p-values are rejected 55\% of times, slightly higher than the CWGAN-GP proposed model.\\
+Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.23 which highlights an improvement with respect to the ForGAN model but still worse than the CWGAN-GP one.\\
+
+
+A visual inspection of different samples with various degrees of volatility is presented below
+In particular, six different samples are shown below where
+the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
+$\sigma = [0.001, 0.01, 0.05, 0.1, 0.3, 0.6]$.
+From the results we can see an important improvement with respect to the simple ForGAN architecture 
+in the same way as the CWGAN-GP model showed better results than the CGAN one,
+suggesting that the Wasserstein loss with gradient penalty helps in stabilizing the training process and improving the quality of the generated distributions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan.png}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}
+    \label{forgan_sample_sigma}
+\end{figure}
 
 \section{Possible improvements}
 The main issue that need to be addressed in order to produce coherent distributions is to effectively capture the variance of the target distribution, 

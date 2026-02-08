@@ -1,0 +1,7 @@
+{
+  "max_epoch": 100,
+  "batch_size": 32,
+  "n_critic": 1,
+  "z_dim": 252,
+  "model_name": "CGAN_simple"
+}

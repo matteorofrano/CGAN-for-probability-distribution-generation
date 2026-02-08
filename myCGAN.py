@@ -279,10 +279,10 @@ class MyCGAN():
         if is_prob:
             true = np.clip(true, eps, 1.0)
             generated = np.clip(generated, eps, 1.0)
-            errors = 2 * np.abs(true[mask] - generated[mask]) / (np.abs(true[mask]) + np.abs(generated[mask])) 
+            errors = 2 * np.abs(true[mask] - generated[mask]) / (np.abs(true[mask]) + np.abs(generated[mask]) + eps) 
         else:
             mse = np.mean((true - generated)**2)
-            errors = 2 * np.abs(true - generated) / (np.abs(true) + np.abs(generated) + eps)
+            errors = 2 * np.abs(true - generated) / (np.abs(true) + np.abs(generated))
             errors = errors.reshape(-1,1)
 
             
@@ -299,6 +299,7 @@ class MyCGAN():
         
         # Save to CSV if path provided
         if save_to:
+            print(errors.shape[1])
             n_dims = errors.shape[1]
             
             df_dict = {}

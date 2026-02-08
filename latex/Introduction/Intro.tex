@@ -207,6 +207,30 @@ An additional advantage of using the Wasserstein distance is that it provides a 
 improve the training efficiency.\\
 
 
+\subsection{ForGAN}
+An alternative GAN architecture for probabilistic time series forecasting is ForGAN, proposed in \cite{background:forgan}.
+The ForGAN's architecture is based on a generator and a discriminator, both utilizing Recurrent Neural Network (RNN) layers, specifically LSTM or GRU variants, in order to process sequential data dependencies.\\
+The generator's objective is to forecast the next value $x_{t+1}$ by transforming the noise vector $z$, 
+conditioned on the historical window $c$.\\
+The probability distribution of $x_{t+1}$ is modeled as $P(x_{t+1}|c)$ and obtained by running the generator multiple times with different noise inputs and same condition window $c$.\\
+Structurally, the generator processes the condition window $c$ through an RNN layer to construct a "condition representation" whose size is given by hidden state size.
+This representation is subsequently concatenated with the noise vector $z$.
+The combined feature vector is then passed through two dense layers, culminating in a single scalar output representing the predicted $x_{t+1}$.\\
+On the other hand, the discriminator has the role to inspect the validity of a given value $x_{t+1}$ in the context of the history $c$.
+Unlike standard discriminators that might process inputs separately, the ForGAN discriminator takes the candidate $x_{t+1}$, which is sourced either from the ground truth dataset or the generator, and concatenates it to the end of the condition window $c$, forming an extended sequence $\{x_{0},...,x_{t+1}\}$.
+This extended sequence is fed into an RNN layer, followed by a dense layer that outputs a validity score, determining whether the sequence is real or generated.\\
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Introduction/images/forgan.png}
+    \caption{ForGAN architecture}
+    \label{img:forgan}
+\end{figure}
+
+The model is trained via a minimax game, both adopting the usual way a standard GAN architecture is trained (as proposed in \cite{background:forgan}), that is by minimizing the Jensen-Shannon divergence between the real and generated data distributions, and also by 
+adopting the Wasserstein distance as in CWGAN-GP. In this last case the model can be referenced as ForWGAN which represent a novel approach to increase the performance of the standard ForGAN.\\
+
+Moreover, since the proposed problem is markovian because in a Geometric Brownian Motion the future distribution only depends on the current state, a simplified version of ForGAN is implemented where the generator and discriminator are not based on RNN layers but only on dense layers.
 \subsection{The Kolmogorov-Smirnov test}
 The Kolmogorov-Smirnov (KS) as defined in \cite{background:ks_test}, is a goodness of fit test that evaluates whether an empirical distribution is consistent with a fully specified continuous reference distribution. 
 Let $F(x)$ denote the hypothesized cumulative distribution function (CDF), 

@@ -214,7 +214,8 @@ def analyze_error_distribution(csv:str):
 
 def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
     """
-    Compute the Jenson-Shannon measure 
+    Compute the Jenson-Shannon measure
+    generated_arr: np.array -> an array of generated probability distributions 
     """
     js_distances = []
     epsilon = 1e-10 # Small epsilon for numerical stability
