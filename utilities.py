@@ -158,6 +158,40 @@ def manage_csv_results(csv:str):
 
 
 
+def get_error_metrics(true: np.ndarray, generated: np.ndarray) -> dict:
+        """
+        Compute element-wise error distribution between generated and true samples.
+        
+        Args:
+            true: array containing true samples
+            generated: array containing generated samples
+            is_prob: if yes clip to avoid numerical issues
+        
+        Returns:
+            Dictionary containing errors and statistics
+             total_variance_distance -> Maximum probability difference over all events. bounded [0,1]
+             hellinger_distance -> bounded [0,1]
+             jensen_shannon_distance -> sqrt(jensen-shannon divergence). bounded [0,1]
+             mean_absolute_error -> unbounded 
+
+        """
+        
+        tv_distance = 0.5*np.sum(np.abs(true-generated), axis=1)
+        hellinger_distance = np.sqrt(0.5*np.sum((np.sqrt(true) - np.sqrt(generated))**2, axis=1))
+        js_distance = compute_js(generated, true, is_log=False)
+        mae = np.mean(np.abs(true - generated), axis=1)
+
+        stats = {
+            "mae": mae,
+            "js_distance": js_distance,
+            "hellinger_distance": hellinger_distance,
+            "tv_distance": tv_distance
+            }
+        
+        return stats
+
+
+
 def analyze_error_distribution(csv:str):
 
     df = pd.read_csv(csv)
@@ -218,7 +252,6 @@ def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True
     generated_arr: np.array -> an array of generated probability distributions 
     """
     js_distances = []
-    epsilon = 1e-10 # Small epsilon for numerical stability
 
     for p, t in zip(generated_arr, true_arr): 
         if is_log:
@@ -226,11 +259,11 @@ def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True
             t = np.exp(t)
 
         #normalization
-        p = p / (np.sum(p) + epsilon)
-        t = t / (np.sum(t) + epsilon)
+        p = p / np.sum(p)
+        t = t / np.sum(t)
         
         # compute JSD
-        js_distances.append(jensenshannon(p, t))
+        js_distances.append(jensenshannon(p, t, base=2.0))
 
     return js_distances
 
@@ -446,8 +479,8 @@ class DataSimulator():
                 self.bins = common_bins
 
         # evaluate all distributions on the same bins
-        cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), 
-                            scale=std.reshape(self.n_simulations, 1))
+        #cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), scale=std.reshape(self.n_simulations, 1))
+        cdf_values = norm.cdf(common_bins, loc=mean[:, None], scale=std[:, None])
         probabilities = np.diff(cdf_values, axis=1)
 
         # zero-out small values and renormalize

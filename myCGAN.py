@@ -153,8 +153,10 @@ class MyCGAN():
                 if distance_metric == 'js_divergence':
                     js_divergence = compute_js(np.array(predictions_list), np.array(targets_list))
                     distance = np.mean(js_divergence)  
-                else:
+                elif distance_metric == 'mse':
                     distance = np.mean((np.array(predictions_list)-np.array(targets_list))**2)
+                else:
+                    distance = None
 
                 entries = pd.DataFrame({
                     "epoch": [int(epoch)]*len(predictions_list),
@@ -257,8 +259,7 @@ class MyCGAN():
         return conditions, predictions
     
 
-    def evaluate_error_distribution(self, data: TensorDataset, is_prob:bool = True,
-                                     save_to:str|None = None, eps:float = 1e-6) -> dict:
+    def evaluate_error_distribution(self, data: TensorDataset, save_to:str|None = None) -> dict:
         """
         Compute element-wise error distribution between generated and true samples.
         
@@ -273,17 +274,9 @@ class MyCGAN():
 
         true = data.tensors[0].numpy()
         conditions, generated = self.generate(data)
-
-        smape_denominator = np.abs(true) + np.abs(generated)
-        mask = smape_denominator>eps
-        if is_prob:
-            true = np.clip(true, eps, 1.0)
-            generated = np.clip(generated, eps, 1.0)
-            errors = 2 * np.abs(true[mask] - generated[mask]) / (np.abs(true[mask]) + np.abs(generated[mask]) + eps) 
-        else:
-            mse = np.mean((true - generated)**2)
-            errors = 2 * np.abs(true - generated) / (np.abs(true) + np.abs(generated))
-            errors = errors.reshape(-1,1)
+        errors = np.abs(true - generated)
+        if errors.ndim<2:
+            errors = errors.reshape(errors.shape[0], 1)
 
             
         stats = {
@@ -293,13 +286,11 @@ class MyCGAN():
             "conditions": conditions,
             "mean": np.mean(errors, axis=0),
             "std": np.std(errors, axis=0),
-            "median": np.median(errors, axis=0),
-            "mse": mse if not is_prob else None
+            "median": np.median(errors, axis=0)
         }
         
         # Save to CSV if path provided
         if save_to:
-            print(errors.shape[1])
             n_dims = errors.shape[1]
             
             df_dict = {}

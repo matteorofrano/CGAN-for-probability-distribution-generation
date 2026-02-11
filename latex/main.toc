@@ -13,6 +13,6 @@
 \contentsline {section}{\numberline {2.2}Bins probabilities as target}{12}{section.2.2}%
 \contentsline {subsection}{\numberline {2.2.1}Conditional GAN results}{12}{subsection.2.2.1}%
 \contentsline {subsection}{\numberline {2.2.2}Conditional Wasserstein GAN results}{14}{subsection.2.2.2}%
-\contentsline {subsection}{\numberline {2.2.3}ForGAN results}{16}{subsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.3}ForGAN results}{17}{subsection.2.2.3}%
 \contentsline {subsection}{\numberline {2.2.4}ForWGAN results}{18}{subsection.2.2.4}%
 \contentsline {section}{\numberline {2.3}Possible improvements}{19}{section.2.3}%
