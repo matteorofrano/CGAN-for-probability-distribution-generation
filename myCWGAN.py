@@ -55,16 +55,17 @@ class MyCWGAN(MyCGAN):
         self.best_critic_state = None
 
     
-    def set_critic(self, input_size:int = 784, condition_size:int = 10, **critic_params):
+    def set_critic(self, input_size:int = 784, condition_size:int = 10,
+                    hidden_dim_rnn:None|int = None, **critic_params):
         '''
         Alias for set_discriminator with more appropriate naming for WGAN
         '''
-
+        
         self.set_discriminator(input_size=input_size,
                                condition_size=condition_size,
                                output_dim=1,
+                               hidden_dim_rnn=hidden_dim_rnn,
                                **critic_params)
-        
         
 
     def compute_gradient_penalty(self, true_samples, generated_samples, c):

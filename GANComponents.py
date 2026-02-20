@@ -1,4 +1,5 @@
 
+from layers import *
 from typing import Optional, List
 import torch.nn as nn
 import torch
@@ -14,7 +15,7 @@ class MyDiscriminator(nn.Module):
                  hidden_dims:List[int] = [256, 128], use_layer_norm:bool = False,
                  activation:str = 'leaky_relu', dropout:float = 0.0):
         
-        super(MyDiscriminator, self).__init__()
+        super().__init__()
 
         # Store configuration for saving/loading
         self.input_size = input_size
@@ -45,14 +46,14 @@ class MyDiscriminator(nn.Module):
         layers.append(nn.Linear(input_dim, output_dim))
         #layers.append(nn.Sigmoid()) not used if loss_fn is BCEwithLogitLoss or if Wasserstein distance is used
 
-        self.layer = nn.Sequential(*layers)
+        self.layers = nn.Sequential(*layers)
 
 
     
     def forward(self, x, c):        
         x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
         v = torch.cat((x, c), 1) # v: [input, condition] concatenated vector
-        y_ = self.layer(v)
+        y_ = self.layers(v)
         return y_
     
 
@@ -151,11 +152,11 @@ class MyGenerator(nn.Module):
 
     def __init__(self, latent_size:int=260, condition_size:int=22, output_dim:int=2, 
                  hidden_dims:List[int] = [128, 256, 128], use_batch_norm:bool = True, 
-                 activation:str = 'relu', dropout:float = 0.0, is_prob:bool = False):
+                 activation:str = 'leaky_relu', dropout:float = 0.0, is_prob:bool = False):
         
 
         
-        super(MyGenerator, self).__init__()
+        super().__init__()
 
         # Store configuration for saving/loading
         self.latent_size = latent_size
@@ -182,18 +183,19 @@ class MyGenerator(nn.Module):
                 layers.append(nn.Dropout(dropout))
             
             input_dim = hidden_dim
-            
+
+        
         layers.append(nn.Linear(input_dim, output_dim))
         if is_prob:
             layers.append(nn.LogSoftmax(dim=1)) # dim=1 for batch dimension
 
         #Sequential model
-        self.layer = nn.Sequential(*layers)
+        self.layers = nn.Sequential(*layers)
         
-    def forward(self, x, c):
-        x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
-        v = torch.cat((x, c), 1) # v: [trajectory, noise] concatenated vector
-        y_ = self.layer(v)
+    def forward(self, x, z):
+        x, z = x.view(x.size(0), -1), z.view(z.size(0), -1).float()
+        v = torch.cat((x, z), 1) # v: [trajectory, noise] concatenated vector
+        y_ = self.layers(v)
         return y_    
 
 
@@ -285,3 +287,135 @@ class MyGenerator(nn.Module):
         }
         return activations.get(activation.lower(), nn.LeakyReLU(0.2))
     
+
+
+
+
+class RnnGenerator(MyGenerator):
+    """
+    A generator based on RNN style layers 
+    """
+
+    def __init__(self, latent_size:int=260, condition_size:int=22, output_dim:int=1, 
+                 hidden_dim:int = 100, n_layers:int = 1, activation:str = 'leaky_relu', 
+                 dropout:float = 0.0, rnn_layer:str = 'lstm'):
+        
+
+        
+        nn.Module.__init__(self)
+
+        # Store configuration for saving/loading
+        self.latent_size = latent_size
+        self.condition_size = condition_size
+        self.output_dim = output_dim
+        self.hidden_dim = hidden_dim
+        self.n_layers = n_layers
+        self.activation = activation
+        self.dropout = dropout
+        self.act_fn = self._get_activation(activation)
+        self.rnn_layer = rnn_layer
+
+        #build network
+        if rnn_layer == 'lstm':
+            self.sequential_model = nn.LSTM(condition_size, hidden_dim, n_layers,
+                                        dropout=dropout, batch_first=True)
+        elif rnn_layer == 'gru':
+            self.sequential_model = nn.GRU(condition_size, hidden_dim, n_layers,
+                                        dropout=dropout, batch_first=True)
+        else:
+            raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
+        
+        input_dense1 = latent_size+hidden_dim
+        self.dense1 = nn.Linear(input_dense1, input_dense1)
+        self.dense2 = nn.Linear(input_dense1, 1)  
+        
+        
+    def forward(self, x, z):
+        #x, z = x.view(x.size(0), -1), z.view(z.size(0), -1).float()
+        out, _ = self.sequential_model(x)
+        c = out[:, -1, :] #takes the condition representation of the last hidden state
+
+        combined = torch.cat((z, c), dim=1) # v: [trajectory, noise] concatenated vector
+        y = self.act_fn(self.dense1(combined))
+        y_ = self.dense2(y)
+
+        return y_  
+
+
+    def get_config(self):
+        return {
+            'latent_size': self.latent_size,
+            'condition_size': self.condition_size,
+            'n_layers':self.n_layers,
+            'output_dim': self.output_dim,
+            'hidden_dim': self.hidden_dim,
+            'activation': self.activation,
+            'dropout': self.dropout,
+            'rnn_layer':self.rnn_layer
+            } 
+    
+
+
+
+class RnnDiscriminator(MyDiscriminator):
+    """
+    A discriminator based on RNN style layers 
+    """
+
+    def __init__(self, input_size=260, condition_size=22, output_dim=1, 
+                    hidden_dim:int = 24, use_layer_norm:bool = False,
+                    activation:str = 'leaky_relu', dropout:float = 0.0,
+                    rnn_layer:str = 'lstm', n_layers:int = 1):
+
+        nn.Module.__init__(self)
+
+        # Store configuration for saving/loading
+        self.input_size = input_size
+        self.condition_size = condition_size
+        self.output_dim = output_dim
+        self.hidden_dim = hidden_dim
+        self.use_batch_norm = use_layer_norm
+        self.activation = activation
+        self.dropout = dropout
+        self.act_fn = self._get_activation(activation)
+        self.rnn_layer = rnn_layer
+
+        input_dim = input_size + condition_size
+        #build network
+        if use_layer_norm and n_layers>1:
+            if rnn_layer == 'lstm':
+                self.sequential_model = MultiLayerNormLSTM(input_dim, hidden_dim, n_layers, output_dim, dropout)
+            elif rnn_layer == 'gru':
+                self.sequential_model = MultiLayerNormGRU(input_dim, hidden_dim, n_layers, output_dim, dropout)
+            else:
+                raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
+            
+        elif use_layer_norm:
+            if rnn_layer == 'lstm':
+                self.sequential_model = LayerNormLSTM(input_dim, hidden_dim)
+            elif rnn_layer == 'gru':
+                self.sequential_model = LayerNormGRU(input_dim, hidden_dim)
+            else:
+                raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
+        else:
+            if rnn_layer == 'lstm':
+                self.sequential_model = nn.LSTM(condition_size, hidden_dim, n_layers,
+                                            dropout=dropout, batch_first=True)
+            elif rnn_layer == 'gru':
+                self.sequential_model = nn.GRU(condition_size, hidden_dim, n_layers,
+                                            dropout=dropout, batch_first=True)
+            else:
+                raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
+            
+        self.dense = nn.Linear(hidden_dim, output_dim)
+        
+    def forward(self, x, c):        
+        #x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
+        v = torch.cat((c, x), 1) # v: [condition, input] concatenated vector
+        h_out, _ = self.sequential_model(v)
+        r = h_out[:, -1, :]
+        y_ = self.dense(r)
+        return y_
+
+
+

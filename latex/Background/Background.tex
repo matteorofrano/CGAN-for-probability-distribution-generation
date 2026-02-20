@@ -103,16 +103,31 @@ Also in this case the Kolmogorov-Smirnov test has been performed between 1000 re
 the resulting p-values are rejected 65\% of times, meaning that we can reject the null hypothesis
 that the generated distribution are equivalent to the theoretical ones.\\
 
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0062 \\
+JS Distance & 0.3430 \\
+Hellinger Distance & 0.3067 \\
+TV Distance & 0.3078 \\
+\hline
+\end{tabular}
+\caption{CGAN performance metrics averaged over 1000 samples}
+\end{table}
+
 
 In order to test the generalization capabilities of the model,
 different samples have been drawn such that every sampling parameter is fixed except for the volatility $\sigma$.
 In particular, six different samples are shown below where
 the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
-$\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$. 
+$\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$. 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Background/images/bins_samples_sigma.png}
-    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}
     \label{bins_global_sample_sigma}
 \end{figure}
 
@@ -175,6 +190,22 @@ by following the same data simulation, preprocessing, and evaluation procedures 
 As can be seen from \ref{cwgan_sample_sigma} the quality of the generated distributions is significantly improved with respect to the CGAN results shown in \ref{bins_global_sample_sigma}.
 This is also confirmed by running the Kolmogorov-Smirnov test over 1000 generated samples. The results show that
 53\% of the generated samples are accepted at a significance level of 1\%, compared to only 35\% acceptance rate for the CGAN model.\\
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0055 \\
+JS Distance & 0.3050 \\
+Hellinger Distance & 0.2712 \\
+TV Distance & 0.2725 \\
+\hline
+\end{tabular}
+\caption{CWGAN-GP performance metrics averaged over 1000 samples}
+\end{table}
+
 However, the model is still not perfect since for higher values of $\sigma$ the generated distributions still tends to be rejected from the KS test in certain cases.
 Moreover, the average Jenshen-Shannon divergence between real and generated distributions over the 1000 samples is around 0.20 which is still not an excellent result considering that the JS-divergence is bounded between 0 and 1.
 Further hyperparameter tuning and model architecture adjustments may be necessary to achieve better performance.
@@ -207,18 +238,34 @@ The training algorithm and data flow used for training the ForGAN model shows ju
 The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
 the resulting p-values are rejected 63\% of times, which is inline with the results obtained for the CGAN model.\\
 Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.29 which is worse than the CWGAN-GP model, suggesting that Wasserstein distance provides a better training convergence.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0057 \\
+JS Distance & 0.3278 \\
+Hellinger Distance & 0.3001 \\
+TV Distance & 0.2861 \\
+\hline
+\end{tabular}
+\caption{ForGAN performance metrics averaged over 1000 samples}
+\end{table}
+
 These results strongly suggest trying to improve the performances of the proposed ForGAN by adopting the Wasserstein distance instead of the BCE loss.\\
 In order to visually assess the capabilities of the model,
 different samples have been drawn such that every sampling parameter is fixed except for the volatility $\sigma$.
 In particular, six different samples are shown below where
 the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
-$\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$. From the results can be notices that also this new architecture
+$\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$. From the results can be notices that also this new architecture
 struggles to effectively capture the variance of the target distribution when the volatility parameter is high.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan_simple.png}
-    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}
     \label{forgan_simple_sample_sigma}
 \end{figure}
 
@@ -248,12 +295,26 @@ Also in this case the training algorithm and data flow used for training the For
 The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
 the resulting p-values are rejected 55\% of times, slightly higher than the CWGAN-GP proposed model.\\
 Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.23 which highlights an improvement with respect to the ForGAN model but still worse than the CWGAN-GP one.\\
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0044 \\
+JS Distance & 0.2600 \\
+Hellinger Distance & 0.2310 \\
+TV Distance & 0.2187 \\
+\hline
+\end{tabular}
+\caption{ForWGAN performance metrics averaged over 1000 samples}
+\end{table}
 
 
 A visual inspection of different samples with various degrees of volatility is presented below
 In particular, six different samples are shown below where
 the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
-$\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.
+$\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.
 From the results we can see an important improvement with respect to the simple ForGAN architecture 
 in the same way as the CWGAN-GP model showed better results than the CGAN one,
 suggesting that the Wasserstein loss with gradient penalty helps in stabilizing the training process and improving the quality of the generated distributions.
@@ -261,7 +322,7 @@ suggesting that the Wasserstein loss with gradient penalty helps in stabilizing 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan.png}
-    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}
     \label{forgan_sample_sigma}
 \end{figure}
 

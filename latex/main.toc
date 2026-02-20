@@ -15,4 +15,4 @@
 \contentsline {subsection}{\numberline {2.2.2}Conditional Wasserstein GAN results}{14}{subsection.2.2.2}%
 \contentsline {subsection}{\numberline {2.2.3}ForGAN results}{17}{subsection.2.2.3}%
 \contentsline {subsection}{\numberline {2.2.4}ForWGAN results}{18}{subsection.2.2.4}%
-\contentsline {section}{\numberline {2.3}Possible improvements}{19}{section.2.3}%
+\contentsline {section}{\numberline {2.3}Possible improvements}{20}{section.2.3}%

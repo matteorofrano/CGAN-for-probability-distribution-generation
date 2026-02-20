@@ -18,6 +18,15 @@ from scipy.spatial.distance import jensenshannon
 
 
 
+def manage_csv_results(csv:str):
+
+    df = pd.read_csv(csv)
+    df["generated"] = df["generated"].apply(ast.literal_eval)
+    df["true"] = df["true"].apply(ast.literal_eval)
+
+    return df
+
+
 def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.DataFrame|None:
     
     #session = requests.Session(impersonate="chrome") #type: ignore
@@ -67,105 +76,59 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None
         
 
 
-def plot_learning_curve(df_csv:str):
-        """
-        A function used to plot the learning curve of the trained model
-        """
+def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
+    """
+    Compute the Jenson-Shannon measure
+    generated_arr: np.array -> an array of generated probability distributions 
+    """
+    js_distances = []
 
-        # Load the CSV file
-        df = pd.read_csv(df_csv)
+    for p, t in zip(generated_arr, true_arr): 
+        if is_log:
+            p = np.exp(p)
+            t = np.exp(t)
 
-        # Plot distance vs epoch
-        plt.figure()
-        plt.plot(df["epoch"], df["distance"])
-        plt.xlabel("Epoch")
-        plt.ylabel("Distance")
-        plt.title("Distance over Epochs")
-        plt.show()
-
-
-def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
-                   bins_values:np.ndarray, X_T: List[float]|None = None, ncols=3):
-
-    n = len(trues)
-    nrows = math.ceil(n/ncols)
-    bin_centers = 0.5 * (bins_values[:-1] + bins_values[1:])
-    if n!= len(preds):
-        raise ValueError('trues and genereted must have the same length')
-    
-    fig, axes = plt.subplots(
-        nrows=nrows,
-        ncols=ncols,
-        figsize=(5 * ncols, 4 * nrows),
-        #sharex=True,
-        sharey=True
-    )
-
-    axes = axes.flatten()
-    for i, (true, pred) in enumerate(zip(trues, preds)):
-        if len(true)!=len(pred):
-            raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
-
-        # find indices to zoom the distribution
-        indices = np.where(true > 1e-7)[0]
-
-        if len(indices) > 0:
-            first_idx = indices[0]   
-            last_idx = indices[-1] 
-            start = int(first_idx - np.ceil(0.1*first_idx)) 
-            end = int(last_idx + np.ceil(0.1*(true.shape[0]-last_idx)))
-            true = true[start:end]
-            pred = pred[start:end]
-            bin_centers_row = bin_centers[start:end]
-        else:
-            raise ValueError('the true distribution does not have any positive probability')
+        #normalization
+        p = p / np.sum(p)
+        t = t / np.sum(t)
         
-        ax = axes[i]
-        ax.plot(bin_centers_row, true, label="True histogram", linewidth=2)
-        ax.plot(bin_centers_row, pred, label="Generated histogram", linewidth=2)
+        # compute JSD
+        js_distances.append(jensenshannon(p, t, base=2.0))
 
-        if X_T is not None:
-            ax.axvline(
-                x=X_T[i],
-                linestyle=":",
-                linewidth=2,
-                label=f"X_T={round(X_T[i], 3)}"
-            )
+    return js_distances
 
-        ax.set_title(f"Histogram {i}")
-        ax.set_xlabel("Bin values")
-        ax.set_ylabel("Probability")
-        ax.legend()
 
-    # Remove unused axes
-    for j in range(n, len(axes)):
-        fig.delaxes(axes[j])
 
-    plt.tight_layout()
-    plt.show()
 
+def ks_test_gan_cdf(generated_probs, true_probs):
+    """
+    Perform KS test comparing generated and true probability distributions.
     
-
-
-
-def manage_csv_results(csv:str):
-
-    df = pd.read_csv(csv)
-    df["generated"] = df["generated"].apply(ast.literal_eval)
-    df["true"] = df["true"].apply(ast.literal_eval)
-
-    return df
+    generated_probs : array of shape (n_bins,)
+    true_probs : array of shape (n_bins,)
+    """
+    # Convert probabilities to CDFs
+    generated_cdf = np.cumsum(generated_probs)
+    true_cdf = np.cumsum(true_probs)
+    
+    # Compute KS statistic
+    ks_statistic = np.max(np.abs(generated_cdf - true_cdf))
+    
+    # Compute p-value
+    n = len(generated_probs)
+    p_value = kstwobign.sf(ks_statistic * np.sqrt(n))
+    
+    return ks_statistic, p_value
 
 
 
 def get_error_metrics(true: np.ndarray, generated: np.ndarray) -> dict:
         """
-        Compute element-wise error distribution between generated and true samples.
+        Compute errors metrics for probability distributions
         
         Args:
             true: array containing true samples
             generated: array containing generated samples
-            is_prob: if yes clip to avoid numerical issues
         
         Returns:
             Dictionary containing errors and statistics
@@ -193,6 +156,13 @@ def get_error_metrics(true: np.ndarray, generated: np.ndarray) -> dict:
 
 
 def analyze_error_distribution(csv:str):
+
+    """
+    Produce a distribution of errors from a csv obtained using evaluate_error_distribution method of myCGAN
+    
+    Args:
+        csv: path to the csv file
+    """
 
     df = pd.read_csv(csv)
 
@@ -246,47 +216,87 @@ def analyze_error_distribution(csv:str):
     return means, stds, summary
     
 
-def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
-    """
-    Compute the Jenson-Shannon measure
-    generated_arr: np.array -> an array of generated probability distributions 
-    """
-    js_distances = []
 
-    for p, t in zip(generated_arr, true_arr): 
-        if is_log:
-            p = np.exp(p)
-            t = np.exp(t)
 
-        #normalization
-        p = p / np.sum(p)
-        t = t / np.sum(t)
+
+
+def plot_learning_curve(df_csv:str):
+        """
+        A function used to plot the learning curve of the trained model
+        """
+
+        # Load the CSV file
+        df = pd.read_csv(df_csv)
+
+        # Plot distance vs epoch
+        plt.figure()
+        plt.plot(df["epoch"], df["distance"])
+        plt.xlabel("Epoch")
+        plt.ylabel("Distance")
+        plt.title("Distance over Epochs")
+        plt.show()
+
+
+
+def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
+                   bins_values:np.ndarray, X_T: List[float]|None = None, ncols=3):
+
+    n = len(trues)
+    nrows = math.ceil(n/ncols)
+    bin_centers = 0.5 * (bins_values[:-1] + bins_values[1:])
+    if n!= len(preds):
+        raise ValueError('trues and genereted must have the same length')
+    
+    fig, axes = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=(5 * ncols, 4 * nrows),
+        #sharex=True,
+        sharey=True
+    )
+
+    axes = axes.flatten()
+    for i, (true, pred) in enumerate(zip(trues, preds)):
+        if len(true)!=len(pred):
+            raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
+
+        # find indices to zoom the distribution
+        indices = np.where(true > 1e-7)[0]
+        if len(indices) > 0:
+            first_idx = indices[0]   
+            last_idx = indices[-1] 
+            start = int(first_idx - np.ceil(0.1*first_idx)) 
+            end = int(last_idx + np.ceil(0.1*(true.shape[0]-last_idx)))
+            true = true[start:end]
+            pred = pred[start:end]
+            bin_centers_row = bin_centers[start:end]
+        else:
+            raise ValueError('the true distribution does not have any positive probability')
         
-        # compute JSD
-        js_distances.append(jensenshannon(p, t, base=2.0))
+        ax = axes[i]
+        width = bin_centers_row[1] - bin_centers_row[0]  # bin width
+        ax.bar(bin_centers_row, true, width=width, alpha=0.5, label="True histogram")
+        ax.bar(bin_centers_row, pred, width=width, alpha=0.5, label="Generated histogram")
 
-    return js_distances
+        if X_T is not None:
+            ax.axvline(
+                x=X_T[i],
+                linestyle=":",
+                linewidth=2,
+                label=f"X_T={round(X_T[i], 3)}"
+            )
 
+        ax.set_title(f"Histogram {i}")
+        ax.set_xlabel("Bin values")
+        ax.set_ylabel("Probability")
+        ax.legend()
 
-def ks_test_gan_cdf(generated_probs, true_probs):
-    """
-    Perform KS test comparing generated and true probability distributions.
-    
-    generated_probs : array of shape (n_bins,)
-    true_probs : array of shape (n_bins,)
-    """
-    # Convert probabilities to CDFs
-    generated_cdf = np.cumsum(generated_probs)
-    true_cdf = np.cumsum(true_probs)
-    
-    # Compute KS statistic
-    ks_statistic = np.max(np.abs(generated_cdf - true_cdf))
-    
-    # Compute p-value
-    n = len(generated_probs)
-    p_value = kstwobign.sf(ks_statistic * np.sqrt(n))
-    
-    return ks_statistic, p_value
+    # Remove unused axes
+    for j in range(n, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
 
 
 

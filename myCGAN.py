@@ -6,7 +6,7 @@ from typing import Callable, Optional, Dict
 import torch
 from torch.utils.data import DataLoader
 from utilities import TensorDataset, DataSimulator, prepare_data, compute_js, pd
-from GANComponents import MyDiscriminator, MyGenerator
+from GANComponents import MyDiscriminator, MyGenerator, RnnDiscriminator, RnnGenerator
 
 
 class MyCGAN():
@@ -38,20 +38,30 @@ class MyCGAN():
         self.DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # generator architecture
-    def set_generator(self, condition_size=100, output_dim=2, **generator_params):
+    def set_generator(self, condition_size=100, output_dim=2, 
+                      hidden_dim_rnn:None|int = None, **generator_params):
         """
         create the generator
         """
-        
-        self.G=MyGenerator(latent_size=self.z_dim, condition_size=condition_size, output_dim=output_dim, **generator_params)
+        if hidden_dim_rnn is not None:
+            self.G=RnnGenerator(latent_size=self.z_dim, condition_size=condition_size, 
+                                hidden_dim=hidden_dim_rnn, output_dim=output_dim, **generator_params)
+        else:
+            self.G=MyGenerator(latent_size=self.z_dim, condition_size=condition_size,
+                                output_dim=output_dim, **generator_params)
 
     #discriminator architecture 
-    def set_discriminator(self, input_size=784, condition_size=10, output_dim=1, **discriminator_params):
+    def set_discriminator(self, input_size=784, condition_size=10, output_dim=1,
+                           hidden_dim_rnn:None|int = None, **discriminator_params):
         """
         create the discriminator
         """
-
-        self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size, output_dim=output_dim, **discriminator_params)
+        if hidden_dim_rnn is not None:
+            self.D = RnnDiscriminator(input_size=input_size, condition_size=condition_size, 
+                                      output_dim=output_dim, hidden_dim=hidden_dim_rnn, **discriminator_params)
+        else: 
+            self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size,
+                                      output_dim=output_dim, **discriminator_params)
 
 
     def train(self, data: TensorDataset, save_history:bool = False, distance_metric:str = 'js_divergence'):
@@ -271,14 +281,20 @@ class MyCGAN():
         Returns:
             Dictionary containing errors and statistics
         """
-
+        if self.G is None:
+            raise ValueError('Generator is not specifid')
+        
         true = data.tensors[0].numpy()
         conditions, generated = self.generate(data)
-        errors = np.abs(true - generated)
-        if errors.ndim<2:
-            errors = errors.reshape(errors.shape[0], 1)
+        
+        # if point forecast compute MSE else absolute errors for each bin
+        if true.shape[1]<2:
+            errors = (true - generated)**2
+        else:
+            errors = compute_js(generated, true, is_log=True) if self.G.is_prob else compute_js(generated, true, is_log=False)
+            errors = np.array(errors).reshape(-1,1)
 
-            
+        
         stats = {
             "errors": errors,
             "generated": generated,
