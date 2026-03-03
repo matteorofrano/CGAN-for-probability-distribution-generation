@@ -28,7 +28,7 @@ class LayerNormLSTM(nn.Module):
 
 
 class MultiLayerNormLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, n_layers, output_size, dropout=0.0):
+    def __init__(self, input_size, hidden_size, n_layers, dropout=0.0):
 
         super().__init__()
         self.hidden_size = hidden_size
@@ -41,8 +41,7 @@ class MultiLayerNormLSTM(nn.Module):
             self.cells.append(LayerNormLSTM(layer_input_size, hidden_size))
 
         self.dropout = nn.Dropout(dropout) if dropout > 0.0 else None
-        self.fc = nn.Linear(hidden_size, output_size)
-
+        
     def forward(self, x):
         batch_size, seq_len, _ = x.shape
 
@@ -63,9 +62,7 @@ class MultiLayerNormLSTM(nn.Module):
                 else:
                     layer_input = h[layer]
 
-        # use the final hidden state of the last layer
-        out = self.fc(h[-1])
-        return out
+        return h, c
 
 
 
@@ -101,7 +98,7 @@ class LayerNormGRU(nn.Module):
 
 
 class MultiLayerNormGRU(nn.Module):
-    def __init__(self, input_size, hidden_size, n_layers, output_size, dropout=0.0):
+    def __init__(self, input_size, hidden_size, n_layers, dropout=0.0):
         super().__init__()
         self.hidden_size = hidden_size
         self.n_layers = n_layers
@@ -112,8 +109,7 @@ class MultiLayerNormGRU(nn.Module):
             self.cells.append(LayerNormGRU(layer_input_size, hidden_size))
 
         self.dropout = nn.Dropout(dropout) if dropout > 0.0 else None
-        self.fc = nn.Linear(hidden_size, output_size)
-
+        
     def forward(self, x):
         # x shape: (batch_size, seq_len, input_size)
         batch_size, seq_len, _ = x.shape
@@ -132,7 +128,5 @@ class MultiLayerNormGRU(nn.Module):
                     layer_input = self.dropout(h[layer])
                 else:
                     layer_input = h[layer]
-
-        # use the final hidden state of the last layer
-        out = self.fc(h[-1])
-        return out
+        
+        return h

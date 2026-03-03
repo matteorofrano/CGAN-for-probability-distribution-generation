@@ -312,7 +312,7 @@ class MyCWGAN(MyCGAN):
 
                 # generated samples
                 z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                fake_samples = self.G(z,c).detach()
+                fake_samples = self.G(c,z).detach()
                 critic_fake = self.D(fake_samples, c)
                 critic_fake_mean = critic_fake.mean()
 
@@ -329,7 +329,7 @@ class MyCWGAN(MyCGAN):
 
                     #generated samples
                     z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
-                    fake_samples_g = self.G(z,c)
+                    fake_samples_g = self.G(c,z)
                     critic_fake_g = self.D(fake_samples_g, c)
 
                     #backpropagation -> generator minimize -E[C(fake)]

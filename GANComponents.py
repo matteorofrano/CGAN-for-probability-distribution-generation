@@ -317,10 +317,10 @@ class RnnGenerator(MyGenerator):
 
         #build network
         if rnn_layer == 'lstm':
-            self.sequential_model = nn.LSTM(condition_size, hidden_dim, n_layers,
+            self.sequential_model = nn.LSTM(output_dim, hidden_dim, n_layers,
                                         dropout=dropout, batch_first=True)
         elif rnn_layer == 'gru':
-            self.sequential_model = nn.GRU(condition_size, hidden_dim, n_layers,
+            self.sequential_model = nn.GRU(output_dim, hidden_dim, n_layers,
                                         dropout=dropout, batch_first=True)
         else:
             raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
@@ -332,9 +332,10 @@ class RnnGenerator(MyGenerator):
         
     def forward(self, x, z):
         #x, z = x.view(x.size(0), -1), z.view(z.size(0), -1).float()
-        out, _ = self.sequential_model(x)
-        c = out[:, -1, :] #takes the condition representation of the last hidden state
-
+        x = x.unsqueeze(-1)
+        h_out, _ = self.sequential_model(x)
+        
+        c = h_out[:, -1, :] #takes the condition representation of the last hidden state
         combined = torch.cat((z, c), dim=1) # v: [trajectory, noise] concatenated vector
         y = self.act_fn(self.dense1(combined))
         y_ = self.dense2(y)
@@ -372,29 +373,21 @@ class RnnDiscriminator(MyDiscriminator):
         # Store configuration for saving/loading
         self.input_size = input_size
         self.condition_size = condition_size
-        self.output_dim = output_dim
+        self.n_layers = n_layers
         self.hidden_dim = hidden_dim
-        self.use_batch_norm = use_layer_norm
+        self.use_layer_norm = use_layer_norm
         self.activation = activation
         self.dropout = dropout
         self.act_fn = self._get_activation(activation)
         self.rnn_layer = rnn_layer
 
-        input_dim = input_size + condition_size
+        #input_dim = input_size + condition_size
         #build network
-        if use_layer_norm and n_layers>1:
+        if use_layer_norm:
             if rnn_layer == 'lstm':
-                self.sequential_model = MultiLayerNormLSTM(input_dim, hidden_dim, n_layers, output_dim, dropout)
+                self.sequential_model = MultiLayerNormLSTM(input_size, hidden_dim, n_layers, dropout)
             elif rnn_layer == 'gru':
-                self.sequential_model = MultiLayerNormGRU(input_dim, hidden_dim, n_layers, output_dim, dropout)
-            else:
-                raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
-            
-        elif use_layer_norm:
-            if rnn_layer == 'lstm':
-                self.sequential_model = LayerNormLSTM(input_dim, hidden_dim)
-            elif rnn_layer == 'gru':
-                self.sequential_model = LayerNormGRU(input_dim, hidden_dim)
+                self.sequential_model = MultiLayerNormGRU(input_size, hidden_dim, n_layers, dropout)
             else:
                 raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
         else:
@@ -412,10 +405,31 @@ class RnnDiscriminator(MyDiscriminator):
     def forward(self, x, c):        
         #x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
         v = torch.cat((c, x), 1) # v: [condition, input] concatenated vector
-        h_out, _ = self.sequential_model(v)
-        r = h_out[:, -1, :]
-        y_ = self.dense(r)
+        v = v.unsqueeze(-1)
+
+        if self.rnn_layer == 'lstm':
+            h_out, _ = self.sequential_model(v)
+        elif self.rnn_layer =='gru':
+            h_out = self.sequential_model(v)
+        else:
+            raise ValueError('The RNN based layer is not specified')
+        
+        y_ = self.dense(h_out[-1])
         return y_
+    
+
+    def get_config(self):
+        return {
+            'input_size': self.input_size,
+            'condition_size': self.condition_size,
+            'n_layers':self.n_layers,
+            'use_layer_norm': self.use_layer_norm,
+            'hidden_dim': self.hidden_dim,
+            'activation': self.activation,
+            'dropout': self.dropout,
+            'act_fn':self.act_fn,
+            'rnn_layer':self.rnn_layer
+            } 
 
 
 
