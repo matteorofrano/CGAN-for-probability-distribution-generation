@@ -374,6 +374,37 @@ class DataSimulator():
 
         return sampled_values
     
+    def _montecarlo_steps(self, n_mc_simulations:int, n_steps:int, start_values:np.ndarray ):
+
+        if self.sigma is None or self.mu is None:
+            raise ValueError("sigma and mu arrays are not initialized")
+
+        #initialize an empty numpy array
+        mc_paths = np.zeros((start_values.shape[0], n_steps + 1, n_mc_simulations)) #shape (M, N + 1, S)
+        mc_paths[:, 0, :] = start_values.reshape(-1,1) # Set the initial value for all paths
+
+        
+        #drift --- (mu - 0.5 * sigma^2) * dt 
+        drift = (self.mu - 0.5 * self.sigma**2) * self.dt #type: ignore
+        mc_drift = np.broadcast_to(drift.reshape(drift.shape[0], 1, 1),
+                                    (drift.shape[0], n_steps, n_mc_simulations))
+
+        #shocks --- sigma * Z * sqrt(dt) with Z distributed as N(0,1)
+        Z = self.rng.standard_normal(size=(start_values.shape[0], n_steps, n_mc_simulations)) # shape (M, N, S)
+        mc_sigma = np.broadcast_to(self.sigma.reshape(self.sigma.shape[0], 1, 1),
+                                    (self.sigma.shape[0], n_steps, n_mc_simulations))
+        mc_shocks = (mc_sigma * Z) * np.sqrt(self.dt)
+
+        # cumulative sum of increments with start value X0
+        increments = mc_drift + mc_shocks
+        start_values_mc = np.broadcast_to(start_values.reshape(start_values.shape[0], 1, 1),
+                                    (start_values.shape[0], n_steps, n_mc_simulations))
+       
+        mc_paths[:, 1:, :] = start_values_mc + np.cumsum(increments, axis=1)
+        mc_distributions = mc_paths[:,-1, :]
+        return mc_distributions
+
+    
     def get_paths(self):
         """
         Simulates log prices with Brownian Motion.
@@ -436,13 +467,14 @@ class DataSimulator():
         return paths
     
     def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
-                 P:np.ndarray|None=None, verbose:bool = False):
+                 P:np.ndarray|None=None, mc_sims:int = 0, verbose:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
             n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt
             n_bins:int -> if None or 0 then just compute the analytical mean and std. If greater than 0 compute bins of the distribution
             P: np.ndarray -> array of latest price information
+            mc_sims: int -> number of montecarlo simulations. If less than 2 the theoretical distribution is used 
             bins: -> 1D array of custome bins. Usually used in inference time to load training bins
         """
 
@@ -490,8 +522,18 @@ class DataSimulator():
 
         # evaluate all distributions on the same bins
         #cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), scale=std.reshape(self.n_simulations, 1))
-        cdf_values = norm.cdf(common_bins, loc=mean[:, None], scale=std[:, None])
-        probabilities = np.diff(cdf_values, axis=1)
+        if mc_sims<2:
+            cdf_values = norm.cdf(common_bins, loc=mean[:, None], scale=std[:, None])
+            probabilities = np.diff(cdf_values, axis=1)
+        else:
+            if n_bins is not None:
+                probabilities = np.zeros((mean.shape[0], n_bins))
+                montecarlo_simulations = self._montecarlo_steps(n_mc_simulations=1000, n_steps=n_steps_ahead, start_values=XT).squeeze()
+                for i in range(montecarlo_simulations.shape[0]):
+                    hist, _ = np.histogram(montecarlo_simulations[i], bins=common_bins)
+                    probabilities[i] = hist / hist.sum()
+            else:
+                raise ValueError("n_bins has not been specified")
 
         # zero-out small values and renormalize
         probabilities[probabilities < 1e-7] = 0.0
