@@ -345,6 +345,9 @@ INPUT Introduction\Intro.aux
 INPUT .\Background\Background.aux
 INPUT .\Background\Background.aux
 INPUT Background\Background.aux
+INPUT .\Background2\background2.aux
+INPUT .\Background2\background2.aux
+INPUT Background2\background2.aux
 OUTPUT main.aux
 INPUT C:\Users\matte\AppData\Local\Programs\MiKTeX\tex\latex\newtx\omlntxmi.fd
 INPUT C:\Users\matte\AppData\Local\Programs\MiKTeX\tex\latex\newtx\omlntxmi.fd
@@ -649,6 +652,12 @@ INPUT .\Background\images\samples_forgan.png
 INPUT .\Background\images\samples_forgan.png
 INPUT .\Background\images\samples_forgan.png
 INPUT .\Background\images\samples_forgan.png
+INPUT .\Background2\background2.tex
+INPUT .\Background2\background2.tex
+OUTPUT Background2\background2.aux
+INPUT .\Background2\background2.tex
+INPUT .\Background2\background2.tex
+INPUT Background2\background2.tex
 INPUT main.aux
 INPUT .\frontespizio.aux
 INPUT .\frontespizio.aux
@@ -659,6 +668,9 @@ INPUT Introduction\Intro.aux
 INPUT .\Background\Background.aux
 INPUT .\Background\Background.aux
 INPUT Background\Background.aux
+INPUT .\Background2\background2.aux
+INPUT .\Background2\background2.aux
+INPUT Background2\background2.aux
 INPUT .\main.out
 INPUT .\main.out
 INPUT main.run.xml

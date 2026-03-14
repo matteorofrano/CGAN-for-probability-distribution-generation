@@ -539,6 +539,7 @@ class DataSimulator():
         probabilities[probabilities < 1e-7] = 0.0
         row_sums = probabilities.sum(axis=1, keepdims=True)
         probabilities = probabilities / row_sums
+        probabilities = probabilities.astype(np.float32)  
         self.pdf = probabilities
 
         return self.pdf
