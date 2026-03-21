@@ -1,13 +1,13 @@
 # Fdb version 4
-["biber main"] 1770320101.19263 "main.bcf" "main.bbl" "main" 1773515615.9056 0
+["biber main"] 1770320101.19263 "main.bcf" "main.bbl" "main" 1773611740.21005 0
   "bibliografia.bib" 1769722694 2580 d13ff4d6d08acf425448f739f4609406 ""
-  "main.bcf" 1773515615 108596 7f8d56c724c9d47c5d03ef61be738eab "pdflatex"
+  "main.bcf" 1773611739 108596 7f8d56c724c9d47c5d03ef61be738eab "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1773515612.45098 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1773515615.90632 0
-  "Background/Background.aux" 1773515615 10800 348a047766e6fd3321fb5f546bb40e64 "pdflatex"
+["pdflatex"] 1773611736.71152 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1773611740.21082 0
+  "Background/Background.aux" 1773611739 10800 348a047766e6fd3321fb5f546bb40e64 "pdflatex"
   "Background/Background.tex" 1772486942 19747 719a3dcfcf55ff3c1182432af1ae916a ""
   "Background/images/CWGAN_error_dist.png" 1769722694 166924 40cf9dc56cd9acf8176aec1cd83f22a1 ""
   "Background/images/bins_global_distribution_cgan.png" 1768401792 36296 4a142bcc602618b77186e7763f6ae333 ""
@@ -19,8 +19,6 @@
   "Background/images/mean_std_cgan.png" 1768401792 25362 66c058737b069957a095b81350c2f361 ""
   "Background/images/samples_forgan.png" 1771450827 53833 c643b3996abd9751e1b819a6c1d1fc40 ""
   "Background/images/samples_forgan_simple.png" 1771450905 54463 e18571cc1422c3e6a44ad58969f4df53 ""
-  "Background2/background2.aux" 1773515615 6133 820e35b7d7baf6069b4a6175783325a9 "pdflatex"
-  "Background2/background2.tex" 1773515608 8254 7c7e95c87c031f342eaae0062db31fa5 ""
   "C:/Users/matte/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1763227686 163467 115bf7c03ef5429b41e730e9b3b13e66 ""
   "C:/Users/matte/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1756761838 13257342 3cdf40aebdc7687414c82debb3f5997f ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ec-tlf.enc" 1736607166 2914 fdbc4a54b9bc76f4551b5303f2737d33 ""
@@ -272,22 +270,21 @@
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xpatch/xpatch.sty" 1585221260 8510 7803f78066c4f9d008405191a4b43073 ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
-  "Introduction/Intro.aux" 1773515614 7051 af5ae1b222793d2c7c7a51094265f18a "pdflatex"
+  "Introduction/Intro.aux" 1773611738 7051 af5ae1b222793d2c7c7a51094265f18a "pdflatex"
   "Introduction/Intro.tex" 1770322068 19420 c3ffe3bd9297025fd415ae0a0a05683e ""
   "Introduction/images/forgan.png" 1770319971 34085 233691d976a9b819a53fc7441178562a ""
-  "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" 1773487648 2966 ecd7b894df8b4139cafadfef0c10ccff ""
-  "frontespizio.aux" 1773515613 4528 b78c73a55bc166ff3542f10634f484ce "pdflatex"
+  "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" 1773611731 2967 9533095b92b1d6f40a26532b2357eaf4 ""
+  "frontespizio.aux" 1773611738 4528 b78c73a55bc166ff3542f10634f484ce "pdflatex"
   "frontespizio.jpg" 1736278509 79037 56bddb2fb226982fba5b80ae40565e5d ""
   "frontespizio.tex" 1769722694 935 11738e194f811ef4d926da667757f23e ""
-  "main.aux" 1773515615 1817 f53b863cdd988a32bd57376d0516991b "pdflatex"
+  "main.aux" 1773611739 1780 d81dc027d13efb21d42b81828bbe710d "pdflatex"
   "main.bbl" 1770320103 10703 5ec32f2a26976a7c3618e67086fef461 "biber main"
-  "main.out" 1773515615 3687 2121ba8f7a2d168011514f98618fce56 "pdflatex"
-  "main.run.xml" 1773515615 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
-  "main.tex" 1773487648 2966 ecd7b894df8b4139cafadfef0c10ccff ""
-  "main.toc" 1773515615 1918 39d779a2fdcff517a38637da92482b15 "pdflatex"
+  "main.out" 1773611739 2854 4a062dc2640e9ea06369f57884ae8b88 "pdflatex"
+  "main.run.xml" 1773611739 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
+  "main.tex" 1773611731 2967 9533095b92b1d6f40a26532b2357eaf4 ""
+  "main.toc" 1773611739 1508 89aaf3b7a01552bfa0ea42eb6aa7210c "pdflatex"
   (generated)
   "Background/Background.aux"
-  "Background2/background2.aux"
   "Introduction/Intro.aux"
   "frontespizio.aux"
   "main.aux"

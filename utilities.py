@@ -42,8 +42,6 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
     
     return stock_df
 
-
-
 def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None):
     """
     An auxiliary function to normalize data and load them into a dataloader
@@ -72,9 +70,68 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None
     
     dataset = TensorDataset(X_tensor, C_tensor)
     return dataset, X_mean, X_std
-        
-        
 
+def freedman_diaconis_bins(data: np.ndarray) -> tuple:
+    """
+    Compute optimal histogram bins using the Freedman-Diaconis Rule.
+    
+    Bin width: h = 2 * IQR * n^(-1/3)
+    Number of bins: k = ceil((max - min) / h)
+    
+    Parameters:
+        data: array-like of numeric values
+    
+    Returns:
+        bin_width (float), num_bins (int), bin_edges (np.ndarray)
+    """
+    data = np.asarray(data, dtype=float)
+    data = data[~np.isnan(data)]  # remove NaNs
+    n = len(data)
+
+    if n < 2:
+        raise ValueError("Need at least 2 data points.")
+
+    q75, q25 = np.percentile(data, [75, 25])
+    iqr = q75 - q25
+
+    if iqr == 0:
+        raise ValueError("IQR is zero — data may be too concentrated. Consider a different binning rule.")
+
+    # Freedman-Diaconis bin width
+    bin_width = 2 * iqr * n ** (-1/3)
+
+    data_range = data.max() - data.min()
+    num_bins = int(np.ceil(data_range / bin_width))
+
+    # Build explicit bin edges for full control
+    bin_edges = np.linspace(data.min(), data.max(), num_bins + 1)
+
+    return bin_width, num_bins, bin_edges
+
+def compare_simulated_pdfs(true_pdfs: np.ndarray, generated_pdfs: np.ndarray) -> tuple:
+    """
+    Function used to compare the result from two simulated pdfs
+    params: true_pdfs: a 2D numpy array containing for each row the simulations which approximate the true pdf 
+    params: generated_pdfs: a 2D numpy array containing for each row the simulations which approximate the generated pdf
+    """
+
+    if true_pdfs.shape != generated_pdfs.shape:
+        raise ValueError(f"the shape of true_pdf and generated_pdf must match."
+                          f"current true_pdf shape is{true_pdfs.shape}" 
+                          f"while current generated_pdf shape is {generated_pdfs.shape}")
+    
+    true_discretized_pdfs = []
+    generated_discretized_pdfs = []
+    bin_edges_list = []
+    for i, simulated_pdf in enumerate(true_pdfs):
+        _, _, bin_edges = freedman_diaconis_bins(simulated_pdf)
+        hist_true, _ = np.histogram(simulated_pdf, bins=bin_edges)
+        hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)
+        bin_edges_list.append(bin_edges)
+        true_discretized_pdfs.append(hist_true / hist_true.sum())
+        generated_discretized_pdfs.append(hist_generated/hist_generated.sum())
+    
+    return true_discretized_pdfs, generated_discretized_pdfs, bin_edges_list
 
 def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
     """
@@ -97,9 +154,6 @@ def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True
 
     return js_distances
 
-
-
-
 def ks_test_gan_cdf(generated_probs, true_probs):
     """
     Perform KS test comparing generated and true probability distributions.
@@ -119,8 +173,6 @@ def ks_test_gan_cdf(generated_probs, true_probs):
     p_value = kstwobign.sf(ks_statistic * np.sqrt(n))
     
     return ks_statistic, p_value
-
-
 
 def get_error_metrics(true: np.ndarray, generated: np.ndarray) -> dict:
         """
@@ -152,8 +204,6 @@ def get_error_metrics(true: np.ndarray, generated: np.ndarray) -> dict:
             }
         
         return stats
-
-
 
 def analyze_error_distribution(csv:str):
 
@@ -215,11 +265,6 @@ def analyze_error_distribution(csv:str):
 
     return means, stds, summary
     
-
-
-
-
-
 def plot_learning_curve(df_csv:str):
         """
         A function used to plot the learning curve of the trained model
@@ -238,41 +283,46 @@ def plot_learning_curve(df_csv:str):
 
 
 
-def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
-                   bins_values:np.ndarray, X_T: List[float]|None = None, ncols=3):
+def plot_bin_dist(trues:np.ndarray|list, preds:np.ndarray|list,
+                   bins_values:np.ndarray|list, X_T: List[float]|None = None, ncols=3):
 
     n = len(trues)
-    nrows = math.ceil(n/ncols)
-    bin_centers = 0.5 * (bins_values[:-1] + bins_values[1:])
-    if n!= len(preds):
-        raise ValueError('trues and genereted must have the same length')
-    
+    nrows = math.ceil(n / ncols)
+
     fig, axes = plt.subplots(
         nrows=nrows,
         ncols=ncols,
         figsize=(5 * ncols, 4 * nrows),
-        #sharex=True,
         sharey=True
     )
-
     axes = axes.flatten()
+
     for i, (true, pred) in enumerate(zip(trues, preds)):
-        if len(true)!=len(pred):
-            raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
+        if len(true) != len(pred):
+            raise Exception(f'true and pred have different shapes. true ={np.shape(true)}, pred = {np.shape(pred)}')
+
+        # Handle bins_values: could be a single array, 2D array, or list of arrays
+        if isinstance(bins_values, (list, tuple)) and len(bins_values) == n:
+            bins = bins_values[i]
+        else:
+            bins = bins_values
+
+        # Compute bin centers for this row
+        bin_centers_row = 0.5 * (np.array(bins[:-1]) + np.array(bins[1:]))
 
         # find indices to zoom the distribution
-        indices = np.where(true > 1e-7)[0]
+        indices = np.where(np.array(true) > 1e-7)[0]
         if len(indices) > 0:
-            first_idx = indices[0]   
-            last_idx = indices[-1] 
-            start = int(first_idx - np.ceil(0.1*first_idx)) 
-            end = int(last_idx + np.ceil(0.1*(true.shape[0]-last_idx)))
-            true = true[start:end]
-            pred = pred[start:end]
-            bin_centers_row = bin_centers[start:end]
+            first_idx = indices[0]
+            last_idx = indices[-1]
+            start = int(first_idx - np.ceil(0.1 * first_idx))
+            end = int(last_idx + np.ceil(0.1 * (len(true) - last_idx)))
+            true = np.array(true)[start:end]
+            pred = np.array(pred)[start:end]
+            bin_centers_row = bin_centers_row[start:end]
         else:
             raise ValueError('the true distribution does not have any positive probability')
-        
+
         ax = axes[i]
         width = bin_centers_row[1] - bin_centers_row[0]  # bin width
         ax.bar(bin_centers_row, true, width=width, alpha=0.5, label="True histogram")
@@ -297,7 +347,6 @@ def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
 
     plt.tight_layout()
     plt.show()
-
 
 
 class DataSimulator():
@@ -502,10 +551,9 @@ class DataSimulator():
         # if bins already created
         if self.bins is not None:
             common_bins = self.bins
-        # if not created yet 
         else:
             # use distribution parameters
-            if n_bins is None or n_bins<1:
+            if n_bins is None:
                 pdf = np.column_stack((mean, std))
                 self.pdf = pdf
                 return self.pdf
@@ -526,14 +574,15 @@ class DataSimulator():
             cdf_values = norm.cdf(common_bins, loc=mean[:, None], scale=std[:, None])
             probabilities = np.diff(cdf_values, axis=1)
         else:
-            if n_bins is not None:
+            montecarlo_simulations = self._montecarlo_steps(n_mc_simulations=1000, n_steps=n_steps_ahead, start_values=XT).squeeze()
+            if n_bins is not None and n_bins>10:
                 probabilities = np.zeros((mean.shape[0], n_bins))
-                montecarlo_simulations = self._montecarlo_steps(n_mc_simulations=1000, n_steps=n_steps_ahead, start_values=XT).squeeze()
                 for i in range(montecarlo_simulations.shape[0]):
                     hist, _ = np.histogram(montecarlo_simulations[i], bins=common_bins)
                     probabilities[i] = hist / hist.sum()
             else:
-                raise ValueError("n_bins has not been specified")
+                return montecarlo_simulations
+                
 
         # zero-out small values and renormalize
         probabilities[probabilities < 1e-7] = 0.0

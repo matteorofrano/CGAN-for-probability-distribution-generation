@@ -86,8 +86,8 @@ class MyCWGAN(MyCGAN):
         satisfying the Lipschitz constraint.
         
         Args:
-            real_samples: Real data batch
-            fake_samples: Generated fake data batch
+            ture_samples: Real data batch
+            generated_samples: Generated fake data batch
             c: Conditioning information
             
         Returns:
@@ -218,8 +218,8 @@ class MyCWGAN(MyCGAN):
         num_batches = 0
         
         with torch.no_grad():
-            for prob_dist, trajectory in data_loader:
-                x = prob_dist.to(self.DEVICE)
+            for output, trajectory in data_loader:
+                x = output.to(self.DEVICE)
                 y = trajectory.to(self.DEVICE)
                 current_batch_size = x.size(0)
                 
