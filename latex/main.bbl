@@ -63,6 +63,45 @@
       \field{title}{Time series simulation by conditional generative adversarial net}
       \field{year}{2019}
     \endentry
+    \entry{background:wgan}{inproceedings}{}{}
+      \name{author}{3}{}{%
+        {{hash=ab4a5e058dea2d852ff02aa4e10045c3}{%
+           family={Arjovsky},
+           familyi={A\bibinitperiod},
+           given={Martin},
+           giveni={M\bibinitperiod}}}%
+        {{hash=8ef51a0906e47d2b4472c4e714ed598f}{%
+           family={Chintala},
+           familyi={C\bibinitperiod},
+           given={Soumith},
+           giveni={S\bibinitperiod}}}%
+        {{hash=ac762f2592005edf6bad58f566967c6c}{%
+           family={Bottou},
+           familyi={B\bibinitperiod},
+           given={Léon},
+           giveni={L\bibinitperiod}}}%
+      }
+      \list{organization}{1}{%
+        {PMLR}%
+      }
+      \strng{namehash}{f587dda04e83e5dc90f2168faf0f4796}
+      \strng{fullhash}{f587dda04e83e5dc90f2168faf0f4796}
+      \strng{fullhashraw}{f587dda04e83e5dc90f2168faf0f4796}
+      \strng{bibnamehash}{f587dda04e83e5dc90f2168faf0f4796}
+      \strng{authorbibnamehash}{f587dda04e83e5dc90f2168faf0f4796}
+      \strng{authornamehash}{f587dda04e83e5dc90f2168faf0f4796}
+      \strng{authorfullhash}{f587dda04e83e5dc90f2168faf0f4796}
+      \strng{authorfullhashraw}{f587dda04e83e5dc90f2168faf0f4796}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{International conference on machine learning}
+      \field{title}{Wasserstein generative adversarial networks}
+      \field{year}{2017}
+      \field{pages}{214\bibrangedash 223}
+      \range{pages}{10}
+    \endentry
     \entry{background2:gp_wgan}{article}{}{}
       \name{author}{5}{}{%
         {{hash=94f7047ed067ed3ca0ce018501dd9db9}{%
@@ -99,8 +138,8 @@
       \strng{authornamehash}{23de20020d4d8ae2293e93e7427fec95}
       \strng{authorfullhash}{376f9450b5e0fd1a75c8073680f5c15f}
       \strng{authorfullhashraw}{376f9450b5e0fd1a75c8073680f5c15f}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Advances in neural information processing systems}
@@ -142,8 +181,8 @@
       \strng{authornamehash}{c6b7fbd1de94fc6987154b98f6414c22}
       \strng{authorfullhash}{67098f1852a845cf3c441491c7f90980}
       \strng{authorfullhashraw}{67098f1852a845cf3c441491c7f90980}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{IEEE Access}
@@ -172,8 +211,8 @@
       \strng{authornamehash}{61cfab2004dce53675c07da633f01ad1}
       \strng{authorfullhash}{61cfab2004dce53675c07da633f01ad1}
       \strng{authorfullhashraw}{61cfab2004dce53675c07da633f01ad1}
-      \field{sortinit}{6}
-      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of the American statistical Association}
@@ -210,8 +249,8 @@
       \strng{authornamehash}{c364be3164dbae773df3b5d9de39e025}
       \strng{authorfullhash}{c364be3164dbae773df3b5d9de39e025}
       \strng{authorfullhashraw}{c364be3164dbae773df3b5d9de39e025}
-      \field{sortinit}{7}
-      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{arXiv preprint arXiv:1706.02633}
@@ -242,8 +281,8 @@
       \strng{authornamehash}{8ec2659a774edc2497baae03cac7d64a}
       \strng{authorfullhash}{8ec2659a774edc2497baae03cac7d64a}
       \strng{authorfullhashraw}{8ec2659a774edc2497baae03cac7d64a}
-      \field{sortinit}{9}
-      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Signals}

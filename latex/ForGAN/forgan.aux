@@ -1,41 +1,23 @@
 \relax 
 \providecommand\hyper@newdestlabel[2]{}
-\@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}ForGAN architecture}{22}{chapter.3}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {1.1}Training Data}{3}{section.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1.1}Condition input data}{4}{subsection.1.1.1}\protected@file@percent }
-\newlabel{log-price SDE}{{1.1}{4}{Condition input data}{equation.1.1}{}}
-\newlabel{eq: discretized_SDE}{{1.2}{4}{Condition input data}{equation.1.2}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Algorithm for the condition data matrix $C$ creation}}{4}{algorithm.1}\protected@file@percent }
-\newlabel{alg:y condition}{{1}{4}{Condition input data}{algorithm.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1.2}Target output data}{4}{subsection.1.1.2}\protected@file@percent }
-\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces Algorithm for the target data matrix $X$ creation}}{5}{algorithm.2}\protected@file@percent }
-\newlabel{alg:x target}{{2}{5}{Target output data}{algorithm.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {1.2}Models and architectures overview}{6}{section.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.2.1}CGAN formulation}{6}{subsection.1.2.1}\protected@file@percent }
-\newlabel{eq:GAN minimax}{{1.4}{6}{CGAN formulation}{equation.1.4}{}}
-\newlabel{eq:discriminator objective}{{1.5}{6}{CGAN formulation}{equation.1.5}{}}
-\newlabel{eq:generator objective}{{1.6}{6}{CGAN formulation}{equation.1.6}{}}
-\newlabel{eq:CGAN minimax}{{1.7}{6}{CGAN formulation}{equation.1.7}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {3}{\ignorespaces Standard Conditional GAN (CGAN) Training}}{7}{algorithm.3}\protected@file@percent }
-\newlabel{alg: cgan}{{3}{7}{CGAN formulation}{algorithm.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.2.2}Wasserstein CGAN formulation}{7}{subsection.1.2.2}\protected@file@percent }
-\newlabel{eq: emd_dual}{{1.8}{8}{Wasserstein CGAN formulation}{equation.1.8}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {4}{\ignorespaces Conditional Wasserstein GAN with Gradient Penalty (CWGAN-GP)}}{9}{algorithm.4}\protected@file@percent }
-\newlabel{alg:cwgan_gp}{{4}{9}{Wasserstein CGAN formulation}{algorithm.4}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {5}{\ignorespaces Gradient Penalty Calculation for CWGAN-GP}}{9}{algorithm.5}\protected@file@percent }
-\newlabel{alg:gradient_penalty}{{5}{9}{Wasserstein CGAN formulation}{algorithm.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.2.3}ForGAN}{10}{subsection.1.2.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces ForGAN architecture}}{10}{figure.1.1}\protected@file@percent }
-\newlabel{img:forgan}{{1.1}{10}{ForGAN architecture}{figure.1.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {1.3}Performance metrics and statistical tests}{11}{section.1.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.1}Distance metrics}{11}{subsection.1.3.1}\protected@file@percent }
-\newlabel{eq: TV_distance}{{1.10}{11}{Distance metrics}{equation.1.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.2}The Kolmogorov-Smirnov test}{12}{subsection.1.3.2}\protected@file@percent }
-\@setckpt{Introduction/Intro}{
-\setcounter{page}{14}
-\setcounter{equation}{14}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.0.1}ForGAN results}{22}{subsection.3.0.1}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {8}{\ignorespaces Training process for ForGAN model}}{22}{algorithm.8}\protected@file@percent }
+\newlabel{alg:forGAN train}{{8}{22}{ForGAN results}{algorithm.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces ForGAN performance metrics averaged over 1000 samples}}{23}{table.3.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}}{23}{figure.3.1}\protected@file@percent }
+\newlabel{forgan_simple_sample_sigma}{{3.1}{23}{Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$}{figure.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.0.2}ForWGAN results}{23}{subsection.3.0.2}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {9}{\ignorespaces Training process for CWGAN-GP model}}{24}{algorithm.9}\protected@file@percent }
+\newlabel{alg:ForWGAN train}{{9}{24}{ForWGAN results}{algorithm.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces ForWGAN performance metrics averaged over 1000 samples}}{24}{table.3.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}}{25}{figure.3.2}\protected@file@percent }
+\newlabel{forgan_sample_sigma}{{3.2}{25}{Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$}{figure.3.2}{}}
+\@setckpt{ForGAN/forgan}{
+\setcounter{page}{26}
+\setcounter{equation}{0}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
 \setcounter{enumiii}{0}
@@ -43,14 +25,14 @@
 \setcounter{footnote}{0}
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
-\setcounter{chapter}{1}
-\setcounter{section}{3}
+\setcounter{chapter}{3}
+\setcounter{section}{0}
 \setcounter{subsection}{2}
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{1}
-\setcounter{table}{0}
+\setcounter{figure}{2}
+\setcounter{table}{2}
 \setcounter{tabx@nest}{0}
 \setcounter{listtotal}{0}
 \setcounter{listcount}{0}
@@ -60,7 +42,7 @@
 \setcounter{citetotal}{0}
 \setcounter{multicitecount}{0}
 \setcounter{multicitetotal}{0}
-\setcounter{instcount}{7}
+\setcounter{instcount}{10}
 \setcounter{maxnames}{3}
 \setcounter{minnames}{1}
 \setcounter{maxitems}{3}
@@ -166,7 +148,7 @@
 \setcounter{bbx:relatedcount}{0}
 \setcounter{bbx:relatedtotal}{0}
 \setcounter{cbx@tempcnta}{0}
-\setcounter{cbx@tempcntb}{5}
+\setcounter{cbx@tempcntb}{7}
 \setcounter{cbx@tempcntc}{0}
 \setcounter{cbx@tempcntd}{-1}
 \setcounter{float@type}{16}
@@ -175,11 +157,11 @@
 \setcounter{section@level}{2}
 \setcounter{Item}{0}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{11}
+\setcounter{bookmark@seq@number}{20}
 \setcounter{r@tfl@t}{0}
-\setcounter{algorithm}{5}
-\setcounter{ALC@unique}{60}
-\setcounter{ALC@line}{9}
+\setcounter{algorithm}{9}
+\setcounter{ALC@unique}{98}
+\setcounter{ALC@line}{10}
 \setcounter{ALC@rem}{0}
 \setcounter{ALC@depth}{0}
 \setcounter{subfigure}{0}

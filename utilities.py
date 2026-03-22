@@ -13,7 +13,7 @@ import os
 import json 
 from pathlib import Path
 import seaborn as sns
-from scipy.stats import ttest_1samp
+from scipy.stats import ttest_1samp, wasserstein_distance
 from scipy.spatial.distance import jensenshannon
 
 
@@ -127,13 +127,17 @@ def compare_simulated_pdfs(true_pdfs: np.ndarray, generated_pdfs: np.ndarray) ->
         _, _, bin_edges = freedman_diaconis_bins(simulated_pdf)
         hist_true, _ = np.histogram(simulated_pdf, bins=bin_edges)
         hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)
+        
+        if hist_true.sum() == 0 or hist_generated.sum() == 0:
+            continue
+
         bin_edges_list.append(bin_edges)
         true_discretized_pdfs.append(hist_true / hist_true.sum())
         generated_discretized_pdfs.append(hist_generated/hist_generated.sum())
     
     return true_discretized_pdfs, generated_discretized_pdfs, bin_edges_list
 
-def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
+def compute_js(generated_arr:np.ndarray|list, true_arr:np.ndarray|list, is_log:bool = True):
     """
     Compute the Jenson-Shannon measure
     generated_arr: np.array -> an array of generated probability distributions 
@@ -174,7 +178,7 @@ def ks_test_gan_cdf(generated_probs, true_probs):
     
     return ks_statistic, p_value
 
-def get_error_metrics(true: np.ndarray, generated: np.ndarray) -> dict:
+def get_error_metrics(true: np.ndarray|list, generated: np.ndarray|list) -> dict:
         """
         Compute errors metrics for probability distributions
         
@@ -187,20 +191,43 @@ def get_error_metrics(true: np.ndarray, generated: np.ndarray) -> dict:
              total_variance_distance -> Maximum probability difference over all events. bounded [0,1]
              hellinger_distance -> bounded [0,1]
              jensen_shannon_distance -> sqrt(jensen-shannon divergence). bounded [0,1]
-             mean_absolute_error -> unbounded 
+             emd_distance -> Earth mover distance. [0, infty]
 
         """
-        
-        tv_distance = 0.5*np.sum(np.abs(true-generated), axis=1)
-        hellinger_distance = np.sqrt(0.5*np.sum((np.sqrt(true) - np.sqrt(generated))**2, axis=1))
-        js_distance = compute_js(generated, true, is_log=False)
-        mae = np.mean(np.abs(true - generated), axis=1)
+        tv_distance = []
+        hellinger_distance = []
+        js_distance = []
+        emd_distance = []
+
+        if isinstance(true, np.ndarray) and isinstance(generated, np.ndarray):
+            tv_distance = 0.5*np.sum(np.abs(true-generated), axis=1)
+            hellinger_distance = np.sqrt(0.5*np.sum((np.sqrt(true) - np.sqrt(generated))**2, axis=1))
+            js_distance = compute_js(generated, true, is_log=False)
+            emd_distance = np.mean([wasserstein_distance(t, g) for t, g in zip(true, generated)])
+        else:
+            for i, true_pdf in enumerate(true):
+                ith_tv_distance = 0.5*np.sum(np.abs(true_pdf-generated[i]))
+                ith_hellinger_distance = np.sqrt(0.5*np.sum((np.sqrt(true_pdf) - np.sqrt(generated[i]))**2))
+                ith_js_distance = compute_js(generated, true, is_log=False)
+                ith_emd_distance = wasserstein_distance(true_pdf, generated[i])
+                
+                tv_distance.append(ith_tv_distance)
+                hellinger_distance.append(ith_hellinger_distance)
+                js_distance.append(ith_js_distance)
+                emd_distance.append(ith_emd_distance)
+            
+            tv_distance = np.mean(tv_distance)
+            hellinger_distance = np.mean(hellinger_distance)
+            js_distance = np.mean(js_distance)
+            emd_distance = np.mean(emd_distance)
+
+
 
         stats = {
-            "mae": mae,
             "js_distance": js_distance,
             "hellinger_distance": hellinger_distance,
-            "tv_distance": tv_distance
+            "tv_distance": tv_distance,
+            "emd_distance": emd_distance
             }
         
         return stats
