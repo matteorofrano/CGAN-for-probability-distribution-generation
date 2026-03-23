@@ -55,16 +55,17 @@ class MyCWGAN(MyCGAN):
         self.best_critic_state = None
 
     
-    def set_critic(self, input_size:int = 784, condition_size:int = 10, **critic_params):
+    def set_critic(self, input_size:int = 784, condition_size:int = 10,
+                    hidden_dim_rnn:None|int = None, **critic_params):
         '''
         Alias for set_discriminator with more appropriate naming for WGAN
         '''
-
+        
         self.set_discriminator(input_size=input_size,
                                condition_size=condition_size,
                                output_dim=1,
+                               hidden_dim_rnn=hidden_dim_rnn,
                                **critic_params)
-        
         
 
     def compute_gradient_penalty(self, true_samples, generated_samples, c):
@@ -85,8 +86,8 @@ class MyCWGAN(MyCGAN):
         satisfying the Lipschitz constraint.
         
         Args:
-            real_samples: Real data batch
-            fake_samples: Generated fake data batch
+            ture_samples: Real data batch
+            generated_samples: Generated fake data batch
             c: Conditioning information
             
         Returns:
@@ -217,8 +218,8 @@ class MyCWGAN(MyCGAN):
         num_batches = 0
         
         with torch.no_grad():
-            for prob_dist, trajectory in data_loader:
-                x = prob_dist.to(self.DEVICE)
+            for output, trajectory in data_loader:
+                x = output.to(self.DEVICE)
                 y = trajectory.to(self.DEVICE)
                 current_batch_size = x.size(0)
                 
@@ -241,7 +242,8 @@ class MyCWGAN(MyCGAN):
         return total_w_dist / num_batches if num_batches > 0 else float('inf')
 
 
-    def train(self, data: TensorDataset, save_history: bool = False, early_stopping_waiting: int = 0):
+    def train(self, data: TensorDataset, save_history: bool = False,
+               distance_metric:str = 'js_divergence', early_stopping_waiting: int = 0):
         """
         Override training method with Wasserstein loss and gradient penalty
 
@@ -310,7 +312,7 @@ class MyCWGAN(MyCGAN):
 
                 # generated samples
                 z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                fake_samples = self.G(z,c).detach()
+                fake_samples = self.G(c,z).detach()
                 critic_fake = self.D(fake_samples, c)
                 critic_fake_mean = critic_fake.mean()
 
@@ -327,7 +329,7 @@ class MyCWGAN(MyCGAN):
 
                     #generated samples
                     z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
-                    fake_samples_g = self.G(z,c)
+                    fake_samples_g = self.G(c,z)
                     critic_fake_g = self.D(fake_samples_g, c)
 
                     #backpropagation -> generator minimize -E[C(fake)]

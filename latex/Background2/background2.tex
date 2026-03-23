@@ -1,1 +1,165 @@
-\chapter{Conditional Wasserstein GAN}
+\chapter{Montecarlo simulated probability distribution functions}
+
+In the following chapter Montecarlo simulated probability distribution functions are used 
+as target pdfs instead of the theoretical ones.
+The reason for this is that the theoretical pdfs are noise representation of the theoretical distributions,
+which can be difficult to derive for complex processes.\\
+The PDFs are obtained by running a large number of simulations of stochastic processes, and then analyzing the results to determine the probability distribution of the future states.
+In particular, for each path $j$ a given number of simulations $K$ is produced starting from $j_T$, that is the last state of the path $j$, for a given number of steps ahead $N$ by using for each montecarlo simulation a different random standard noise $Z_j$. 
+Then, the pdf is obtained by counting the number of times each bin, obtained through the same process described in the previous chapter, is reached at the last step, dividing then by the total number of simulations.\\
+The Montecarlo simulated pdfs are used as target pdfs for the training of the GANs, and the results are compared with the theoretical pdfs obtained in the previous chapter.\\
+
+In order to check that the Montecarlo simulated pdfs are good approximations of the theoretical ones, the Jensen-Shannon divergence is used as a measure of similarity between the two distributions over 100000 samples.
+The resulting mean Jensen-Shannon divergence over the samples is  0.00095 while the percentage of 
+Kolmogorov-Smirnov tests that reject the null hypothesis is 0.00001, which indicates that the Montecarlo simulated pdfs are very close to the theoretical ones, and can be used as target pdfs for the training of the GANs.\\
+
+Experiments are conducted using the same GAN architectures as in the previous chapter (the classical CGAN, the CWGAN, the ForGAN and ForWGAN) as well as the same training procedure, parameters and range of values for the volatility $\sigma$ and the number of steps ahead $N$.
+
+\section{CGAN results}
+The classical CGAN model further evaluated on test data using
+Monte Carlo simulated probability density functions as targets,
+providing an assessment of its generalization capabilities beyond the training set.
+The Kolmogorov-Smirnov test, applied to 1000 samples,
+accepted the null hypothesis that the generated distributions
+match the true ones in 23.3\%. 
+This results suggest a notable discrepancy in performances
+between the GAN trained over theoretical distributions and the one trained
+over Monte Carlo simulated distributions, which could be attributed to the increased complexity
+and variability in the target distributions, as well as potential overfitting to the noise 
+in the training data, highlighting the challenges in accurately modeling real-world stochastic processes.
+Performance metrics averaged over these samples include a mean absolute error (MAE) of 0.0080 between real and generated bins probabilities, a Jensen-Shannon distance of 0.431, a Hellinger distance of 0.393,
+and a total variation distance of 0.402.
+These results indicate moderate fidelity in approximating the target distributions, though challenges remain in accurately modeling higher-order moments,
+particularly variance, which could impact applications requiring precise tail risk estimation.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0080 \\
+JS Distance & 0.4310 \\
+Hellinger Distance & 0.3934 \\
+TV Distance & 0.4021 \\
+\hline
+\end{tabular}
+\caption{CGAN performance metrics on test data averaged over 1000 samples obtained through Monte Carlo simulated pdfs.}
+\end{table}
+
+
+
+\section{CWGAN results}
+The conditional Wasserstein GAN (CWGAN) model has been
+evaluated on the same test data using Monte Carlo simulated probability density functions as targets,
+revealing challenges in generalizing to unseen distributions.
+The Kolmogorov-Smirnov test accepted the null hypothesis for 1.8\%,
+indicating substantial deviations between generated and true distributions in nearly all cases.
+Averaged performance metrics include a mean absolute error (MAE) of 0.0190, 
+a Jensen-Shannon distance of 0.951, 
+a Hellinger distance of 0.945, and 
+a total variation distance of 0.948. 
+Compared to the classical CGAN model, 
+which achieved a KS test acceptance rate of 23.3\% with an MAE of 0.0080, 
+JS distance of 0.431, Hellinger distance of 0.393, 
+and TV distance of 0.402, the CWGAN exhibits significantly poorer 
+performance across all metrics. 
+This suggests that while CWGAN may offer advantages in training stability
+on the original dataset, it struggles more with generalization, potentially due to overfitting
+or sensitivity to the Wasserstein loss formulation in this context.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0190 \\
+JS Distance & 0.9513 \\
+Hellinger Distance & 0.9453 \\
+TV Distance & 0.9478 \\
+\hline
+\end{tabular}
+\caption{CWGAN performance metrics on test data averaged over 1000 samples obtained through Monte Carlo simulated pdfs.}
+\end{table}
+
+
+\section{ForGAN results}
+The ForGAN model was also assessed on the test set 
+using Monte Carlo simulated probability density functions
+as targets. 
+The Kolmogorov-Smirnov test accepted the generated 
+distributions in 38.3\% of cases, which is a 
+notable improvement over both the CGAN (23.3\%) 
+and CWGAN (1.8\%) models. 
+The ForGAN achieved a mean absolute error (MAE) of 0.0076,
+a Jensen-Shannon distance of 0.418, a Hellinger distance 
+of 0.394, and a total variation distance of 0.379. 
+These results indicate that ForGAN not only surpasses 
+the CGAN and CWGAN in terms of distributional similarity as 
+measured by the KS test, but also achieves the lowest MAE and TV distance 
+among the three. 
+The Jensen-Shannon and Hellinger distances are also slightly better than those of the 
+CGAN, and significantly better than the CWGAN, 
+highlighting ForGAN's superior generalization 
+and fidelity to the target distributions in this 
+experimental setup.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0076 \\
+JS Distance & 0.4185 \\
+Hellinger Distance & 0.3936 \\
+TV Distance & 0.3795 \\
+\hline
+\end{tabular}
+\caption{ForGAN performance metrics on test data averaged over 1000 samples obtained through Monte Carlo simulated pdfs.}
+\end{table}
+
+\section{ForWGAN results}
+
+The ForWGAN model has been 
+evaluated on the test set using Monte Carlo 
+simulated probability density functions as targets.
+The Kolmogorov-Smirnov test accepted 
+the generated distributions in only 2\% of cases, 
+which is lower than both the ForGAN (38.3\%) and CGAN (23.3\%) models,
+and only slightly better than the CWGAN (1.8\%). 
+The ForWGAN achieved a mean absolute error (MAE) 
+of 0.0146, a Jensen-Shannon distance of 0.744, 
+a Hellinger distance of 0.712, 
+and a total variation distance of 0.732.
+These results indicate that, while ForWGAN outperforms 
+CWGAN in all metrics, 
+it does not reach the generalization performance of ForGAN or CGAN.
+The relatively high divergence and low KS acceptance rate suggest that ForWGAN,
+despite its architectural improvements,
+still faces challenges in accurately capturing 
+the target distributions on unseen data.\\
+Moreover, it seems that the ForGAN and ForWGAN architectures, provide better performances 
+with respect to their relative classical CGAN and CWGAN counterparts. 
+The Wasserstein loss, while beneficial for training stability, may not necessarily translate to better generalization in this context, 
+as evidenced by the poorer performance of CWGAN and ForWGAN compared to their non-Wasserstein counterparts.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+MAE & 0.0146 \\
+JS Distance & 0.7440 \\
+Hellinger Distance & 0.7123 \\
+TV Distance & 0.7319 \\
+\hline
+\end{tabular}
+\caption{ForWGAN performance metrics on test data averaged over 1000 samples obtained through Monte Carlo simulated pdfs.}
+\end{table}
+
+
+
+

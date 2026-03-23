@@ -3,5 +3,5 @@
   "batch_size": 32,
   "n_critic": 5,
   "z_dim": 252,
-  "model_name": "CWGAN_bins_pglobal_v4"
+  "model_name": "CWGAN_v0_mc"
 }

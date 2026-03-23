@@ -13,9 +13,18 @@ import os
 import json 
 from pathlib import Path
 import seaborn as sns
-from scipy.stats import ttest_1samp
+from scipy.stats import ttest_1samp, wasserstein_distance
 from scipy.spatial.distance import jensenshannon
 
+
+
+def manage_csv_results(csv:str):
+
+    df = pd.read_csv(csv)
+    df["generated"] = df["generated"].apply(ast.literal_eval)
+    df["true"] = df["true"].apply(ast.literal_eval)
+
+    return df
 
 
 def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.DataFrame|None:
@@ -32,8 +41,6 @@ def get_data_yf(ticker: str, start: str, end: Union[str, None] = None)-> pd.Data
         stock_df.reset_index(inplace=True)
     
     return stock_df
-
-
 
 def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None):
     """
@@ -63,88 +70,176 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None
     
     dataset = TensorDataset(X_tensor, C_tensor)
     return dataset, X_mean, X_std
-        
-        
 
-
-def plot_learning_curve(df_csv:str):
-        """
-        A function used to plot the learning curve of the trained model
-        """
-
-        # Load the CSV file
-        df = pd.read_csv(df_csv)
-
-        # Plot distance vs epoch
-        plt.figure()
-        plt.plot(df["epoch"], df["distance"])
-        plt.xlabel("Epoch")
-        plt.ylabel("Distance")
-        plt.title("Distance over Epochs")
-        plt.show()
-
-
-def plot_bin_dist(trues:np.ndarray, preds:np.ndarray,
-                   bins_values:np.ndarray, X_T: List[float]|None = None, ncols=3):
-
-    n = len(trues)
-    nrows = math.ceil(n/ncols)
-    bin_centers = 0.5 * (bins_values[:-1] + bins_values[1:])
-    if n!= len(preds):
-        raise ValueError('trues and genereted must have the same length')
+def freedman_diaconis_bins(data: np.ndarray) -> tuple:
+    """
+    Compute optimal histogram bins using the Freedman-Diaconis Rule.
     
-    fig, axes = plt.subplots(
-        nrows=nrows,
-        ncols=ncols,
-        figsize=(5 * ncols, 4 * nrows),
-        sharex=True,
-        sharey=True
-    )
-
-    axes = axes.flatten()
-    for i, (true, pred) in enumerate(zip(trues, preds)):
-        if len(true)!=len(pred):
-            raise Exception(f'true and pred have different shapes. true ={true.shape}, pred = {pred.shape}')
-
-        ax = axes[i]
-        ax.plot(bin_centers, true, label="True histogram", linewidth=2)
-        ax.plot(bin_centers, pred, label="Generated histogram", linewidth=2)
-
-        if X_T is not None:
-            ax.axvline(
-                x=X_T[i],
-                linestyle=":",
-                linewidth=2,
-                label=f"X_T={round(X_T[i], 3)}"
-            )
-
-        ax.set_title(f"Histogram {i}")
-        ax.set_xlabel("Bin values")
-        ax.set_ylabel("Probability")
-        ax.legend()
-
-    # Remove unused axes
-    for j in range(n, len(axes)):
-        fig.delaxes(axes[j])
-
-    plt.tight_layout()
-    plt.show()
-
+    Bin width: h = 2 * IQR * n^(-1/3)
+    Number of bins: k = ceil((max - min) / h)
     
+    Parameters:
+        data: array-like of numeric values
+    
+    Returns:
+        bin_width (float), num_bins (int), bin_edges (np.ndarray)
+    """
+    data = np.asarray(data, dtype=float)
+    data = data[~np.isnan(data)]  # remove NaNs
+    n = len(data)
+
+    if n < 2:
+        raise ValueError("Need at least 2 data points.")
+
+    q75, q25 = np.percentile(data, [75, 25])
+    iqr = q75 - q25
+
+    if iqr == 0:
+        raise ValueError("IQR is zero — data may be too concentrated. Consider a different binning rule.")
+
+    # Freedman-Diaconis bin width
+    bin_width = 2 * iqr * n ** (-1/3)
+
+    data_range = data.max() - data.min()
+    num_bins = int(np.ceil(data_range / bin_width))
+
+    # Build explicit bin edges for full control
+    bin_edges = np.linspace(data.min(), data.max(), num_bins + 1)
+
+    return bin_width, num_bins, bin_edges
+
+def compare_simulated_pdfs(true_pdfs: np.ndarray, generated_pdfs: np.ndarray) -> tuple:
+    """
+    Function used to compare the result from two simulated pdfs
+    params: true_pdfs: a 2D numpy array containing for each row the simulations which approximate the true pdf 
+    params: generated_pdfs: a 2D numpy array containing for each row the simulations which approximate the generated pdf
+    """
+
+    if true_pdfs.shape != generated_pdfs.shape:
+        raise ValueError(f"the shape of true_pdf and generated_pdf must match."
+                          f"current true_pdf shape is{true_pdfs.shape}" 
+                          f"while current generated_pdf shape is {generated_pdfs.shape}")
+    
+    true_discretized_pdfs = []
+    generated_discretized_pdfs = []
+    bin_edges_list = []
+    for i, simulated_pdf in enumerate(true_pdfs):
+        _, _, bin_edges = freedman_diaconis_bins(simulated_pdf)
+        hist_true, _ = np.histogram(simulated_pdf, bins=bin_edges)
+        hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)
+        
+        if hist_true.sum() == 0 or hist_generated.sum() == 0:
+            continue
+
+        bin_edges_list.append(bin_edges)
+        true_discretized_pdfs.append(hist_true / hist_true.sum())
+        generated_discretized_pdfs.append(hist_generated/hist_generated.sum())
+    
+    return true_discretized_pdfs, generated_discretized_pdfs, bin_edges_list
+
+def compute_js(generated_arr:np.ndarray|list, true_arr:np.ndarray|list, is_log:bool = True):
+    """
+    Compute the Jenson-Shannon measure
+    generated_arr: np.array -> an array of generated probability distributions 
+    """
+    js_distances = []
+
+    for p, t in zip(generated_arr, true_arr): 
+        if is_log:
+            p = np.exp(p)
+            t = np.exp(t)
+
+        #normalization
+        p = p / np.sum(p)
+        t = t / np.sum(t)
+        
+        # compute JSD
+        js_distances.append(jensenshannon(p, t, base=2.0))
+
+    return js_distances
+
+def ks_test_gan_cdf(generated_probs, true_probs):
+    """
+    Perform KS test comparing generated and true probability distributions.
+    
+    generated_probs : array of shape (n_bins,)
+    true_probs : array of shape (n_bins,)
+    """
+    # Convert probabilities to CDFs
+    generated_cdf = np.cumsum(generated_probs)
+    true_cdf = np.cumsum(true_probs)
+    
+    # Compute KS statistic
+    ks_statistic = np.max(np.abs(generated_cdf - true_cdf))
+    
+    # Compute p-value
+    n = len(generated_probs)
+    p_value = kstwobign.sf(ks_statistic * np.sqrt(n))
+    
+    return ks_statistic, p_value
+
+def get_error_metrics(true: np.ndarray|list, generated: np.ndarray|list) -> dict:
+        """
+        Compute errors metrics for probability distributions
+        
+        Args:
+            true: array containing true samples
+            generated: array containing generated samples
+        
+        Returns:
+            Dictionary containing errors and statistics
+             total_variance_distance -> Maximum probability difference over all events. bounded [0,1]
+             hellinger_distance -> bounded [0,1]
+             jensen_shannon_distance -> sqrt(jensen-shannon divergence). bounded [0,1]
+             emd_distance -> Earth mover distance. [0, infty]
+
+        """
+        tv_distance = []
+        hellinger_distance = []
+        js_distance = []
+        emd_distance = []
+
+        if isinstance(true, np.ndarray) and isinstance(generated, np.ndarray):
+            tv_distance = 0.5*np.sum(np.abs(true-generated), axis=1)
+            hellinger_distance = np.sqrt(0.5*np.sum((np.sqrt(true) - np.sqrt(generated))**2, axis=1))
+            js_distance = compute_js(generated, true, is_log=False)
+            emd_distance = np.mean([wasserstein_distance(t, g) for t, g in zip(true, generated)])
+        else:
+            for i, true_pdf in enumerate(true):
+                ith_tv_distance = 0.5*np.sum(np.abs(true_pdf-generated[i]))
+                ith_hellinger_distance = np.sqrt(0.5*np.sum((np.sqrt(true_pdf) - np.sqrt(generated[i]))**2))
+                ith_js_distance = compute_js(generated, true, is_log=False)
+                ith_emd_distance = wasserstein_distance(true_pdf, generated[i])
+                
+                tv_distance.append(ith_tv_distance)
+                hellinger_distance.append(ith_hellinger_distance)
+                js_distance.append(ith_js_distance)
+                emd_distance.append(ith_emd_distance)
+            
+            tv_distance = np.mean(tv_distance)
+            hellinger_distance = np.mean(hellinger_distance)
+            js_distance = np.mean(js_distance)
+            emd_distance = np.mean(emd_distance)
 
 
 
-def manage_csv_results(csv:str):
-
-    df = pd.read_csv(csv)
-    df["generated"] = df["generated"].apply(ast.literal_eval)
-    df["true"] = df["true"].apply(ast.literal_eval)
-
-    return df
-
-
+        stats = {
+            "js_distance": js_distance,
+            "hellinger_distance": hellinger_distance,
+            "tv_distance": tv_distance,
+            "emd_distance": emd_distance
+            }
+        
+        return stats
 
 def analyze_error_distribution(csv:str):
+
+    """
+    Produce a distribution of errors from a csv obtained using evaluate_error_distribution method of myCGAN
+    
+    Args:
+        csv: path to the csv file
+    """
 
     df = pd.read_csv(csv)
 
@@ -180,10 +275,10 @@ def analyze_error_distribution(csv:str):
         plt.figure(figsize=(30, 8))
 
     #distribution
-    sns.violinplot(data=df[errors], inner=None)
-
+    sns.violinplot(data=df[errors], inner=None, cut=0)
+    
     #mean markers
-    plt.scatter(range(len(errors)), means.values, color="black", zorder=3, label="Mean")#type:ignore
+    plt.scatter(range(len(errors)), means.values, color="black", zorder=3, label="Mean") #type:ignore
 
     #std bars
     plt.errorbar(range(len(errors)),means.values,yerr=stds.values,fmt="none",ecolor="black",capsize=6,zorder=2) #type:ignore
@@ -197,49 +292,88 @@ def analyze_error_distribution(csv:str):
 
     return means, stds, summary
     
+def plot_learning_curve(df_csv:str):
+        """
+        A function used to plot the learning curve of the trained model
+        """
 
-def compute_js(generated_arr:np.ndarray, true_arr:np.ndarray, is_log:bool = True):
-    """
-    Compute the Jenson-Shannon measure 
-    """
-    js_distances = []
-    epsilon = 1e-10 # Small epsilon for numerical stability
+        # Load the CSV file
+        df = pd.read_csv(df_csv)
 
-    for p, t in zip(generated_arr, true_arr): 
-        if is_log:
-            p = np.exp(p)
-            t = np.exp(t)
-
-        #normalization
-        p = p / (np.sum(p) + epsilon)
-        t = t / (np.sum(t) + epsilon)
-        
-        # compute JSD
-        js_distances.append(jensenshannon(p, t))
-
-    return js_distances
+        # Plot distance vs epoch
+        plt.figure()
+        plt.plot(df["epoch"], df["distance"])
+        plt.xlabel("Epoch")
+        plt.ylabel("Distance")
+        plt.title("Distance over Epochs")
+        plt.show()
 
 
-def ks_test_gan_cdf(generated_probs, true_probs):
-    """
-    Perform KS test comparing generated and true probability distributions.
-    
-    generated_probs : array of shape (n_bins,)
-    true_probs : array of shape (n_bins,)
-    """
-    # Convert probabilities to CDFs
-    generated_cdf = np.cumsum(generated_probs)
-    true_cdf = np.cumsum(true_probs)
-    
-    # Compute KS statistic
-    ks_statistic = np.max(np.abs(generated_cdf - true_cdf))
-    
-    # Compute p-value
-    n = len(generated_probs)
-    p_value = kstwobign.sf(ks_statistic * np.sqrt(n))
-    
-    return ks_statistic, p_value
 
+def plot_bin_dist(trues:np.ndarray|list, preds:np.ndarray|list,
+                   bins_values:np.ndarray|list, X_T: List[float]|None = None, ncols=3):
+
+    n = len(trues)
+    nrows = math.ceil(n / ncols)
+
+    fig, axes = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=(5 * ncols, 4 * nrows),
+        sharey=True
+    )
+    axes = axes.flatten()
+
+    for i, (true, pred) in enumerate(zip(trues, preds)):
+        if len(true) != len(pred):
+            raise Exception(f'true and pred have different shapes. true ={np.shape(true)}, pred = {np.shape(pred)}')
+
+        # Handle bins_values: could be a single array, 2D array, or list of arrays
+        if isinstance(bins_values, (list, tuple)) and len(bins_values) == n:
+            bins = bins_values[i]
+        else:
+            bins = bins_values
+
+        # Compute bin centers for this row
+        bin_centers_row = 0.5 * (np.array(bins[:-1]) + np.array(bins[1:]))
+
+        # find indices to zoom the distribution
+        indices = np.where(np.array(true) > 1e-7)[0]
+        if len(indices) > 0:
+            first_idx = indices[0]
+            last_idx = indices[-1]
+            start = int(first_idx - np.ceil(0.1 * first_idx))
+            end = int(last_idx + np.ceil(0.1 * (len(true) - last_idx)))
+            true = np.array(true)[start:end]
+            pred = np.array(pred)[start:end]
+            bin_centers_row = bin_centers_row[start:end]
+        else:
+            raise ValueError('the true distribution does not have any positive probability')
+
+        ax = axes[i]
+        width = bin_centers_row[1] - bin_centers_row[0]  # bin width
+        ax.bar(bin_centers_row, true, width=width, alpha=0.5, label="True histogram")
+        ax.bar(bin_centers_row, pred, width=width, alpha=0.5, label="Generated histogram")
+
+        if X_T is not None:
+            ax.axvline(
+                x=X_T[i],
+                linestyle=":",
+                linewidth=2,
+                label=f"X_T={round(X_T[i], 3)}"
+            )
+
+        ax.set_title(f"Histogram {i}")
+        ax.set_xlabel("Bin values")
+        ax.set_ylabel("Probability")
+        ax.legend()
+
+    # Remove unused axes
+    for j in range(n, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
 
 
 class DataSimulator():
@@ -316,6 +450,37 @@ class DataSimulator():
 
         return sampled_values
     
+    def _montecarlo_steps(self, n_mc_simulations:int, n_steps:int, start_values:np.ndarray ):
+
+        if self.sigma is None or self.mu is None:
+            raise ValueError("sigma and mu arrays are not initialized")
+
+        #initialize an empty numpy array
+        mc_paths = np.zeros((start_values.shape[0], n_steps + 1, n_mc_simulations)) #shape (M, N + 1, S)
+        mc_paths[:, 0, :] = start_values.reshape(-1,1) # Set the initial value for all paths
+
+        
+        #drift --- (mu - 0.5 * sigma^2) * dt 
+        drift = (self.mu - 0.5 * self.sigma**2) * self.dt #type: ignore
+        mc_drift = np.broadcast_to(drift.reshape(drift.shape[0], 1, 1),
+                                    (drift.shape[0], n_steps, n_mc_simulations))
+
+        #shocks --- sigma * Z * sqrt(dt) with Z distributed as N(0,1)
+        Z = self.rng.standard_normal(size=(start_values.shape[0], n_steps, n_mc_simulations)) # shape (M, N, S)
+        mc_sigma = np.broadcast_to(self.sigma.reshape(self.sigma.shape[0], 1, 1),
+                                    (self.sigma.shape[0], n_steps, n_mc_simulations))
+        mc_shocks = (mc_sigma * Z) * np.sqrt(self.dt)
+
+        # cumulative sum of increments with start value X0
+        increments = mc_drift + mc_shocks
+        start_values_mc = np.broadcast_to(start_values.reshape(start_values.shape[0], 1, 1),
+                                    (start_values.shape[0], n_steps, n_mc_simulations))
+       
+        mc_paths[:, 1:, :] = start_values_mc + np.cumsum(increments, axis=1)
+        mc_distributions = mc_paths[:,-1, :]
+        return mc_distributions
+
+    
     def get_paths(self):
         """
         Simulates log prices with Brownian Motion.
@@ -378,13 +543,14 @@ class DataSimulator():
         return paths
     
     def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
-                 P:np.ndarray|None=None, verbose:bool = False):
+                 P:np.ndarray|None=None, mc_sims:int = 0, verbose:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
             n_steps_ahead:int -> represent the lenght of the future period in terms of dt. For instance 10 times dt
             n_bins:int -> if None or 0 then just compute the analytical mean and std. If greater than 0 compute bins of the distribution
             P: np.ndarray -> array of latest price information
+            mc_sims: int -> number of montecarlo simulations. If less than 2 the theoretical distribution is used 
             bins: -> 1D array of custome bins. Usually used in inference time to load training bins
         """
 
@@ -412,10 +578,9 @@ class DataSimulator():
         # if bins already created
         if self.bins is not None:
             common_bins = self.bins
-        # if not created yet 
         else:
             # use distribution parameters
-            if n_bins is None or n_bins<1:
+            if n_bins is None:
                 pdf = np.column_stack((mean, std))
                 self.pdf = pdf
                 return self.pdf
@@ -431,14 +596,26 @@ class DataSimulator():
                 self.bins = common_bins
 
         # evaluate all distributions on the same bins
-        cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), 
-                            scale=std.reshape(self.n_simulations, 1))
-        probabilities = np.diff(cdf_values, axis=1)
+        #cdf_values = norm.cdf(common_bins, loc=mean.reshape(self.n_simulations, 1), scale=std.reshape(self.n_simulations, 1))
+        if mc_sims<2:
+            cdf_values = norm.cdf(common_bins, loc=mean[:, None], scale=std[:, None])
+            probabilities = np.diff(cdf_values, axis=1)
+        else:
+            montecarlo_simulations = self._montecarlo_steps(n_mc_simulations=1000, n_steps=n_steps_ahead, start_values=XT).squeeze()
+            if n_bins is not None and n_bins>10:
+                probabilities = np.zeros((mean.shape[0], n_bins))
+                for i in range(montecarlo_simulations.shape[0]):
+                    hist, _ = np.histogram(montecarlo_simulations[i], bins=common_bins)
+                    probabilities[i] = hist / hist.sum()
+            else:
+                return montecarlo_simulations
+                
 
         # zero-out small values and renormalize
         probabilities[probabilities < 1e-7] = 0.0
         row_sums = probabilities.sum(axis=1, keepdims=True)
         probabilities = probabilities / row_sums
+        probabilities = probabilities.astype(np.float32)  
         self.pdf = probabilities
 
         return self.pdf

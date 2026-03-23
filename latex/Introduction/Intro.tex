@@ -6,14 +6,16 @@ In particular, the Generator receives as input a noise vector and a sequence of 
 as a Geometric Brownian Motion. The output of the Generator is a vector representing the discretized probability density function of the future price of the asset at a given time horizon.\\
 
 \section{Training Data}
-In order to effectively train the CGAN model, two kinds of data are required for the training phase:
+In order to effectively train the CGAN models, two kinds of data are required for the training phase:
 \begin{itemize}
     \item Condition input data $C$: it is a $J \times N$ matrix, where $J$ is the number of trajectories and $N$ is the number of time steps of each trajectory.
      This data represents the past $J$ trajectories of the asset prices, where each trajectory is associated with a specific volatility parameter $\sigma_j$ and eventually a specific starting point $X_0^j$, and is used to condition both the Generator and the Discriminator.
-    \item Target output data $X$: it is a $J \times B$ matrix, where $J$ represents the number of trajectories and $B$ represents the number of elements used to describe the probability density function. 
+    \item Target output data $X$: it is a $J \times B$ matrix, where $J$ represents the number of trajectories and $B$ represents the number of elements used to describe the output of the models. It has different representations based on which model is being used. For example, given a classical CGAN model,
+    the output is a probability density function. 
     This data represents the true theoretical future probability distributions of the asset prices associated to their respective past trajectories for a given time horizon. 
-    It is used to train the Discriminator to distinguish between real and fake data.
-\end{itemize}
+    It is used to train the Discriminator to distinguish between real and fake data.\\
+    However, if the ForGAN architecture is adopted, the output data is given by a $J \times 1$ vector where each element is the $n$-th step ahead value of the trajectory, so the output is a single value and not a probability distribution.
+    \end{itemize}
 
 
 \subsection{Condition input data}
@@ -37,6 +39,7 @@ a vector containing the trajectory $c_j=[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt
  The SDE is discretized over a uniform time space $N dt = T$ obtaining the following form
  adopted for the simulation of the trajectories:
  \begin{equation}
+    \label{eq: discretized_SDE}
     X_{t+dt}^j = X_t^j -\frac{1}{2}\sigma_j^2 dt + \sigma_j \sqrt{dt} Z_t
  \end{equation}
  Where $Z_t \sim \mathcal{N}(0,1)$.\\
@@ -106,12 +109,15 @@ Two different approaches are considered to represent this distribution:
     \end{algorithm}
 \end{itemize}
 
+In case the ForGAN architecture is adopted, 
+the output data matrix $X$ is a $J \times 1$ vector where each element is the $n$-th step ahead value of the trajectory, 
+so the output is a single value and not a probability distribution. 
+In this case, the target output data matrix $X$ is computed by evolving each trajectory for $\tau$ steps using the discretized SDE 
+described in  \ref{eq: discretized_SDE} and storing the resulting value in the $j$-th row of $X$.\\
 
 
-\section{Models and tests overview}
+\section{Models and architectures overview}
 In the following section the architecture of proposed Conditional GAN will be described in addition with some architectural variations.
-Moreover, the Kolmogorov-Smirnov test will be presented in order to evaluate the performance of the model in generating the future probability distribution of the asset price.\\
-
 \subsection{CGAN formulation}
 GANs are often formalized as a minimax game, where the generator (G) seeks to minimize the value function V while the discriminator (D) aims to maximize it:
 \begin{equation}
@@ -158,6 +164,29 @@ A further critical challenge involves the vanishing gradient problem,
 which emerges when the discriminator becomes overly proficient,
 causing the generator's gradients to approach zero and consequently impeding its learning process.
 
+\begin{algorithm}
+\caption{Standard Conditional GAN (CGAN) Training}
+\label{alg: cgan}
+\begin{algorithmic}[1]
+\REQUIRE The batch size $m$, Adam hyperparameters $\alpha, \beta_1$.
+\REQUIRE Initial discriminator parameters $\theta_D$, initial generator parameters $\theta_G$.
+\WHILE{$\theta_G$ has not converged}
+    \STATE Sample real data $\{x^{(i)}\}_{i=1}^m \sim \mathbb{P}_r$ and context $\{y^{(i)}\}_{i=1}^m$.
+    \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
+    \STATE $\tilde{x}^{(i)} \leftarrow G(z^{(i)}, y^{(i)})$ \COMMENT{Generate synthetic samples}
+    
+    \STATE \COMMENT{Update Discriminator: Maximize log(D(x)) + log(1-D(G(z)))}
+    \STATE $L_{D} \leftarrow -\frac{1}{m} \sum_{i=1}^m \left[ \log D(x^{(i)}, y^{(i)}) + \log(1 - D(\tilde{x}^{(i)}, y^{(i)})) \right]$
+    \STATE $\theta_D \leftarrow \theta_D - \alpha \nabla_{\theta_D} L_{D}$
+    
+    \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
+    \STATE \COMMENT{Update Generator: Maximize log(D(G(z))) (Non-saturating loss)}
+    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m \log D(G(z^{(i)}, y^{(i)}), y^{(i)})$
+    \STATE $\theta_G \leftarrow \theta_G - \alpha \nabla_{\theta_G} L_{G}$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
 \subsection{Wasserstein CGAN formulation}
 
 In the following section the Conditional Wasserstein Generative Adversarial Network (CWGAN) architecture is introduced.
@@ -172,29 +201,103 @@ The main changes that characterize the CWGAN with respect to the CGAN are:
     \item The use of gradient penalty term in the loss function has the objective to enforce the Lipschitz constraint required for the Wasserstein distance computation.    
 \end{itemize}
 
+The transition from traditional divergence-based
+Generative Adversarial Networks to those utilizing the Wasserstein metric 
+represents a significant shift in the geometric treatment of probability 
+measures within deep learning. 
+The primal definition of the Wasserstein-1 distance (or Earth Mover's Distance) 
+for two probability distributions, $\mathbb{P}_r$ (real) and $\mathbb{P}_g$ (generated) is given 
+by:
+\begin{equation*}
+    W(\mathbb{P}_r, \mathbb{P}_g) = \inf_{\gamma \in \Pi(\mathbb{P}_r, \mathbb{P}_g)} \mathbb{E}_{(x, y) \sim \gamma} [\|x - y\|]
+\end{equation*}
+where $\Pi(\mathbb{P}_r, \mathbb{P}_g)$ denotes the set of all joint distributions $\gamma(x, y)$ with marginals $\mathbb{P}_r$ and $\mathbb{P}_g$.
+While this formulation provides a physically intuitive measure of "work" required to transform one distribution into another,
+it is computationally intractable in the context of neural networks because the infimum over the space of 
+all possible transport plans $\gamma$ cannot be efficiently optimized via backpropagation as suggested in \cite{background:wgan}.\\
 
-Now the critic minimizes the following Wasserstein loss function 
+To bridge this gap, CWGAN models rely on the Kantorovich-Rubinstein duality, which transforms the constrained minimization over transport plans into a maximization over a set of 1-Lipschitz continuous functions.
+The dual form is expressed as:
 \begin{equation}
-    \label{eq:wgan_critic_loss}
-    -E_{\boldsymbol{x} \sim p_d}[D(\boldsymbol{x|c})]+E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}}|c)]
+    \label{eq: emd_dual}
+    W(\mathbb{P}_r, \mathbb{P}_g) = \sup_{\|f\|_L \leq 1} \mathbb{E}_{x \sim \mathbb{P}_r}[f(x)] - \mathbb{E}_{x \sim \mathbb{P}_g}[f(x)]
 \end{equation}
+In this duality, the "discriminator" is redefined as a "critic" ($D$), whose task is not to classify
+inputs as real or fake, but to act as the optimal function $f$ that maximizes the distance between the 
+expected scores of the real and synthetic distributions. In a Conditional GAN (CGAN), this distance is 
+extended to account for auxiliary information $y$ (such as past history, drift, or volatility in 
+time-series). So in the conditional setting, 
+mathematically, the EMD is calculated over the pairs $(c, y)$, where $c$ is your history (features like drift/vol) and $y$ is the output.
+The real pair $(x_i, y_{i, real})$ and fake pair $(x_i, G(x_i, z_i))$ are produced. The "Earth" isn't being moved on a 1D line; it’s being moved in a higher-dimensional space where one axis is the "Context" and the other is the "Value." The distance is only minimized when the generator produces the correct $y$ for that specific $x$.
 
-where $\boldsymbol{x}$ are real data samples from the data distribution $p_d$ and $\widehat{\boldsymbol{x}}$ are generated samples from the generator distribution $p_g$.
-On the other hand, the generator minimizes the loss function:
-\begin{equation}
-    \label{eq:wgan_generator_loss}
-    -E_{\widehat{\boldsymbol{x}} \sim p_g}[D(\widehat{\boldsymbol{x}}|c)]
-\end{equation}
+The objective becomes the minimization of the Wasserstein distance between the 
+conditional distributions $\mathbb{P}_r(x|y)$ and $\mathbb{P}_g(x|y)$. 
+By conditioning both the generator $G(z, y)$ and the critic $D(x, y)$ on the same context $y$,
+the critic learns a "score surface" that is specific to the underlying stochastic process defined by $y$.\\
 
-Given this setup, there is no need anymore for true and fake data labels since the critic outputs real-valued scores.\\
-In order to enforce the Lipschitz constraint required by the Wasserstein distance,
-a gradient penalty is added to the loss function as suggested in \cite{background2:gp_wgan}, the gradient penalty term is defined as:
-    \begin{equation}
-        \label{eq:GP_term}
-        GP =  \mathbb{E}\left[\left(\left\|\nabla_{\widetilde{\boldsymbol{x}}} D(\widetilde{\boldsymbol{x}})\right\|_{2}-1\right)^{2}\right]
-    \end{equation}
-where $\widetilde{\boldsymbol{x}}$ are samples interpolated between real and generated data points such that 
-$\widetilde{\boldsymbol{x}} = \epsilon \boldsymbol{x} + (1 - \epsilon) \widehat{\boldsymbol{x}}$ with $\epsilon \sim \mathcal{U}(0,1)$. \\
+The use of the critic's output to compute the loss is mathematically 
+justified because, under the 1-Lipschitz constraint, 
+the difference between the average scores of the real batch and 
+the fake batch directly approximates the Wasserstein distance as demonsstrated in \cite{background:wgan}.\\
+
+This is a superior training signal compared to Jensen-Shannon divergence because
+$W(\mathbb{P}_r, \mathbb{P}_g)$ is
+continuous and differentiable even when the supports of the two
+distributions are disjoint—a common occurrence in the early stages of training. 
+Consequently, the generator receives stable, non-vanishing gradients that indicate 
+not just if the generated sample is wrong,
+but how far it must move in the feature space to align with the real
+data manifold. 
+To enforce the Lipschitz constraint required by the duality, modern implementations utilize a Gradient Penalty (GP),
+which regularizes the norm of the critic's gradient with respect to its input toward unity, ensuring the function remains 
+within the space of 1-Lipschitz functions $\mathcal{D}$.
+
+\begin{algorithm}
+\caption{Conditional Wasserstein GAN with Gradient Penalty (CWGAN-GP)}
+\label{alg:cwgan_gp}
+\begin{algorithmic}[1]
+\REQUIRE The gradient penalty coefficient $\lambda$, the number of critic iterations per generator iteration $n_{critic}$, the batch size $m$, Adam hyperparameters $\alpha, \beta_1, \beta_2$.
+\REQUIRE Initial critic parameters $\theta_D$, initial generator parameters $\theta_G$.
+\WHILE{$\theta_G$ has not converged}
+    \FOR{$t = 1$ \TO $n_{critic}$}
+        \STATE Sample real data $\{x^{(i)}\}_{i=1}^m \sim \mathbb{P}_r$ and labels/context $\{y^{(i)}\}_{i=1}^m$.
+        \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
+        \STATE $\tilde{x}^{(i)} \leftarrow G(z^{(i)}, y^{(i)})$ \COMMENT{Generate synthetic samples}
+        \STATE $\epsilon \sim U[0, 1]$ \COMMENT{Random number for interpolation}
+        \STATE $\hat{x}^{(i)} \leftarrow \epsilon x^{(i)} + (1 - \epsilon) \tilde{x}^{(i)}$ \COMMENT{Interpolated samples}
+        
+        \STATE $L_{D} \leftarrow \frac{1}{m} \sum_{i=1}^m D(\tilde{x}^{(i)}, y^{(i)}) - \frac{1}{m} \sum_{i=1}^m D(x^{(i)}, y^{(i)}) + \lambda \mathbb{E}_{\hat{x}, y} [(\|\nabla_{\hat{x}} D(\hat{x}, y)\|_2 - 1)^2]$
+        
+        \STATE $\theta_D \leftarrow \text{Adam}(\nabla_{\theta_D} L_{D}, \theta_D, \alpha, \beta_1, \beta_2)$
+    \ENDFOR
+    
+    \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
+    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m D(G(z^{(i)}, y^{(i)}), y^{(i)})$
+    \STATE $\theta_G \leftarrow \text{Adam}(\nabla_{\theta_G} L_{G}, \theta_G, \alpha, \beta_1, \beta_2)$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+An import part of the training procedure is the gradient penalty calculation, which is described in Algorithm \ref{alg:gradient_penalty}.
+By sampling $\epsilon$ and creating $\hat{x}$, the Lipschitz constraint is enforced specifically on the straight lines between the real and fake data manifolds.
+
+\begin{algorithm}
+\caption{Gradient Penalty Calculation for CWGAN-GP}
+\label{alg:gradient_penalty}
+\begin{algorithmic}[1]
+\REQUIRE Real samples $x$, generated samples $\tilde{x}$, conditioning context $c$, critic network $D$.
+\STATE $m \leftarrow \text{batch size}$
+\STATE Sample $\epsilon \sim U[0, 1]^m$ \COMMENT{Uniform random interpolation weights}
+\STATE $\hat{x} \leftarrow \epsilon \odot x + (1 - \epsilon) \odot \tilde{x}$ \COMMENT{Compute interpolated samples}
+\STATE Enable gradient tracking for $\hat{x}$
+\STATE $\hat{S} \leftarrow D(\hat{x}, c)$ \COMMENT{Evaluate critic on interpolates}
+\STATE $\nabla_{\hat{x}} D \leftarrow \nabla_{\hat{x}} \hat{S}$ \COMMENT{Compute gradients of scores w.r.t. interpolates}
+\STATE $L_2 \text{-norm} \leftarrow \sqrt{\sum (\nabla_{\hat{x}} D)^2}$ \COMMENT{Calculate norm across feature dimensions}
+\STATE $GP \leftarrow \frac{1}{m} \sum (L_2 \text{-norm} - 1)^2$ \COMMENT{Compute mean squared error from unity}
+\RETURN $GP$
+\end{algorithmic}
+\end{algorithm}
+
 So the final objective function for the Conditional Wasserstein GAN with gradient penalty (CWGAN-GP) becomes:
 
 \begin{equation}
@@ -206,6 +309,64 @@ where $\lambda$ is a hyperparameter that controls the strength of the penalty an
 An additional advantage of using the Wasserstein distance is that it provides a meaningful measure of the distance between the real and generated data distributions, which allows for the implementation of an early stopping technique which
 improve the training efficiency.\\
 
+
+\subsection{ForGAN}
+An alternative GAN architecture for probabilistic time series forecasting is ForGAN, proposed in \cite{background:forgan}.
+The ForGAN's architecture is based on a generator and a discriminator, both utilizing Recurrent Neural Network (RNN) layers, specifically LSTM or GRU variants, in order to process sequential data dependencies.\\
+The generator's objective is to forecast the next value $x_{t+1}$ by transforming the noise vector $z$, 
+conditioned on the historical window $c$.\\
+The probability distribution of $x_{t+1}$ is modeled as $P(x_{t+1}|c)$ and obtained by running the generator multiple times with different noise inputs and same condition window $c$.\\
+Structurally, the generator processes the condition window $c$ through an RNN layer to construct a "condition representation" whose size is given by hidden state size.
+This representation is subsequently concatenated with the noise vector $z$.
+The combined feature vector is then passed through two dense layers, culminating in a single scalar output representing the predicted $x_{t+1}$.\\
+On the other hand, the discriminator has the role to inspect the validity of a given value $x_{t+1}$ in the context of the history $c$.
+Unlike standard discriminators that might process inputs separately, the ForGAN discriminator takes the candidate $x_{t+1}$, which is sourced either from the ground truth dataset or the generator, and concatenates it to the end of the condition window $c$, forming an extended sequence $\{x_{0},...,x_{t+1}\}$.
+This extended sequence is fed into an RNN layer, followed by a dense layer that outputs a validity score, determining whether the sequence is real or generated.\\
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Introduction/images/forgan.png}
+    \caption{ForGAN architecture}
+    \label{img:forgan}
+\end{figure}
+
+The model is trained via a minimax game, both adopting the usual way a standard GAN architecture is trained (as proposed in \cite{background:forgan}), that is by minimizing the Jensen-Shannon divergence between the real and generated data distributions, and also by 
+adopting the Wasserstein distance as in CWGAN-GP. In this last case the model can be referenced as ForWGAN which represent a novel approach to increase the performance of the standard ForGAN.\\
+
+Moreover, since the proposed problem is markovian because in a Geometric Brownian Motion the future distribution only depends on the current state, a simplified version of ForGAN is implemented where the generator and discriminator are not based on RNN layers but only on dense layers.
+In this particular case, a ForGAN architecture can be obtained by simply removing the RNN layers from the original ForGAN architecture and keeping the same training procedure of CGAN and CWGAN but using a scalar output for the Generator.\\
+The probability distribution of $X_{T+\tau}$ is obtained by running the generator multiple times with different noise inputs and same condition window $c$ as in the original ForGAN architecture.\\
+
+\section{Performance metrics and statistical tests}
+In the following section the performance metrics for probability distributionsused to evaluate the proposed models will be described in details.
+Moreover, the Kolmogorov-Smirnov test will be presented in order to evaluate the performance of the model in generating the future probability distribution of the asset price.\\
+\subsection{Distance metrics}
+When dealing with discretized probability distributions represented as vectors,
+where $P = [p_1, p_2, \dots, p_k]$ and $Q = [q_1, q_2, \dots, q_k]$ are probability mass functions defined over the same binning, 
+different metrics capture different geometric and information-theoretic properties.\\
+
+The Total Variation (TV) distance is the $L_1$ distance between the vectors, defined as:
+\begin{equation}
+    \label{eq: TV_distance}
+    \delta(P, Q) = \frac{1}{2} \sum |p_i - q_i|
+\end{equation}
+It represents the maximum possible difference between the probabilities that the two distributions assign to the same event,
+but it is "bin-blind," meaning it doesn't care if the probability mass is moved to a neighboring bin or an outlier bin.\\
+The Hellinger distance, defined as:
+\begin{equation}
+    H(P, Q) = \frac{1}{\sqrt{2}} \sqrt{\sum (\sqrt{p_i} - \sqrt{q_i})^2}
+\end{equation}
+It is a bounded metric ($[0, 1]$) which is more sensitive to differences in the "tails" of the distribution than TV-distance.\\
+The Jensen-Shannon (JS) Divergence is a symmetric, smoothed version of the Kullback-Leibler divergence, calculated as:
+\begin{equation}
+    JS(P, Q) = \frac{1}{2}KL(P || M) + \frac{1}{2}KL(Q || M)
+\end{equation}
+where $M = \frac{1}{2}(P + Q)$. While JS is a popular metric for GANs, it suffers from the "disjoint support" problem where it reaches a constant maximum if the distributions do not overlap.\\
+In contrast, the Wasserstein distance (specifically the 1D version for discretized vectors) can be computed as the $L_1$ distance between the Cumulative Distribution Functions (CDFs): 
+\begin{equation}
+    W_1(P, Q) = \sum |CDF_P(i) - CDF_Q(i)|
+\end{equation}
+Unlike the other three, the Wasserstein distance is "geometry-aware," meaning it incorporates the underlying distance between bins, making it far more robust for Monte Carlo simulations where we care about how far the generated values are shifted from the true values.
 
 \subsection{The Kolmogorov-Smirnov test}
 The Kolmogorov-Smirnov (KS) as defined in \cite{background:ks_test}, is a goodness of fit test that evaluates whether an empirical distribution is consistent with a fully specified continuous reference distribution. 

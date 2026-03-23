@@ -1,0 +1,146 @@
+\chapter{ForGAN architecture}
+
+In order to provide a comparison between the proposed ForGAN architectures and 
+the analytical solution of the GBM processes, the target distribution of the next value $c_{T + \tau}$ is computed in a slightly different way
+with respect to the analytical solution adopted in \ref{alg:x target} by using monte carlo simulations.
+The algorithm is as follows:
+\begin{algorithm}
+\caption{Monte Carlo Generation of Terminal Distributions}
+\label{alg:mc_terminal_dist}
+\begin{algorithmic}[1]
+\REQUIRE Number of trajectories $J$, steps ahead $N$, and MC simulations $S$.
+\REQUIRE Final values from which to compute the distribution $\mathbf{X}_T \in \mathbb{R}^J$, drift $\boldsymbol{\mu} \in \mathbb{R}^J$, volatility $\boldsymbol{\sigma} \in \mathbb{R}^J$, and time increment $ dt$.
+\STATE \COMMENT{Generate random standard normal shocks for all paths and steps}
+\STATE $\mathbf{Z} \leftarrow \text{Tensor}(J, N , S)$ where $Z_{i,j,k} \sim \mathcal{N}(0,1)$
+\FOR{each trajectory $i \in \{1, \dots, J\}$}
+    \STATE \COMMENT{Calculate the deterministic drift component per step}
+    \STATE $\mathbf{d_j} \leftarrow (\boldsymbol{\mu_j} - 0.5 \boldsymbol{\sigma_j}^2) \Delta t$ 
+    \STATE \COMMENT{Compute stochastic shocks scaled by volatility and time, for simulation $k$, and step $i$}
+    \STATE $\mathbf{S}_{i,k}^j \leftarrow \sigma_i \cdot Z_{i,j,k} \cdot \sqrt{\Delta t}$
+    \STATE \COMMENT{Calculate increments for each simulation step}
+    \STATE $\boldsymbol{\delta}_{i,k}^j \leftarrow d_i + S_{i,k}^j$ 
+    \STATE \COMMENT{Integrate paths using cumulative summation}
+    \FOR{each simulation $k \in \{1, \dots, S\}$}
+        \STATE $X_{i,N,k}^j \leftarrow X_{T,i} + \sum_{i=1}^{N} \delta_{i,k}^j$
+    \ENDFOR
+\ENDFOR
+\STATE $\mathbf{P} \leftarrow \text{Matrix}(J, S)$ where $P_{j,k} = X_{N,k}^j$ \COMMENT{Extract terminal values}
+\RETURN $\mathbf{P}$ \COMMENT{The empirical probability distributions for each trajectory}
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{ForGAN results}
+
+The training algorithm and data flow used for training the ForGAN model shows just some changes related to the output and the way the probability distribution is generated.
+In fact, in this case the output data of the training set is a single value $c_{T + \tau}$ instead of a probability vector as in the previous CGAN and CWGAN-GP models.\\
+\begin{algorithm}[H]
+    \caption{Training process for ForGAN model}
+    \label{alg:forGAN train}
+    \begin{algorithmic}[1]
+
+    \STATE Compute trajectories matrix $C_T$ and next value $c_{T + \tau}$ and its probability distribution $X$ using algorithm \ref{alg:y condition} and \ref{alg:mc_terminal_dist}.
+    \FOR{$i$ in $max\_epoch = 100$}
+        \STATE Compute discriminator loss over true data samples $\mathcal{L}_{\text{BCE}}^{true}(1,D(c_{T + \tau},c_T))
+            = - \left[ 1 \log(D(c_{T + \tau},c_T))\right]$ and then over generated data samples
+            $\mathcal{L}_{\text{BCE}}^{fake}(0,D(G(z,c_T),c_T)) = - \left[  1\log(1 - D(G(z,c_T),c_T)) \right]$
+        \STATE The Discriminator loss is then computed as $\mathcal{L}_D = \mathcal{L}_{\text{BCE}}^{true} + \mathcal{L}_{\text{BCE}}^{fake}$
+        \STATE Update discriminator weights by backpropagating the loss $\mathcal{L}_D$ as described in \ref{alg: cgan}.
+        \STATE Compute generator loss over generated data samples.
+            $\mathcal{L}_{\text{BCE}}^{gen}(1,D(G(z,c_T),c_T)) = - \left[ 1 \log(D(G(z,c_T),c_T))\right]$   
+        \STATE Update generator weights by backpropagating the loss $\mathcal{L}_G = \mathcal{L}_{\text{BCE}}^{gen}$.
+    \ENDFOR
+    \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
+    \end{algorithmic}
+\end{algorithm}
+
+The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
+the resulting p-values are accepted 30\% of times, which is inline with the results obtained for the CGAN model.\\
+Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.49 which is worse than the CWGAN-GP model, suggesting that Wasserstein distance provides a better training convergence and generalization capabilities.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+EMD Distance & 0.0275 \\
+JS Distance & 0.4778 \\
+Hellinger Distance & 0.4301 \\
+TV Distance & 0.4529 \\
+\hline
+\end{tabular}
+\caption{ForGAN performance metrics averaged over 1000 samples}
+\end{table}
+
+These results strongly suggest trying to improve the performances of the proposed ForGAN by adopting the Wasserstein distance instead of the BCE loss.\\
+In order to visually assess the capabilities of the model,
+different samples have been drawn such that every sampling parameter is fixed except for the volatility $\sigma$.
+In particular, six different samples are shown below where
+the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
+$\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$. From the results can be notices that also this new architecture
+struggles to effectively capture the variance of the target distribution when the volatility parameter is high.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan_simple.png}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}
+    \label{forgan_simple_sample_sigma}
+\end{figure}
+
+
+
+\subsection{ForWGAN results}
+Also in this case the training algorithm and data flow used for training the ForWGAN model have been adapted to the new output setup.
+
+\begin{algorithm}[H]
+    \caption{Training process for CWGAN-GP model}
+    \label{alg:ForWGAN train}
+    \begin{algorithmic}[1]
+
+    \STATE Compute trajectories matrix $C_T$ and next value $c_{T + \tau}$ and its probability distribution $X$ using algorithm \ref{alg:y condition} and \ref{alg:mc_terminal_dist}.
+    \FOR{$i$ in $max\_epoch = 100$}
+        \STATE Compute the critic real value output for true data samples $D(c_{T + \tau},c_T)$ and then for generated data samples $D(G(z,c_T),c_T)$.
+        \STATE Compute the gradient penalty term $GP$ as described in \ref{alg:gradient_penalty}.
+        \STATE Compute critic loss $\mathcal{L}_D$ defined in \ref{eq:wgan_critic_loss} with the addition of the gradient penalty term.
+        \STATE Update critic weights by backpropagating the loss $\mathcal{L}_D$ as described in \ref{alg:cwgan_gp}.
+        \STATE Compute generator loss $\mathcal{L}_G$ defined in \ref{eq:wgan_generator_loss}.
+        \STATE Update generator weights by backpropagating the loss $\mathcal{L}_G$.
+    \ENDFOR
+    \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
+    \end{algorithmic}
+\end{algorithm}
+
+The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
+the resulting p-values are accepted 56\% of times, significantly higher than the CWGAN-GP and the ForGAN proposed models.\\
+Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.35 which highlights an improvement with respect to the ForGAN model.\\
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+EMD distance & 0.0180 \\
+JS Distance & 0.3402 \\
+Hellinger Distance & 0.3110 \\
+TV Distance & 0.3239 \\
+\hline
+\end{tabular}
+\caption{ForWGAN performance metrics averaged over 1000 samples}
+\end{table}
+
+
+A visual inspection of different samples with various degrees of volatility is presented below
+In particular, six different samples are shown below where
+the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
+$\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.
+From the results we can see an important improvement with respect to the simple ForGAN architecture 
+in the same way as the CWGAN-GP model showed better results than the CGAN one,
+suggesting that the Wasserstein loss with gradient penalty helps in stabilizing the training process and improving the quality of the generated distributions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan.png}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}
+    \label{forgan_sample_sigma}
+\end{figure}

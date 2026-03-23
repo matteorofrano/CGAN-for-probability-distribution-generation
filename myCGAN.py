@@ -6,7 +6,7 @@ from typing import Callable, Optional, Dict
 import torch
 from torch.utils.data import DataLoader
 from utilities import TensorDataset, DataSimulator, prepare_data, compute_js, pd
-from GANComponents import MyDiscriminator, MyGenerator
+from GANComponents import MyDiscriminator, MyGenerator, RnnDiscriminator, RnnGenerator
 
 
 class MyCGAN():
@@ -38,23 +38,33 @@ class MyCGAN():
         self.DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # generator architecture
-    def set_generator(self, condition_size=100, output_dim=2, **generator_params):
+    def set_generator(self, condition_size=100, output_dim=2, 
+                      hidden_dim_rnn:None|int = None, **generator_params):
         """
         create the generator
         """
-        
-        self.G=MyGenerator(latent_size=self.z_dim, condition_size=condition_size, output_dim=output_dim, **generator_params)
+        if hidden_dim_rnn is not None:
+            self.G=RnnGenerator(latent_size=self.z_dim, condition_size=condition_size, 
+                                hidden_dim=hidden_dim_rnn, output_dim=output_dim, **generator_params)
+        else:
+            self.G=MyGenerator(latent_size=self.z_dim, condition_size=condition_size,
+                                output_dim=output_dim, **generator_params)
 
     #discriminator architecture 
-    def set_discriminator(self, input_size=784, condition_size=10, output_dim=1, **discriminator_params):
+    def set_discriminator(self, input_size=784, condition_size=10, output_dim=1,
+                           hidden_dim_rnn:None|int = None, **discriminator_params):
         """
         create the discriminator
         """
+        if hidden_dim_rnn is not None:
+            self.D = RnnDiscriminator(input_size=input_size, condition_size=condition_size, 
+                                      output_dim=output_dim, hidden_dim=hidden_dim_rnn, **discriminator_params)
+        else: 
+            self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size,
+                                      output_dim=output_dim, **discriminator_params)
 
-        self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size, output_dim=output_dim, **discriminator_params)
 
-
-    def train(self, data: TensorDataset, save_history:bool = False):
+    def train(self, data: TensorDataset, save_history:bool = False, distance_metric:str = 'js_divergence'):
         """
         train process
         """
@@ -150,8 +160,14 @@ class MyCGAN():
 
             # Build a DataFrame where each list becomes a column
             if len(predictions_list)>1:
-                js_divergence = compute_js(np.array(predictions_list), np.array(targets_list))
-                distance = np.mean(js_divergence)  #np.linalg.norm(np.array(predictions_list) - np.array(targets_list))
+                if distance_metric == 'js_divergence':
+                    js_divergence = compute_js(np.array(predictions_list), np.array(targets_list))
+                    distance = np.mean(js_divergence)  
+                elif distance_metric == 'mse':
+                    distance = np.mean((np.array(predictions_list)-np.array(targets_list))**2)
+                else:
+                    distance = None
+
                 entries = pd.DataFrame({
                     "epoch": [int(epoch)]*len(predictions_list),
                     "generated": [json.dumps(pred) for pred in predictions_list],
@@ -219,13 +235,13 @@ class MyCGAN():
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
                         generated = self.G(z, c)
                         sample_values.append(generated.cpu())
-                   
-                    simulation_list.append(sample_values)
+
+                    stacked = torch.stack(sample_values, dim=1).squeeze(-1)  #(batch, 1000)
+                    simulation_list.append(stacked)
                     conditions_list.append(c.cpu())
                 else:
                     z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                    generated = self.G(z, c)
-                    
+                    generated = self.G(z, c)   
                     predictions_list.append(generated.cpu())
                     conditions_list.append(c.cpu())
 
@@ -233,46 +249,52 @@ class MyCGAN():
         conditions = torch.cat(conditions_list, dim=0).numpy()
         # IF GENERATED SAMPLES ARE AVAILABLE THEN BUILD THE PDF 
         if simulation_list:
-            sim_array = np.array(simulation_list).squeeze(-1)
-            sim_array = sim_array.transpose(0, 2, 1) # shape (n_batch, batch_samples, 1000)
-            print(f'shape array {sim_array.shape}')
-            means =sim_array.mean(axis=2) # mean over the 1000 samples
-            simulations= np.concatenate(sim_array, axis=0)
+            simulations = torch.cat(simulation_list, dim=0).numpy()  # (n_total, 1000)
+            print(f'shape array {simulations.shape}')
+            means = simulations.mean(axis=1)  # mean over the 1000 samples
 
-            # compute the pdf using available bins 
             if bins is not None:
-                predictions = np.zeros((simulations.shape[0], bins.shape[0]-1))
+                predictions = np.zeros((simulations.shape[0], bins.shape[0] - 1))
                 for i in range(simulations.shape[0]):
-                    hist, _ = np.histogram(simulations[i], bins = bins)
-                    predictions[i] = hist/hist.sum()
+                    hist, _ = np.histogram(simulations[i], bins=bins)
+                    predictions[i] = hist / hist.sum()
             else:
                 predictions = simulations
 
         # IF PDF IS AVAILABLE THEN JUST RETURN IT
         else:
             predictions = torch.cat(predictions_list, dim=0).numpy()
+            
         
         return conditions, predictions
     
 
-    def evaluate_error_distribution(self, data: TensorDataset, save_to:str|None = None, eps:float = 1e-6) -> dict:
+    def evaluate_error_distribution(self, data: TensorDataset, save_to:str|None = None) -> dict:
         """
         Compute element-wise error distribution between generated and true samples.
         
         Args:
             data: TensorDataset containing (true_samples, conditions)
-            save_path: Optional path to save results as CSV
+            save_to: Optional path to save results as CSV
+            is_prob: if yes compute the SMAPE else the MSE
         
         Returns:
             Dictionary containing errors and statistics
         """
-
+        if self.G is None:
+            raise ValueError('Generator is not specifid')
+        
         true = data.tensors[0].numpy()
         conditions, generated = self.generate(data)
-        true = np.clip(true, eps, 1.0)
-        generated = np.clip(generated, eps, 1.0)
+        
+        # if point forecast compute MSE else absolute errors for each bin
+        if true.shape[1]<2:
+            errors = (true - generated)**2
+        else:
+            errors = compute_js(generated, true, is_log=True) if self.G.is_prob else compute_js(generated, true, is_log=False)
+            errors = np.array(errors).reshape(-1,1)
 
-        errors = 2 * np.abs(true - generated) / (true + generated + eps)
+        
         stats = {
             "errors": errors,
             "generated": generated,
