@@ -1,4 +1,4 @@
-\chapter{Experimental results}
+\chapter{CGAN experimental results}
 
 During the training process of the proposed CGAN, a preprocess step is adopted 
 depending on the output representation selected. The following setup for the experiments has been used:\\
@@ -150,10 +150,10 @@ by following the same data simulation, preprocessing, and evaluation procedures 
     \STATE Apply log transformation to data matrix $X$.
     \FOR{$i$ in $max\_epoch = 100$}
         \STATE Compute the critic real value output for true data samples $D(x,c)$ and then for generated data samples $D(G(z,c),c)$.
-        \STATE Compute the gradient penalty term $GP$ as defined in \ref{eq:GP_term}.
-        \STATE Compute critic loss $\mathcal{L}_D$ defined in \ref{eq:wgan_critic_loss} with the addition of the gradient penalty term.
+        \STATE Compute the gradient penalty term $GP$ as defined in \ref{alg:gradient_penalty}.
+        \STATE Compute critic loss $\mathcal{L}_D$ following \ref{alg:cwgan_gp} with the addition of the gradient penalty term.
         \STATE Update critic weights by backpropagating the loss $\mathcal{L}_D$.
-        \STATE Compute generator loss $\mathcal{L}_G$ defined in \ref{eq:wgan_generator_loss}.
+        \STATE Compute generator loss $\mathcal{L}_G$ following \ref{alg:cwgan_gp}.
         \STATE Update generator weights by backpropagating the loss $\mathcal{L}_G$.
     \ENDFOR
     \end{algorithmic}
