@@ -293,6 +293,42 @@
       \field{pages}{559\bibrangedash 569}
       \range{pages}{11}
     \endentry
+    \entry{forgan:freedman_bins}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=7396ccf082b609137d9256e7354f6228}{%
+           family={Freedman},
+           familyi={F\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+        {{hash=f5a7dd4f4a0c79d2eaaf29d6dda0f4b3}{%
+           family={Diaconis},
+           familyi={D\bibinitperiod},
+           given={Persi},
+           giveni={P\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer-Verlag Berlin/Heidelberg}%
+      }
+      \strng{namehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{fullhash}{438a4728b573646f5f489f4e938936a3}
+      \strng{fullhashraw}{438a4728b573646f5f489f4e938936a3}
+      \strng{bibnamehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authorbibnamehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authornamehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authorfullhash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authorfullhashraw}{438a4728b573646f5f489f4e938936a3}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Zeitschrift für Wahrscheinlichkeitstheorie und verwandte Gebiete}
+      \field{number}{4}
+      \field{title}{On the histogram as a density estimator: L 2 theory}
+      \field{volume}{57}
+      \field{year}{1981}
+      \field{pages}{453\bibrangedash 476}
+      \range{pages}{24}
+    \endentry
   \enddatalist
 \endrefsection
 \endinput

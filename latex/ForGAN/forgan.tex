@@ -2,30 +2,38 @@
 
 In order to provide a comparison between the proposed ForGAN architectures and 
 the analytical solution of the GBM processes, the target distribution of the next value $c_{T + \tau}$ is computed in a slightly different way
-with respect to the analytical solution adopted in \ref{alg:x target} by using monte carlo simulations.
+with respect to the analytical solution adopted in \ref{alg:x target} by using monte carlo simulations.\\
+After the simulations are performed, the resulting terminal values are used to build the empirical distribution of the next value $c_{T + \tau}$ by using the Freedman-Diaconis rule to compute the optimal number of bins for the histogram \cite{forgan:freedman_bins}.\\
+The Freedman-Diaconis rule provides a robust statistical method for determining optimal histogram bin width by minimizing the integrated mean squared error. 
+Unlike methods sensitive to outliers, it utilizes the interquartile range (IQR) to account for data variability. 
+The bin width $h$ is calculated as:$h = 2 \cdot \frac{\text{IQR}(x)}{\sqrt[3]{n}}$ where $n$ represents the number of observations.
+By prioritizing the spread of the central 50\% of the distribution, 
+the algorithm ensures that the resulting binning structure accurately reflects the underlying density of the empirical data without over-smoothing or producing noise-induced artifacts.\\
+
 The algorithm is as follows:
-\begin{algorithm}
+\begin{algorithm}[H]
 \caption{Monte Carlo Generation of Terminal Distributions}
 \label{alg:mc_terminal_dist}
 \begin{algorithmic}[1]
 \REQUIRE Number of trajectories $J$, steps ahead $N$, and MC simulations $S$.
 \REQUIRE Final values from which to compute the distribution $\mathbf{X}_T \in \mathbb{R}^J$, drift $\boldsymbol{\mu} \in \mathbb{R}^J$, volatility $\boldsymbol{\sigma} \in \mathbb{R}^J$, and time increment $ dt$.
 \STATE \COMMENT{Generate random standard normal shocks for all paths and steps}
-\STATE $\mathbf{Z} \leftarrow \text{Tensor}(J, N , S)$ where $Z_{i,j,k} \sim \mathcal{N}(0,1)$
-\FOR{each trajectory $i \in \{1, \dots, J\}$}
+\STATE $\mathbf{Z} \leftarrow \text{Tensor}(J, K, I)$ where $Z_{j, k, i} \sim \mathcal{N}(0,1)$
+\FOR{each trajectory $j \in \{1, \dots, J\}$}
     \STATE \COMMENT{Calculate the deterministic drift component per step}
     \STATE $\mathbf{d_j} \leftarrow (\boldsymbol{\mu_j} - 0.5 \boldsymbol{\sigma_j}^2) \Delta t$ 
-    \STATE \COMMENT{Compute stochastic shocks scaled by volatility and time, for simulation $k$, and step $i$}
-    \STATE $\mathbf{S}_{i,k}^j \leftarrow \sigma_i \cdot Z_{i,j,k} \cdot \sqrt{\Delta t}$
+    \STATE \COMMENT{Compute stochastic shocks for simulation $k$, and step $i$}
+    \STATE $\mathbf{S}_{k, i}^j \leftarrow \sigma_j \cdot Z_{j, k, i} \cdot \sqrt{\Delta t}$
     \STATE \COMMENT{Calculate increments for each simulation step}
-    \STATE $\boldsymbol{\delta}_{i,k}^j \leftarrow d_i + S_{i,k}^j$ 
+    \STATE $\boldsymbol{\delta}_{k, i}^j \leftarrow d_j + S_{k, i}^j$ 
     \STATE \COMMENT{Integrate paths using cumulative summation}
-    \FOR{each simulation $k \in \{1, \dots, S\}$}
-        \STATE $X_{i,N,k}^j \leftarrow X_{T,i} + \sum_{i=1}^{N} \delta_{i,k}^j$
+    \FOR{each simulation $k \in \{1, \dots, K\}$}
+        \STATE $X_{k, I}^j \leftarrow X_{T,i} + \sum_{i=1}^{I} \delta_{k, i}^j$
     \ENDFOR
 \ENDFOR
-\STATE $\mathbf{P} \leftarrow \text{Matrix}(J, S)$ where $P_{j,k} = X_{N,k}^j$ \COMMENT{Extract terminal values}
-\RETURN $\mathbf{P}$ \COMMENT{The empirical probability distributions for each trajectory}
+\STATE $\mathbf{P} \leftarrow \text{Matrix}(J, K)$ where $P_{j,k} = X_{k, I}^j$ \COMMENT{Extract terminal values}
+\STATE Compute $\mathbf{D} \leftarrow \quad$ histogram of $\mathbf{P}$ to estimate the empirical distribution for each trajectory $j$ using \cite{forgan:freedman_bins}.
+\RETURN $\mathbf{D}$ \COMMENT{The empirical probability distributions for each trajectory}
 \end{algorithmic}
 \end{algorithm}
 
@@ -53,6 +61,26 @@ In fact, in this case the output data of the training set is a single value $c_{
     \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
     \end{algorithmic}
 \end{algorithm}
+
+
+The experiment has been conducted by using the following architecture and hyperparameters:
+\begin{table}[H]
+\centering
+\caption{ForGAN Architecture and Hyperparameters Summary}
+\label{tab:forgan_summary}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}          & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 64 (Latent) + 252 (Cond.)   & 1 (Data) + 252 (Cond.)          \\
+Hidden Layers              & [512, 256, 128, 64]         & [512, 256, 256, 128, 64]        \\
+Output Dimension           & 1                           & 1                               \\
+Activation Function        & ReLU                        & Leaky ReLU                      \\
+Normalization              & Batch Norm                  & None                      \\
+Dropout                    & 0.0                         & 0.0                             \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline
+Max Epochs                 & \multicolumn{2}{l}{100}                                       \\
+\end{tabular}
+\end{table}
 
 The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
 the resulting p-values are accepted 30\% of times, which is inline with the results obtained for the CGAN model.\\
@@ -92,7 +120,6 @@ struggles to effectively capture the variance of the target distribution when th
 
 \subsection{ForWGAN results}
 Also in this case the training algorithm and data flow used for training the ForWGAN model have been adapted to the new output setup.
-
 \begin{algorithm}[H]
     \caption{Training process for CWGAN-GP model}
     \label{alg:ForWGAN train}
@@ -110,6 +137,26 @@ Also in this case the training algorithm and data flow used for training the For
     \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
     \end{algorithmic}
 \end{algorithm}
+
+The experiment has been conducted by using the following architecture and hyperparameters:
+\begin{table}[H]
+\centering
+\caption{ForWGAN Architecture and Hyperparameters Summary}
+\label{tab:forwgan_summary}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}          & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 64 (Latent) + 252 (Cond.)   & 1 (Data) + 252 (Cond.)          \\
+Hidden Layers              & [512, 256, 128, 64]         & [512, 256, 256, 128, 64]        \\
+Output Dimension           & 1                           & 1                               \\
+Activation Function        & ReLU                        & Leaky ReLU                      \\
+Normalization              & None                        & Layer Norm                      \\
+Dropout                    & 0.0                         & 0.0                             \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline
+Max Epochs                 & \multicolumn{2}{l}{100}                                       \\
+\end{tabular}
+\end{table}
+
 
 The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
 the resulting p-values are accepted 56\% of times, significantly higher than the CWGAN-GP and the ForGAN proposed models.\\

@@ -80,6 +80,27 @@ Then results obtained from training the CGAN architecture on the simulated datas
     \end{algorithmic}
 \end{algorithm}
 
+The experimental results have been obtained by training the CGAN model for 100 epochs, using the dataset and evaluation metrics described above with 
+the following architecture and hyperparameters:
+\begin{table}[h!]
+\centering
+\caption{CGAN Architecture and Hyperparameters Summary}
+\label{tab:cgan_summary}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}          & \textbf{Critic (Discriminator)} \\ \hline
+Architecture Name          & MyGenerator                 & MyDiscriminator                 \\
+Input Dimension            & 252 (Latent) + 252 (Cond.)  & 100 (Data) + 252 (Cond.)         \\
+Hidden Layers              & [512, 256, 256, 128]        & [512, 256, 256, 128, 64]        \\
+Output Dimension           & 100                         & 1                               \\
+Activation Function        & ReLU                        & Leaky ReLU                      \\
+Normalization              & Batch Norm                  & None                      \\
+Dropout                    & 0.0                         & 0.0                             \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline                                       \\
+Generated Data Dimension             & \multicolumn{2}{l}{100}                             \\ \hline
+Max Epochs                           & \multicolumn{2}{l}{100}                             \\ \hline
+\end{tabular}
+\end{table}
 
 
 \begin{figure}[H]
@@ -159,7 +180,27 @@ by following the same data simulation, preprocessing, and evaluation procedures 
     \end{algorithmic}
 \end{algorithm}
 
-
+The experimental results have been obtained by training the CWGAN-GP model for 100 epochs, using the same dataset and evaluation metrics as in the CGAN case with 
+the following architecture and hyperparameters:
+\begin{table}[h!]
+\centering
+\caption{CWGAN Architecture and Hyperparameters Summary}
+\label{tab:cwgan_summary}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}          & \textbf{Critic (Discriminator)} \\ \hline
+Architecture Name          & MyGenerator                 & MyDiscriminator                 \\
+Input Dimension            & 252 (Latent) + 252 (Cond.)  & 100 (Data) + 252 (Cond.)         \\
+Hidden Layers              & [512, 256, 256, 128]        & [512, 256, 256, 128, 64]        \\
+Output Dimension           & 100                         & 1                               \\
+Activation Function        & ReLU                        & Leaky ReLU                      \\
+Normalization              & None                        & Layer Norm                      \\
+Dropout                    & 0.0                         & 0.0                             \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline                                       \\
+Generated Data Dimension             & \multicolumn{2}{l}{100}                          \\ \hline   
+Max Epochs                           & \multicolumn{2}{l}{100}                                       \\ \hline
+\end{tabular}
+\end{table}
 
 \begin{figure}[H]
     \centering

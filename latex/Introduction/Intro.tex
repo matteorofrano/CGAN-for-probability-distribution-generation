@@ -153,7 +153,7 @@ In the Conditional GAN (CGAN), the generator learns to generate a fake sample wi
 The CGAN objective function is given by:
 \begin{equation}
     \label{eq:CGAN minimax}
-    \min _G \max _D V(D, G)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x} \mid \boldsymbol{y})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z} \mid \boldsymbol{y})))]
+    \min _G \max _D V(D, G)=\mathbb{E}_{\boldsymbol{x} \sim p_{\text {data }}(\boldsymbol{x})}[\log D(\boldsymbol{x} \mid \boldsymbol{c})]+\mathbb{E}_{\boldsymbol{z} \sim p_{\boldsymbol{z}}(\boldsymbol{z})}[\log (1-D(G(\boldsymbol{z} \mid \boldsymbol{c})))]
 \end{equation}
 
 Academic findings highlighted in \cite{background:gan_time_series} suggest that one of the principal failure modes of GANs 
@@ -171,17 +171,17 @@ causing the generator's gradients to approach zero and consequently impeding its
 \REQUIRE The batch size $m$, Adam hyperparameters $\alpha, \beta_1$.
 \REQUIRE Initial discriminator parameters $\theta_D$, initial generator parameters $\theta_G$.
 \WHILE{$\theta_G$ has not converged}
-    \STATE Sample real data $\{x^{(i)}\}_{i=1}^m \sim \mathbb{P}_r$ and context $\{y^{(i)}\}_{i=1}^m$.
+    \STATE Sample real data $\{x^{(i)}\}_{i=1}^m \sim \mathbb{P}_r$ and context $\{c^{(i)}\}_{i=1}^m$.
     \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
-    \STATE $\tilde{x}^{(i)} \leftarrow G(z^{(i)}, y^{(i)})$ \COMMENT{Generate synthetic samples}
+    \STATE $\tilde{x}^{(i)} \leftarrow G(z^{(i)}, c^{(i)})$ \COMMENT{Generate synthetic samples}
     
     \STATE \COMMENT{Update Discriminator: Maximize log(D(x)) + log(1-D(G(z)))}
-    \STATE $L_{D} \leftarrow -\frac{1}{m} \sum_{i=1}^m \left[ \log D(x^{(i)}, y^{(i)}) + \log(1 - D(\tilde{x}^{(i)}, y^{(i)})) \right]$
+    \STATE $L_{D} \leftarrow -\frac{1}{m} \sum_{i=1}^m \left[ \log D(x^{(i)}, c^{(i)}) + \log(1 - D(\tilde{x}^{(i)}, c  ^{(i)})) \right]$
     \STATE $\theta_D \leftarrow \theta_D - \alpha \nabla_{\theta_D} L_{D}$
     
     \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
     \STATE \COMMENT{Update Generator: Maximize log(D(G(z))) (Non-saturating loss)}
-    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m \log D(G(z^{(i)}, y^{(i)}), y^{(i)})$
+    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m \log D(G(z^{(i)}, c^{(i)}), c^{(i)})$
     \STATE $\theta_G \leftarrow \theta_G - \alpha \nabla_{\theta_G} L_{G}$
 \ENDWHILE
 \end{algorithmic}
@@ -225,15 +225,15 @@ The dual form is expressed as:
 In this duality, the "discriminator" is redefined as a "critic" ($D$), whose task is not to classify
 inputs as real or fake, but to act as the optimal function $f$ that maximizes the distance between the 
 expected scores of the real and synthetic distributions. In a Conditional GAN (CGAN), this distance is 
-extended to account for auxiliary information $y$ (such as past history, drift, or volatility in 
+extended to account for auxiliary information $c$ (such as past history, drift, or volatility in 
 time-series). So in the conditional setting, 
-mathematically, the EMD is calculated over the pairs $(c, y)$, where $c$ is your history (features like drift/vol) and $y$ is the output.
-The real pair $(x_i, y_{i, real})$ and fake pair $(x_i, G(x_i, z_i))$ are produced. The "Earth" isn't being moved on a 1D line; it’s being moved in a higher-dimensional space where one axis is the "Context" and the other is the "Value." The distance is only minimized when the generator produces the correct $y$ for that specific $x$.
+mathematically, the EMD is calculated over the pairs $(x, c)$, where $c$ is your history (features like drift/vol) and $x$ is the output.
+The real pair $(x_{i, real}, c_i)$ and fake pair $(G(z_i, c_i), c_i)$ are produced. The "Earth" isn't being moved on a 1D line; it’s being moved in a higher-dimensional space where one axis is the "Context" and the other is the "Value." The distance is only minimized when the generator produces the correct $x$ for that specific $c$.
 
 The objective becomes the minimization of the Wasserstein distance between the 
-conditional distributions $\mathbb{P}_r(x|y)$ and $\mathbb{P}_g(x|y)$. 
-By conditioning both the generator $G(z, y)$ and the critic $D(x, y)$ on the same context $y$,
-the critic learns a "score surface" that is specific to the underlying stochastic process defined by $y$.\\
+conditional distributions $\mathbb{P}_r(x|c)$ and $\mathbb{P}_g(x|c)$. 
+By conditioning both the generator $G(z, c)$ and the critic $D(x, c)$ on the same context $c$,
+the critic learns a "score surface" that is specific to the underlying stochastic process defined by $c$.\\
 
 The use of the critic's output to compute the loss is mathematically 
 justified because, under the 1-Lipschitz constraint, 
@@ -243,7 +243,7 @@ the fake batch directly approximates the Wasserstein distance as demonsstrated i
 This is a superior training signal compared to Jensen-Shannon divergence because
 $W(\mathbb{P}_r, \mathbb{P}_g)$ is
 continuous and differentiable even when the supports of the two
-distributions are disjoint—a common occurrence in the early stages of training. 
+distributions are disjoint, a common occurrence in the early stages of training.\\
 Consequently, the generator receives stable, non-vanishing gradients that indicate 
 not just if the generated sample is wrong,
 but how far it must move in the feature space to align with the real
@@ -260,19 +260,17 @@ within the space of 1-Lipschitz functions $\mathcal{D}$.
 \REQUIRE Initial critic parameters $\theta_D$, initial generator parameters $\theta_G$.
 \WHILE{$\theta_G$ has not converged}
     \FOR{$t = 1$ \TO $n_{critic}$}
-        \STATE Sample real data $\{x^{(i)}\}_{i=1}^m \sim \mathbb{P}_r$ and labels/context $\{y^{(i)}\}_{i=1}^m$.
+        \STATE Sample real data $\{x^{(i)}\}_{i=1}^m \sim \mathbb{P}_r$ and context $\{c^{(i)}\}_{i=1}^m$.
         \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
-        \STATE $\tilde{x}^{(i)} \leftarrow G(z^{(i)}, y^{(i)})$ \COMMENT{Generate synthetic samples}
+        \STATE $\tilde{x}^{(i)} \leftarrow G(z^{(i)}, c ^{(i)})$ \COMMENT{Generate synthetic samples}
         \STATE $\epsilon \sim U[0, 1]$ \COMMENT{Random number for interpolation}
-        \STATE $\hat{x}^{(i)} \leftarrow \epsilon x^{(i)} + (1 - \epsilon) \tilde{x}^{(i)}$ \COMMENT{Interpolated samples}
-        
-        \STATE $L_{D} \leftarrow \frac{1}{m} \sum_{i=1}^m D(\tilde{x}^{(i)}, y^{(i)}) - \frac{1}{m} \sum_{i=1}^m D(x^{(i)}, y^{(i)}) + \lambda \mathbb{E}_{\hat{x}, y} [(\|\nabla_{\hat{x}} D(\hat{x}, y)\|_2 - 1)^2]$
-        
+        \STATE $\hat{x}^{(i)} \leftarrow \epsilon x^{(i)} + (1 - \epsilon) \tilde{x}^{(i)}$ \COMMENT{Interpolated samples} 
+        \STATE $L_{D} \leftarrow \frac{1}{m} \sum_{i=1}^m D(\tilde{x}^{(i)}, c^{(i)}) - \frac{1}{m} \sum_{i=1}^m D(x^{(i)}, c^{(i)}) + \lambda \mathbb{E}_{\hat{x}, c} [(\|\nabla_{\hat{x}} D(\hat{x}, c)\|_2 - 1)^2]$  
         \STATE $\theta_D \leftarrow \text{Adam}(\nabla_{\theta_D} L_{D}, \theta_D, \alpha, \beta_1, \beta_2)$
     \ENDFOR
     
     \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
-    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m D(G(z^{(i)}, y^{(i)}), y^{(i)})$
+    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m D(G(z^{(i)}, c^{(i)}), c^{(i)})$
     \STATE $\theta_G \leftarrow \text{Adam}(\nabla_{\theta_G} L_{G}, \theta_G, \alpha, \beta_1, \beta_2)$
 \ENDWHILE
 \end{algorithmic}
@@ -288,11 +286,11 @@ By sampling $\epsilon$ and creating $\hat{x}$, the Lipschitz constraint is enfor
 \REQUIRE Real samples $x$, generated samples $\tilde{x}$, conditioning context $c$, critic network $D$.
 \STATE $m \leftarrow \text{batch size}$
 \STATE Sample $\epsilon \sim U[0, 1]^m$ \COMMENT{Uniform random interpolation weights}
-\STATE $\hat{x} \leftarrow \epsilon \odot x + (1 - \epsilon) \odot \tilde{x}$ \COMMENT{Compute interpolated samples}
+\STATE $\hat{x} \leftarrow \epsilon x + (1 - \epsilon) \tilde{x}$ \COMMENT{Compute interpolated samples}
 \STATE Enable gradient tracking for $\hat{x}$
 \STATE $\hat{S} \leftarrow D(\hat{x}, c)$ \COMMENT{Evaluate critic on interpolates}
 \STATE $\nabla_{\hat{x}} D \leftarrow \nabla_{\hat{x}} \hat{S}$ \COMMENT{Compute gradients of scores w.r.t. interpolates}
-\STATE $L_2 \text{-norm} \leftarrow \sqrt{\sum (\nabla_{\hat{x}} D)^2}$ \COMMENT{Calculate norm across feature dimensions}
+\STATE $L_2 \text{-norm} \leftarrow \|\nabla_{\hat{x}} D(\hat{x}, c)\|_2$ \COMMENT{Calculate norm across feature dimensions}
 \STATE $GP \leftarrow \frac{1}{m} \sum (L_2 \text{-norm} - 1)^2$ \COMMENT{Compute mean squared error from unity}
 \RETURN $GP$
 \end{algorithmic}
