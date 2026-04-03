@@ -220,16 +220,16 @@ class MyCWGAN(MyCGAN):
         with torch.no_grad():
             for output, trajectory in data_loader:
                 x = output.to(self.DEVICE)
-                y = trajectory.to(self.DEVICE)
+                c = trajectory.to(self.DEVICE)
                 current_batch_size = x.size(0)
                 
                 # Real samples score
-                critic_real = self.D(x, y).mean()
+                critic_real = self.D(x, c).mean()
                 
                 # Fake samples score
                 z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                fake_samples = self.G(z, y)
-                critic_fake = self.D(fake_samples, y).mean()
+                fake_samples = self.G(c, z)
+                critic_fake = self.D(fake_samples, c).mean()
                 
                 # Wasserstein distance approximation
                 w_dist = critic_real - critic_fake
@@ -282,7 +282,7 @@ class MyCWGAN(MyCGAN):
         G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0001, betas=(0.5, 0.999))
         
         df = None
-        step = 0
+        step = 1
         self.D.train()
         self.G.train()
         G_loss = float('inf')
@@ -356,7 +356,7 @@ class MyCWGAN(MyCGAN):
                     self.G.eval()
                     with torch.no_grad():
                         z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
-                        generated = self.G(z, c).cpu().numpy()
+                        generated = self.G(c, z).cpu().numpy()
 
                     for i, row in enumerate(generated):
                         pred = row.tolist()

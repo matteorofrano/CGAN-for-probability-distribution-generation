@@ -212,23 +212,96 @@ by:
     W(\mathbb{P}_r, \mathbb{P}_g) = \inf_{\gamma \in \Pi(\mathbb{P}_r, \mathbb{P}_g)} \mathbb{E}_{(x, y) \sim \gamma} [\|x - y\|]
 \end{equation*}
 where $\Pi(\mathbb{P}_r, \mathbb{P}_g)$ denotes the set of all joint distributions $\gamma(x, y)$ with marginals $\mathbb{P}_r$ and $\mathbb{P}_g$.
-While this formulation provides a physically intuitive measure of "work" required to transform one distribution into another,
+While this formulation provides a physically intuitive measure of "work" required to transform one distribution into another, in fact this calculates the minimum "cost" of transporting mass to transform one distribution into the other,
 it is computationally intractable in the context of neural networks because the infimum over the space of 
-all possible transport plans $\gamma$ cannot be efficiently optimized via backpropagation as suggested in \cite{background:wgan}.\\
+all possible transport plans $\gamma$ cannot be efficiently optimized via backpropagation as suggested in \cite{background:wgan}.
+Moreover, even if the two distributions are discretized through a binning strategy, an high computational cost is associated with the simulation of terminal values which define the empirical distribution and the following
+discretization andevaluation of the Wasserstein distance.\\
 
-To bridge this gap, CWGAN models rely on the Kantorovich-Rubinstein duality, which transforms the constrained minimization over transport plans into a maximization over a set of 1-Lipschitz continuous functions.
-The dual form is expressed as:
+To bridge this gap, CWGAN models rely on the \emph{Kantorovich-Rubinstein duality} \cite{intro:duality}, which transforms the constrained minimization over transport plans into a maximization over a set of 1-Lipschitz continuous functions.
+The application of this duality is critical because it replaces the search for a transport plan with a search for a function $f$ (often called the Critic) that maximizes the difference between the expected values of the two distributions.
+
+\vspace{7mm}
+
+\begin{theorem}[Kantorovich duality]
+\label{eq: emd_dual}
+Let $(\mathcal{X}, \mu)$ and $(\mathcal{Y}, \nu)$ be two Polish probability spaces and let $c : \mathcal{X} \times \mathcal{Y} \to \mathbb{R} \cup \{+\infty\}$ be a lower semicontinuous cost function, such that
+\begin{equation*}
+    \forall(x,y) \in \mathcal{X} \times \mathcal{Y}, \quad c(x,y) \geq a(x) + b(y)
+\end{equation*}
+for some real-valued upper semicontinuous functions $a \in L^1(\mu)$ and $b \in L^1(\nu)$. Then
+\begin{itemize}
+    \item[(i)] There is duality:
+\end{itemize}
+\begin{align*}
+    \min_{\pi \in \Pi(\mu, \nu)} & \int_{\mathcal{X} \times \mathcal{Y}} c(x, y) \, d\pi(x, y) \\
+    &= \sup_{(\psi, \phi) \in C_b(\mathcal{X}) \times C_b(\mathcal{Y}); \,\, \phi-\psi \leq c} \left( \int_{\mathcal{Y}} \phi(y) \, d\nu(y) - \int_{\mathcal{X}} \psi(x) \, d\mu(x) \right) \\
+    &= \sup_{(\psi, \phi) \in L^1(\mu) \times L^1(\nu); \,\, \phi-\psi \leq c} \left( \int_{\mathcal{Y}} \phi(y) \, d\nu(y) - \int_{\mathcal{X}} \psi(x) \, d\mu(x) \right) \\
+    &= \sup_{\psi \in L^1(\mu)} \left( \int_{\mathcal{Y}} \psi^c(y) \, d\nu(y) - \int_{\mathcal{X}} \psi(x) \, d\mu(x) \right) \\
+    &= \sup_{\phi \in L^1(\nu)} \left( \int_{\mathcal{Y}} \phi(y) \, d\nu(y) - \int_{\mathcal{X}} \phi^c(x) \, d\mu(x) \right),
+\end{align*}
+and in the above suprema one might as well impose that $\psi$ be $c$-convex and $\phi$ $c$-concave.
+\end{theorem}
+
+To formalize the components of the Kantorovich duality
+within the context of Wasserstein GANs (WGANs), 
+we define the underlying mathematical structures and their functional roles.
+In this framework, the pairs $(\mathcal{X}, \mu)$ and $(\mathcal{Y}, \nu)$ 
+represent Polish probability spaces, where in the specific case of generative modeling,
+$\mu$ corresponds to the real data distribution $P_r$ and $\nu$ represents the model's 
+generated distribution $P_g$. The cost function $c(x, y) \colon \mathcal{X} \times \mathcal{Y} \to \mathbb{R} \cup \{+\infty\}$ serves as the metric 
+for the "work" required to transport a unit of mass from a point $x$ in the real domain to a point $y$ 
+in the generated domain.The central object of the primal problem is the transport plan $\pi \in \Pi(\mu, \nu)$, 
+which is a joint distribution whose marginals are constrained to $\mu$ and $\nu$. 
+This plan describes the optimal allocation of mass across the product space.
+Transitioning to the dual formulation introduces the dual potentials $\phi$ and $\psi$.
+In the architecture of a WGAN, the potential $\phi$ (often denoted as $f$) is parameterized as the Critic network.
+These functions assign scalar values to points in the manifold, effectively measuring the "potential energy" difference used to calculate the Wasserstein distance.Mathematically,
+these potentials reside in $L^1(\mu)$, the space of functions that are integrable with respect 
+to the measure $\mu$. A critical component for achieving the final loss function is the $c$-transform (or $c$-conjugate) of $\phi$, defined as:
+
+\begin{equation}
+    \phi^c(x) = \inf_{y \in \mathcal{Y}} [c(x, y) - \phi(y)]
+\end{equation}
+
+This transform identifies the optimal "mate"
+function that satisfies the feasibility constraint
+$\phi(y) - \psi(x) \leq c(x, y)$. When the cost function $c(x, y)$
+is chosen as the $L_1$ distance $\|x - y\|$, the $c$-transform forces 
+$\phi$ to satisfy a Lipschitz continuity constraint. 
+This transformation is what allows the WGAN to replace the intractable search over all transport plans $\pi$ with a simpler maximization over $1$-Lipschitz functions, 
+providing the stable gradients necessary for training deep generative models.\\
+
+So finally, the Kantorovich-Rubinstein duality can be expressed in the specific case of the Wasserstein-1 distance, given
+$P_r$ and $P_g$ two probability distributions defined on a compact metric space $\mathcal{X}$ and where
+the supremum is taken over all $1$-Lipschitz continuous functions $f: \mathcal{X} \to \mathbb{R}$, such that for all $x, y \in \mathcal{X}:   |f(x) - f(y)| \leq \|x - y\|$, then:
 \begin{equation}
     \label{eq: emd_dual}
-    W(\mathbb{P}_r, \mathbb{P}_g) = \sup_{\|f\|_L \leq 1} \mathbb{E}_{x \sim \mathbb{P}_r}[f(x)] - \mathbb{E}_{x \sim \mathbb{P}_g}[f(x)]
+    W(P_r, P_g) = \sup_{\|f\|_L \leq 1} \left( \mathbb{E}_{x \sim P_r}[f(x)] - \mathbb{E}_{x \sim P_g}[f(x)] \right)
 \end{equation}
+
+\vspace{7mm}
+
+
+
 In this duality, the "discriminator" is redefined as a "critic" ($D$), whose task is not to classify
 inputs as real or fake, but to act as the optimal function $f$ that maximizes the distance between the 
-expected scores of the real and synthetic distributions. In a Conditional GAN (CGAN), this distance is 
+expected scores of the real and synthetic distributions.\\
+In the following thesis, $f$ is parametrized by using a neural network $f_w$ with weights $w$ restricted to a compact space $\mathcal{W}$ to enforce the Lipschitz constraint.
+Substituting the generator output $G(z)$ for samples from $P_g$, the optimization objective function for the Wasserstein GAN is obtained.
+The minimax objective function is the following:
+\begin{equation}
+    \label{eq:wgan_objective_function}
+    L(G, f_w) = \min_G \max_{w \in \mathcal{W}} \mathbb{E}_{x \sim P_r}[f_w(x)] - \mathbb{E}_{z \sim p(z)}[f_w(G(z))]
+\end{equation}
+By enforcing $\|f_w\|_L \leq K$ (where $K$ is a constant, typically through weight clipping or gradient penalty), the Critic provides a linear, non-saturating gradient to the Generator, ensuring stable training even when the Generator is far from the target distribution.\\
+
+
+In a Conditional GAN (CGAN), this distance is 
 extended to account for auxiliary information $c$ (such as past history, drift, or volatility in 
 time-series). So in the conditional setting, 
 mathematically, the EMD is calculated over the pairs $(x, c)$, where $c$ is your history (features like drift/vol) and $x$ is the output.
-The real pair $(x_{i, real}, c_i)$ and fake pair $(G(z_i, c_i), c_i)$ are produced. The "Earth" isn't being moved on a 1D line; it’s being moved in a higher-dimensional space where one axis is the "Context" and the other is the "Value." The distance is only minimized when the generator produces the correct $x$ for that specific $c$.
+The real pair $(x_{i, real}, c_i)$ and fake pair $(G(z_i, c_i), c_i)$ are produced. The "Earth" isn't being moved on a 1D line; it’s being moved in a higher-dimensional space where one axis is the "Context" and the other is the "Value." The distance is only minimized when the generator produces the correct $x$ for that specific $c$.\\
 
 The objective becomes the minimization of the Wasserstein distance between the 
 conditional distributions $\mathbb{P}_r(x|c)$ and $\mathbb{P}_g(x|c)$. 
@@ -239,7 +312,6 @@ The use of the critic's output to compute the loss is mathematically
 justified because, under the 1-Lipschitz constraint, 
 the difference between the average scores of the real batch and 
 the fake batch directly approximates the Wasserstein distance as demonsstrated in \cite{background:wgan}.\\
-
 This is a superior training signal compared to Jensen-Shannon divergence because
 $W(\mathbb{P}_r, \mathbb{P}_g)$ is
 continuous and differentiable even when the supports of the two

@@ -115,7 +115,7 @@ class MyCGAN():
 
                 #fake samples
                 z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                z_outputs = self.D(self.G(z, c).detach(), c)
+                z_outputs = self.D(self.G(c, z).detach(), c)
                 D_z_loss = self.loss_fn(z_outputs, D_fakes)
 
                 #backpropagation
@@ -127,7 +127,7 @@ class MyCGAN():
                     # TRAIN GENERATOR
                     G_opt.zero_grad()
                     z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                    z_outputs = self.D(self.G(z, c), c)
+                    z_outputs = self.D(self.G(c, z), c)
                     G_loss = self.loss_fn(z_outputs, D_labels)
                     
                     #backpropagation
@@ -143,7 +143,7 @@ class MyCGAN():
                     self.G.eval()
                     with torch.no_grad():
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                        generated = self.G(z, c).cpu().numpy()
+                        generated = self.G(c, z).cpu().numpy()
                     for i, row in enumerate(generated):
                         pred = row.tolist()
                         true = x[i, :].cpu().tolist()
@@ -233,7 +233,7 @@ class MyCGAN():
                     sample_values = []
                     for _ in range(1000):
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                        generated = self.G(z, c)
+                        generated = self.G(c, z)
                         sample_values.append(generated.cpu())
 
                     stacked = torch.stack(sample_values, dim=1).squeeze(-1)  #(batch, 1000)
@@ -241,7 +241,7 @@ class MyCGAN():
                     conditions_list.append(c.cpu())
                 else:
                     z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                    generated = self.G(z, c)   
+                    generated = self.G(c, z)   
                     predictions_list.append(generated.cpu())
                     conditions_list.append(c.cpu())
 

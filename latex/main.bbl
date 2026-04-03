@@ -102,6 +102,35 @@
       \field{pages}{214\bibrangedash 223}
       \range{pages}{10}
     \endentry
+    \entry{intro:duality}{book}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{1}{}{%
+        {{hash=9a5829eabef68d560b86bf71527fd874}{%
+           family={Villani},
+           familyi={V\bibinitperiod},
+           given={Cédric},
+           giveni={C\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{6284a700076f8049b05b5a174309c6d3}
+      \strng{fullhash}{6284a700076f8049b05b5a174309c6d3}
+      \strng{fullhashraw}{6284a700076f8049b05b5a174309c6d3}
+      \strng{bibnamehash}{6284a700076f8049b05b5a174309c6d3}
+      \strng{authorbibnamehash}{6284a700076f8049b05b5a174309c6d3}
+      \strng{authornamehash}{6284a700076f8049b05b5a174309c6d3}
+      \strng{authorfullhash}{6284a700076f8049b05b5a174309c6d3}
+      \strng{authorfullhashraw}{6284a700076f8049b05b5a174309c6d3}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Optimal transport: old and new}
+      \field{volume}{338}
+      \field{year}{2009}
+    \endentry
     \entry{background2:gp_wgan}{article}{}{}
       \name{author}{5}{}{%
         {{hash=94f7047ed067ed3ca0ce018501dd9db9}{%
@@ -138,8 +167,8 @@
       \strng{authornamehash}{23de20020d4d8ae2293e93e7427fec95}
       \strng{authorfullhash}{376f9450b5e0fd1a75c8073680f5c15f}
       \strng{authorfullhashraw}{376f9450b5e0fd1a75c8073680f5c15f}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Advances in neural information processing systems}
@@ -181,8 +210,8 @@
       \strng{authornamehash}{c6b7fbd1de94fc6987154b98f6414c22}
       \strng{authorfullhash}{67098f1852a845cf3c441491c7f90980}
       \strng{authorfullhashraw}{67098f1852a845cf3c441491c7f90980}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{IEEE Access}
@@ -211,8 +240,8 @@
       \strng{authornamehash}{61cfab2004dce53675c07da633f01ad1}
       \strng{authorfullhash}{61cfab2004dce53675c07da633f01ad1}
       \strng{authorfullhashraw}{61cfab2004dce53675c07da633f01ad1}
-      \field{sortinit}{7}
-      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of the American statistical Association}
@@ -249,8 +278,8 @@
       \strng{authornamehash}{c364be3164dbae773df3b5d9de39e025}
       \strng{authorfullhash}{c364be3164dbae773df3b5d9de39e025}
       \strng{authorfullhashraw}{c364be3164dbae773df3b5d9de39e025}
-      \field{sortinit}{8}
-      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{arXiv preprint arXiv:1706.02633}

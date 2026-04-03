@@ -108,11 +108,14 @@ def freedman_diaconis_bins(data: np.ndarray) -> tuple:
 
     return bin_width, num_bins, bin_edges
 
-def compare_simulated_pdfs(true_pdfs: np.ndarray, generated_pdfs: np.ndarray) -> tuple:
+def compare_simulated_pdfs(true_pdfs: np.ndarray,
+                            generated_pdfs: np.ndarray, 
+                            use_opt_binning:bool = False) -> tuple:
     """
     Function used to compare the result from two simulated pdfs
     params: true_pdfs: a 2D numpy array containing for each row the simulations which approximate the true pdf 
     params: generated_pdfs: a 2D numpy array containing for each row the simulations which approximate the generated pdf
+    params: use_opt_binning: if true the freedman_diaconis_bins algorithm is used to provide number of bins and bin edges
     """
 
     if true_pdfs.shape != generated_pdfs.shape:
@@ -124,10 +127,15 @@ def compare_simulated_pdfs(true_pdfs: np.ndarray, generated_pdfs: np.ndarray) ->
     generated_discretized_pdfs = []
     bin_edges_list = []
     for i, simulated_pdf in enumerate(true_pdfs):
-        _, _, bin_edges = freedman_diaconis_bins(simulated_pdf)
-        hist_true, _ = np.histogram(simulated_pdf, bins=bin_edges)
-        hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)
-        
+        if use_opt_binning:
+            _, _, bin_edges = freedman_diaconis_bins(simulated_pdf)
+            hist_true, _ = np.histogram(simulated_pdf, bins=bin_edges)
+            hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)
+        else:
+            n_bins = int(np.ceil(np.sqrt(simulated_pdf.shape[0])))
+            hist_true, bin_edges = np.histogram(simulated_pdf, bins=n_bins)
+            hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)    
+            
         if hist_true.sum() == 0 or hist_generated.sum() == 0:
             continue
 
@@ -310,8 +318,14 @@ def plot_learning_curve(df_csv:str):
 
 
 
-def plot_bin_dist(trues:np.ndarray|list, preds:np.ndarray|list,
-                   bins_values:np.ndarray|list, X_T: List[float]|None = None, ncols=3):
+def plot_bin_dist(trues:np.ndarray|list,
+                   preds:np.ndarray|list,
+                   bins_values:np.ndarray|list,
+                   X_T: List[float]|None = None,
+                   means: np.ndarray | list | None = None,
+                   stds: np.ndarray | list | None = None,
+                   ncols=3,
+                   zoom:bool = False):
 
     n = len(trues)
     nrows = math.ceil(n / ncols)
@@ -338,22 +352,32 @@ def plot_bin_dist(trues:np.ndarray|list, preds:np.ndarray|list,
         bin_centers_row = 0.5 * (np.array(bins[:-1]) + np.array(bins[1:]))
 
         # find indices to zoom the distribution
-        indices = np.where(np.array(true) > 1e-7)[0]
-        if len(indices) > 0:
-            first_idx = indices[0]
-            last_idx = indices[-1]
-            start = int(first_idx - np.ceil(0.1 * first_idx))
-            end = int(last_idx + np.ceil(0.1 * (len(true) - last_idx)))
-            true = np.array(true)[start:end]
-            pred = np.array(pred)[start:end]
-            bin_centers_row = bin_centers_row[start:end]
-        else:
-            raise ValueError('the true distribution does not have any positive probability')
+        if zoom:
+            indices = np.where(np.array(true) > 1e-7)[0]
+            if len(indices) > 0:
+                first_idx = indices[0]
+                last_idx = indices[-1]
+                start = int(first_idx - np.ceil(0.1 * first_idx))
+                end = int(last_idx + np.ceil(0.1 * (len(true) - last_idx)))
+                true = np.array(true)[start:end]
+                pred = np.array(pred)[start:end]
+                bin_centers_row = bin_centers_row[start:end]
+            else:
+                raise ValueError('the true distribution does not have any positive probability')
 
         ax = axes[i]
         width = bin_centers_row[1] - bin_centers_row[0]  # bin width
         ax.bar(bin_centers_row, true, width=width, alpha=0.5, label="True histogram")
         ax.bar(bin_centers_row, pred, width=width, alpha=0.5, label="Generated histogram")
+
+        # Overlay theoretical normal distribution if mean and std are provided
+        if means is not None and stds is not None:
+            mu = means[i]
+            sigma = stds[i]
+            # Scale the PDF to match the probability mass (PDF * bin_width = probability per bin)
+            normal_pdf = norm.pdf(bin_centers_row, loc=mu, scale=sigma) * width
+            ax.plot(bin_centers_row, normal_pdf, color='black', linewidth=2,
+                    linestyle='--', label=f"N({round(mu, 3)}, {round(sigma, 3)})")
 
         if X_T is not None:
             ax.axvline(
@@ -481,7 +505,7 @@ class DataSimulator():
         return mc_distributions
 
     
-    def get_paths(self):
+    def get_paths(self, get_proxy_n:int = 0):
         """
         Simulates log prices with Brownian Motion.
         This function simulates M trajectories of the log stock price process over the time horizon [0, T] using N time steps.
@@ -539,8 +563,12 @@ class DataSimulator():
         paths[:, 1:] = self.X0.reshape(-1,1) + np.cumsum(increments, axis=1)
         self.paths = paths
         self.X_T = paths[:,-1]
+        result = paths
 
-        return paths
+        if get_proxy_n>0:
+            result = np.column_stack([self.sigma, self.paths[:, -get_proxy_n:]])
+
+        return result
     
     def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
                  P:np.ndarray|None=None, mc_sims:int = 0, verbose:bool = False):
@@ -563,6 +591,8 @@ class DataSimulator():
         delta_t = n_steps_ahead * self.dt
         mean = XT - ((self.mu - 0.5 * self.sigma**2) * delta_t)
         std = self.sigma * np.sqrt(delta_t)
+        self.means = mean
+        self.stds = std
 
         if mean.shape != std.shape:
             raise Exception(f'Shapes does not match. Mean\'s array shape {mean.shape} while std\'s array shape {std.shape}')

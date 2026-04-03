@@ -192,9 +192,9 @@ class MyGenerator(nn.Module):
         #Sequential model
         self.layers = nn.Sequential(*layers)
         
-    def forward(self, x, z):
-        x, z = x.view(x.size(0), -1), z.view(z.size(0), -1).float()
-        v = torch.cat((x, z), 1) # v: [trajectory, noise] concatenated vector
+    def forward(self, c, z):
+        c, z = c.view(c.size(0), -1), z.view(z.size(0), -1).float()
+        v = torch.cat((c, z), 1) # v: [trajectory, noise] concatenated vector
         y_ = self.layers(v)
         return y_    
 
@@ -330,10 +330,10 @@ class RnnGenerator(MyGenerator):
         self.dense2 = nn.Linear(input_dense1, 1)  
         
         
-    def forward(self, x, z):
+    def forward(self, c, z):
         #x, z = x.view(x.size(0), -1), z.view(z.size(0), -1).float()
-        x = x.unsqueeze(-1)
-        h_out, _ = self.sequential_model(x)
+        c = c.unsqueeze(-1)
+        h_out, _ = self.sequential_model(c)
         
         c = h_out[:, -1, :] #takes the condition representation of the last hidden state
         combined = torch.cat((z, c), dim=1) # v: [trajectory, noise] concatenated vector
