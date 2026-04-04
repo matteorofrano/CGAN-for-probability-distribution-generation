@@ -265,7 +265,7 @@ class MyCGAN():
         else:
             predictions = torch.cat(predictions_list, dim=0).numpy()
             
-        
+        self.G.train()
         return conditions, predictions
     
 

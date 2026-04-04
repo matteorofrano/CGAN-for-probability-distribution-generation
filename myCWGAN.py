@@ -1,6 +1,7 @@
 import torch
 import time
 import json
+import copy
 import numpy as np
 from myCGAN import MyCGAN
 from torch.utils.data import DataLoader
@@ -155,15 +156,15 @@ class MyCWGAN(MyCGAN):
             bool: True if training should stop
         """
     
-        if current_w_distance < (self.best_w_distance - self.early_stopping_min_delta):
+        if current_w_distance > 0 and current_w_distance < (self.best_w_distance - self.early_stopping_min_delta):
             # Significant improvement found
             self.best_w_distance = current_w_distance
             self.patience_counter = 0
             
             # Save best model states
-            self.best_generator_state = self.G.state_dict().copy() if self.G else None
-            self.best_critic_state = self.D.state_dict().copy() if self.D else None
-            
+            self.best_generator_state = copy.deepcopy(self.G.state_dict()) if self.G else None
+            self.best_critic_state    = copy.deepcopy(self.D.state_dict()) if self.D else None
+
             print(f"  → New best W-distance: {current_w_distance:.4f}")
             return False
         else:
