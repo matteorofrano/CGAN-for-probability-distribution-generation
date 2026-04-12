@@ -5,6 +5,17 @@ import torch.nn as nn
 import torch
 import os
 
+def xavier_init_weights(m):
+    """
+    Apply Xavier (Glorot) initialization to linear layers
+    
+    Xavier initialization sets weights with variance scaled by fan_in and fan_out,
+    which helps maintain gradient magnitudes across layers.
+    """
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0.0)
 
 class MyDiscriminator(nn.Module):
     """
@@ -48,8 +59,9 @@ class MyDiscriminator(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
+        # Apply Xavier initialization
+        self.apply(xavier_init_weights)
 
-    
     def forward(self, x, c):        
         x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
         v = torch.cat((x, c), 1) # v: [input, condition] concatenated vector
@@ -191,7 +203,10 @@ class MyGenerator(nn.Module):
 
         #Sequential model
         self.layers = nn.Sequential(*layers)
-        
+
+        # Apply Xavier initialization
+        self.apply(xavier_init_weights)
+
     def forward(self, c, z):
         c, z = c.view(c.size(0), -1), z.view(z.size(0), -1).float()
         v = torch.cat((c, z), 1) # v: [trajectory, noise] concatenated vector
@@ -327,7 +342,12 @@ class RnnGenerator(MyGenerator):
         
         input_dense1 = latent_size+hidden_dim
         self.dense1 = nn.Linear(input_dense1, input_dense1)
-        self.dense2 = nn.Linear(input_dense1, 1)  
+        self.dense2 = nn.Linear(input_dense1, 1) 
+
+        # Apply Xavier initialization to dense layers
+        # RNN layers use orthogonal initialization by default which is also good
+        self.dense1.apply(xavier_init_weights)
+        self.dense2.apply(xavier_init_weights) 
         
         
     def forward(self, c, z):
@@ -401,6 +421,9 @@ class RnnDiscriminator(MyDiscriminator):
                 raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
             
         self.dense = nn.Linear(hidden_dim, output_dim)
+
+        # Apply Xavier initialization to dense layer
+        self.dense.apply(xavier_init_weights)
         
     def forward(self, x, c):        
         #x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()

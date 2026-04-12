@@ -2,6 +2,6 @@
   "max_epoch": 100,
   "batch_size": 32,
   "n_critic": 5,
-  "z_dim": 32,
-  "model_name": "forgan_v3"
+  "z_dim": 24,
+  "model_name": "forwgan_debug"
 }

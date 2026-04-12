@@ -589,7 +589,7 @@ class DataSimulator():
         # analytical parameters of the step ahead distribution
         XT = P if P is not None else self.X_T
         delta_t = n_steps_ahead * self.dt
-        mean = XT - ((self.mu - 0.5 * self.sigma**2) * delta_t)
+        mean = XT + ((self.mu - 0.5 * self.sigma**2) * delta_t)
         std = self.sigma * np.sqrt(delta_t)
         self.means = mean
         self.stds = std

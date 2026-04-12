@@ -156,7 +156,7 @@ class MyCWGAN(MyCGAN):
             bool: True if training should stop
         """
     
-        if current_w_distance > 0 and current_w_distance < (self.best_w_distance - self.early_stopping_min_delta):
+        if abs(current_w_distance) < (abs(self.best_w_distance) - self.early_stopping_min_delta):
             # Significant improvement found
             self.best_w_distance = current_w_distance
             self.patience_counter = 0
@@ -279,8 +279,8 @@ class MyCWGAN(MyCGAN):
         self.D.to(self.DEVICE)
 
         data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True, drop_last=True)
-        C_opt = torch.optim.Adam(self.D.parameters(), lr=0.0001, betas=(0.5, 0.999))
-        G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0001, betas=(0.5, 0.999))
+        C_opt = torch.optim.Adam(self.D.parameters(), lr=0.0001, betas=(0.0, 0.9))
+        G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0001, betas=(0.0, 0.9))
         
         df = None
         step = 1
