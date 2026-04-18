@@ -358,6 +358,47 @@
       \field{pages}{453\bibrangedash 476}
       \range{pages}{24}
     \endentry
+    \entry{forgan:fin_gan}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=2c15a14408d28cc77c74772b68cd747e}{%
+           family={Vuletić},
+           familyi={V\bibinitperiod},
+           given={Milena},
+           giveni={M\bibinitperiod}}}%
+        {{hash=4b93daa9942488a843911c016b64b55e}{%
+           family={Prenzel},
+           familyi={P\bibinitperiod},
+           given={Felix},
+           giveni={F\bibinitperiod}}}%
+        {{hash=ab549b88c2d364be987b53cf82c60944}{%
+           family={Cucuringu},
+           familyi={C\bibinitperiod},
+           given={Mihai},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Taylor \& Francis}%
+      }
+      \strng{namehash}{dc0e6cceedb9503f20aefd642487d159}
+      \strng{fullhash}{dc0e6cceedb9503f20aefd642487d159}
+      \strng{fullhashraw}{dc0e6cceedb9503f20aefd642487d159}
+      \strng{bibnamehash}{dc0e6cceedb9503f20aefd642487d159}
+      \strng{authorbibnamehash}{dc0e6cceedb9503f20aefd642487d159}
+      \strng{authornamehash}{dc0e6cceedb9503f20aefd642487d159}
+      \strng{authorfullhash}{dc0e6cceedb9503f20aefd642487d159}
+      \strng{authorfullhashraw}{dc0e6cceedb9503f20aefd642487d159}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Quantitative Finance}
+      \field{number}{2}
+      \field{title}{Fin-gan: Forecasting and classifying financial time series via generative adversarial networks}
+      \field{volume}{24}
+      \field{year}{2024}
+      \field{pages}{175\bibrangedash 199}
+      \range{pages}{25}
+    \endentry
   \enddatalist
 \endrefsection
 \endinput

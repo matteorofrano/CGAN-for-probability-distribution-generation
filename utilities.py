@@ -56,12 +56,21 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None
 
     if preprocess:       
         if preprocess == 'standardization':
-            X_mean = X_tensor.mean(dim=0)
-            X_std = X_tensor.std(dim=0) + eps
-
-            #standardization
-            X_tensor = (X_tensor - X_mean) / X_std
-            C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
+            # Row-wise standardization 
+            C_mean = C_tensor.mean(dim=1, keepdim=True)
+            C_std = C_tensor.std(dim=1, keepdim=True) + eps
+            C_tensor = (C_tensor - C_mean) / C_std
+            
+            print(f"X tensor shape last axis {X_tensor.shape[1]}")
+            if X_tensor.shape[1] == 1:
+                # Use C_tensor statistics for standardization
+                X_mean = C_mean 
+                X_std = C_std    
+                X_tensor = (X_tensor - X_mean) / X_std
+            else:
+                X_mean = X_tensor.mean(dim=1, keepdim=True)
+                X_std = X_tensor.std(dim=1, keepdim=True) + eps
+                X_tensor = (X_tensor - X_mean) / X_std
         
         elif preprocess == 'log':
             X_tensor = torch.log(X_tensor + eps) # only target if probabilities
@@ -752,9 +761,14 @@ class DataSimulator():
 
     def load_binary_file(self, file_name:str):
 
+        if file_name.endswith('.bin'):
+            file_path = file_name
+        else:
+            file_path = file_name + '.bin'
+
         paths = []
         pdfs = []
-        with open(file_name, 'rb') as f:
+        with open(file_path, 'rb') as f:
             
             # read dtype headers
             n = struct.unpack('<I', f.read(4))[0] # how many bytes to read next
@@ -868,7 +882,7 @@ if __name__ == '__main__':
     # data simulation 
     X0_range = (0.0,1.0)
     mu_range = (0.0, 0.0)
-    sigma_range = (0.001, 1.0)
+    sigma_range = (0.1, 1.0)
     T = 1.0        # Time horizon (1 year)
     N = 3        # Number of time steps
     J = 2        # Number of paths to simulate
@@ -884,6 +898,6 @@ if __name__ == '__main__':
     print(sim.paths)
     print(sim.pdf)
 
-    file_paths, file_pdf = sim.load_binary_file('data/inputs/demo.bin')
+    file_paths, file_pdf = sim.load_binary_file('data/inputs/demo')
     print(file_paths)
     print(file_pdf)

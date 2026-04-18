@@ -35,7 +35,7 @@ class MyCGAN():
 
         #device specific
         self.MODEL_NAME = name
-        self.DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # generator architecture
     def set_generator(self, condition_size=100, output_dim=2, 

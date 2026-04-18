@@ -17,5 +17,7 @@
 \contentsline {subsection}{\numberline {2.2.2}Conditional Wasserstein GAN results}{20}{subsection.2.2.2}%
 \contentsline {section}{\numberline {2.3}Possible improvements}{23}{section.2.3}%
 \contentsline {chapter}{\numberline {3}ForGAN architecture}{24}{chapter.3}%
-\contentsline {subsection}{\numberline {3.0.1}ForGAN results}{25}{subsection.3.0.1}%
-\contentsline {subsection}{\numberline {3.0.2}ForWGAN results}{27}{subsection.3.0.2}%
+\contentsline {subsection}{\numberline {3.0.1}ForGAN simplified task}{25}{subsection.3.0.1}%
+\contentsline {subsection}{\numberline {3.0.2}ForGAN results}{27}{subsection.3.0.2}%
+\contentsline {subsection}{\numberline {3.0.3}ForWGAN results}{29}{subsection.3.0.3}%
+\contentsline {subsection}{\numberline {3.0.4}Improvements}{31}{subsection.3.0.4}%

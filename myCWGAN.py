@@ -244,7 +244,7 @@ class MyCWGAN(MyCGAN):
 
 
     def train(self, data: TensorDataset, save_history: bool = False,
-               distance_metric:str = 'js_divergence', early_stopping_waiting: int = 0):
+               distance_metric:str = 'js_divergence', early_stopping_waiting: int = 10):
         """
         Override training method with Wasserstein loss and gradient penalty
 

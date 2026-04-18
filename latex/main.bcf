@@ -2389,6 +2389,7 @@
     <bcf:citekey order="11" intorder="1">background:md_cgan</bcf:citekey>
     <bcf:citekey order="12" intorder="1">forgan:freedman_bins</bcf:citekey>
     <bcf:citekey order="13" intorder="1">forgan:freedman_bins</bcf:citekey>
+    <bcf:citekey order="14" intorder="1">forgan:fin_gan</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">
