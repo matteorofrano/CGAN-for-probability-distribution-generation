@@ -866,12 +866,181 @@ class DataSimulator():
         plt.ylabel("frequency")
         plt.show()
 
-
-
-
-
-
-
+class BinaryDataset(torch.utils.data.Dataset):
+    """
+    A memory-efficient, random-access PyTorch Dataset backed by a DataSimulator
+    binary file.  Designed for training ForGAN on datasets that exceed available RAM.
+ 
+    How random access works
+    -----------------------
+    Every record in the binary file has an identical byte size (fixed N and n_bins),
+    so the byte offset of record i is:
+ 
+        offset(i) = header_end + i * record_size
+ 
+    This gives O(1) seek-and-read per sample, exactly like a numpy memmap.
+ 
+    DataLoader worker safety
+    ------------------------
+    File handles are opened lazily inside each worker process via ``_get_fh()``.
+    The handle is deliberately excluded from pickling (``__getstate__``) so that
+    each spawned/forked worker starts with ``_fh = None`` and opens its own handle
+    on first access — no shared-descriptor races.
+ 
+    Item format
+    -----------
+    ``__getitem__`` returns ``(target, condition)`` to match the TensorDataset
+    convention produced by ``prepare_data(targets, paths)``:
+ 
+        target    – path[-1:]  shape (1,)   the next-step log-price X_T
+        condition – path[:-1]  shape (N,)   the observed path history
+ 
+    Batch helpers
+    -------------
+    ``load_subset(indices)``      → TensorDataset  (for fold scoring in tuner)
+    ``load_subset_pdfs(indices)`` → np.ndarray      (analytical PDFs from file,
+                                                      for fold JS comparison)
+    """
+ 
+    def __init__(self, file_path: str):
+        if not file_path.endswith('.bin'):
+            file_path = file_path + '.bin'
+        self.file_path = file_path
+ 
+        # ── parse binary header ───────────────────────────────────────────
+        with open(self.file_path, 'rb') as f:
+            n = struct.unpack('<I', f.read(4))[0]
+            self.dtype_paths = np.dtype(f.read(n).decode('utf-8'))
+            n = struct.unpack('<I', f.read(4))[0]
+            self.dtype_pdf   = np.dtype(f.read(n).decode('utf-8'))
+            self._header_end = f.tell()
+ 
+            # Read the first record header to discover fixed path / pdf lengths
+            rec_hdr = f.read(8)
+            if len(rec_hdr) < 8:
+                raise ValueError(f"Binary file '{file_path}' contains no data records.")
+            self._len_path, self._len_pdf = struct.unpack('<II', rec_hdr)
+ 
+        # ── fixed record layout ───────────────────────────────────────────
+        # [4 B len_path][4 B len_pdf][path bytes][pdf bytes]
+        self._path_nbytes   = self._len_path * self.dtype_paths.itemsize
+        self._pdf_nbytes    = self._len_pdf  * self.dtype_pdf.itemsize
+        self._record_size   = 8 + self._path_nbytes + self._pdf_nbytes
+ 
+        # ── count records from file size ──────────────────────────────────
+        file_size = os.path.getsize(self.file_path)
+        data_size = file_size - self._header_end
+        if data_size % self._record_size != 0:
+            raise ValueError(
+                f"File size is inconsistent with the computed record size "
+                f"({self._record_size} bytes). The file may be corrupted or truncated."
+            )
+        self._n_records = data_size // self._record_size
+ 
+        # ── lazy per-worker file handle (never pickled) ───────────────────
+        self._fh = None
+ 
+    # ── pickling support for DataLoader multiprocessing ──────────────────────
+ 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['_fh'] = None      # exclude file handle — each worker opens its own
+        return state
+ 
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._fh = None
+ 
+    def _get_fh(self):
+        """Return an open file handle, creating one for this worker if needed."""
+        if self._fh is None or self._fh.closed:
+            self._fh = open(self.file_path, 'rb')
+        return self._fh
+ 
+    def __del__(self):
+        if self._fh is not None and not self._fh.closed:
+            self._fh.close()
+ 
+    # ── Dataset protocol ─────────────────────────────────────────────────────
+ 
+    def __len__(self) -> int:
+        return self._n_records
+ 
+    def __getitem__(self, idx: int):
+        """
+        Returns (target, condition) for sample ``idx``:
+            target    – torch.float32 tensor shape (1,)   = path[-1]  (X_T)
+            condition – torch.float32 tensor shape (N,)   = path[:-1] (history)
+ 
+        The PDF stored in the file is NOT returned here; it is only used by
+        ``load_subset_pdfs`` for evaluation inside the tuner.
+        """
+        if idx < 0 or idx >= self._n_records:
+            raise IndexError(f"Index {idx} out of range [0, {self._n_records}).")
+ 
+        # Byte offset: skip record-header (8 bytes) to reach path data directly
+        offset = self._header_end + idx * self._record_size + 8
+        fh = self._get_fh()
+        fh.seek(offset)
+ 
+        path = np.frombuffer(fh.read(self._path_nbytes), dtype=self.dtype_paths).astype(np.float32)
+        # PDF bytes are skipped — not needed for per-sample training
+ 
+        # Convention: target = last step, condition = preceding history
+        return (
+            torch.tensor(path[-1:], dtype=torch.float32),   # (1,)
+            torch.tensor(path[:-1], dtype=torch.float32),   # (N,)
+        )
+ 
+    # ── Batch helpers ─────────────────────────────────────────────────────────
+ 
+    def _sorted_read(self, indices: np.ndarray, load_pdf: bool = True, load_path: bool = True):
+        """
+        Internal helper: read path and/or pdf bytes for a set of indices.
+        Reads are issued in ascending file-offset order for sequential I/O,
+        then results are placed back into their original output positions.
+        """
+        n = len(indices)
+        paths = np.empty((n, self._len_path), dtype=np.float32) if load_path else None
+        pdfs  = np.empty((n, self._len_pdf),  dtype=np.float32) if load_pdf  else None
+ 
+        sorted_pairs = sorted(enumerate(indices), key=lambda x: x[1])
+        with open(self.file_path, 'rb') as f:
+            for out_i, file_idx in sorted_pairs:
+                # +8 to skip the per-record [len_path, len_pdf] header
+                f.seek(self._header_end + file_idx * self._record_size + 8)
+                if load_path:
+                    paths[out_i] = np.frombuffer(f.read(self._path_nbytes), dtype=self.dtype_paths)
+                else:
+                    f.seek(self._path_nbytes, 1)   # skip path bytes (seek relative to current pos)
+                if load_pdf:
+                    pdfs[out_i] = np.frombuffer(f.read(self._pdf_nbytes), dtype=self.dtype_pdf)
+        return paths, pdfs
+ 
+    def load_subset(self, indices: np.ndarray) -> TensorDataset:
+        """
+        Load a subset of records as a TensorDataset in (target, condition) format.
+        Used by the tuner to materialise a validation fold for ``model.generate()``.
+ 
+        Memory cost: ``len(indices) × (1 + N) × 4`` bytes  (≈ 9 MB for 100 K rows, N=22)
+        """
+        paths, _ = self._sorted_read(indices, load_pdf=False, load_path=True)
+        targets    = torch.tensor(paths[:, -1:], dtype=torch.float32)   # (n, 1)
+        conditions = torch.tensor(paths[:, :-1], dtype=torch.float32)   # (n, N)
+        return TensorDataset(targets, conditions)
+ 
+    def load_subset_pdfs(self, indices: np.ndarray) -> np.ndarray:
+        """
+        Load only the analytical PDF vectors for a subset of indices.
+        Used by ``BinaryGANHyperparameterTuner`` to retrieve per-fold ground-truth
+        distributions without recomputing them from ``sim.mu`` / ``sim.sigma``.
+ 
+        Returns
+        -------
+        np.ndarray of shape (len(indices), n_bins), dtype float32
+        """
+        _, pdfs = self._sorted_read(indices, load_pdf=True, load_path=False)
+        return pdfs
 
 
 

@@ -21,7 +21,8 @@ class MyCWGAN(MyCGAN):
 
     def __init__(self, max_epoch: int = 100, batch_size: int = 32, n_critic: int = 5,
                  early_stopping_patience: int = 10, early_stopping_min_delta: float = 0.001,
-                 z_noise_dim: int = 252, lambda_gp: float = 10.0, name: str = 'WassersteinConditionalGAN'):
+                 z_noise_dim: int = 252, lambda_gp: float = 10.0,
+                 lr_g: float = 5e-4, lr_d: float = 5e-4, name: str = 'WassersteinConditionalGAN'):
         """
         Initialize WCGAN by calling parent constructor but with modified defaults
         
@@ -42,6 +43,8 @@ class MyCWGAN(MyCGAN):
             n_critic=n_critic,
             z_noise_dim=z_noise_dim,
             loss_fn=None,
+            lr_g=lr_g,
+            lr_d=lr_d,
             name=name 
         )
 
@@ -267,7 +270,7 @@ class MyCWGAN(MyCGAN):
         if self.D is None or self.G is None:
             raise Exception("Critic or Generator is not defined. Use set_critic/set_discriminator or set_generator")
         
-        if not isinstance(data, TensorDataset):
+        if not isinstance(data, torch.utils.data.Dataset):
             raise Exception(f"Invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
         
         if early_stopping_waiting<0:
@@ -279,8 +282,8 @@ class MyCWGAN(MyCGAN):
         self.D.to(self.DEVICE)
 
         data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True, drop_last=True)
-        C_opt = torch.optim.Adam(self.D.parameters(), lr=0.0001, betas=(0.0, 0.9))
-        G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0001, betas=(0.0, 0.9))
+        C_opt = torch.optim.Adam(self.D.parameters(), lr=self.lr_d, betas=(0.0, 0.9))
+        G_opt = torch.optim.Adam(self.G.parameters(), lr=self.lr_g, betas=(0.0, 0.9))
         
         df = None
         step = 1

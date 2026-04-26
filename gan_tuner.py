@@ -275,7 +275,7 @@ class GANHyperparameterTuner:
             model = self._build(params)
             try:
                 model.train(train_ds)                   
-                score = _score(model, val_ds, self._fold_pdfs[k], self.n_bins)
+                score = _score(model, val_ds, self._fold_pdfs[k], bins=None)
             except Exception as exc:
                 warnings.warn(f"Trial {trial.number} fold {k} failed: {exc}")
                 score = float("inf")
@@ -391,8 +391,214 @@ def validate_and_tune(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 5. Example
+# 6. Binary-file tuner (for million-row datasets)
 # ──────────────────────────────────────────────────────────────────────────────
+
+class BinaryGANHyperparameterTuner(GANHyperparameterTuner):
+    """
+    Optuna-driven k-fold hyperparameter search that streams training data directly
+    from a ``BinaryDataset`` binary file — no full-dataset RAM allocation needed.
+
+    Key differences from ``GANHyperparameterTuner``
+    ------------------------------------------------
+    * Accepts a ``BinaryDataset`` instead of a ``TensorDataset``.
+    * Does **not** require a ``DataSimulator`` instance.  Ground-truth PDFs are
+      read directly from the binary file (they were stored there at generation time)
+      via ``BinaryDataset.load_subset_pdfs()``.  This avoids the ``sim.mu`` /
+      ``sim.sigma`` shape-mismatch that arises when fold size ≠ n_simulations.
+    * Training inside each fold uses ``torch.utils.data.Subset`` — the DataLoader
+      streams individual records from disk, never loading the entire fold into RAM.
+    * The validation fold IS materialised into a ``TensorDataset`` (via
+      ``load_subset``), but each fold is much smaller than the full dataset.
+    * ``input_size`` and ``output_dim`` are fixed at 1 (point-forecast GAN: the
+      generator produces a single next-step log-price sample; 1000 runs with
+      different noise vectors approximate the distribution at scoring time).
+
+    Parameters
+    ----------
+    dataset        : BinaryDataset pointing at the .bin training file.
+    bins           : 1-D array of bin edges (shape n_bins+1) loaded from the
+                     DataSimulator config JSON (``sim.save_configuration``).
+    model_type     : 'cgan' or 'cwgan'.
+    condition_size : Length of the path-history condition vector.
+                     For N time-steps this equals N  (path has N+1 values;
+                     the last one is the target, so the condition is path[:-1]).
+    n_trials       : Optuna trials.
+    n_splits       : CV folds.
+    cv_epochs      : Epochs per fold (keep low; tune separately).
+    num_workers    : DataLoader worker processes for parallel binary I/O.
+                     Set > 0 on HPC nodes with fast NVMe storage.
+    study_name     : Optuna study name.
+    storage        : Optional persistent storage URL.
+    """
+
+    def __init__(
+        self,
+        dataset: "BinaryDataset",            # type: ignore[name-defined]
+        bins: np.ndarray|None = None,
+        model_type: Literal["cgan", "cwgan"] = "cwgan",
+        condition_size: int = 22,
+        n_trials: int = 50,
+        n_splits: int = 5,
+        cv_epochs: int = 100,
+        num_workers: int = 0,
+        study_name: str = "gan_tuning",
+        storage: Optional[str] = None,
+    ):
+        # ── validate ──────────────────────────────────────────────────────
+        if model_type not in ("cgan", "cwgan"):
+            raise ValueError(f"model_type must be 'cgan' or 'cwgan', got '{model_type}'.")
+        
+        # ── store settings (bypass parent __init__) ───────────────────────
+        self.dataset        = dataset
+        self.bins           = bins
+        self.model_type     = model_type
+        self.condition_size = condition_size
+        self.input_size     = 1          # target is a scalar next-step log-price
+        self.output_dim     = 1          # generator outputs a scalar sample
+        self.n_bins         = len(bins) - 1 if bins is not None else None
+        self.n_trials       = n_trials
+        self.n_splits       = n_splits
+        self.cv_epochs      = cv_epochs
+        self.num_workers    = num_workers
+        self.study_name     = study_name
+        self.storage        = storage
+
+        # ── build fold index arrays once (shared across all Optuna trials) ─
+        n   = len(dataset)
+        idx = np.random.default_rng(42).permutation(n)
+        fold_size = n // n_splits
+        self._folds: List[Tuple[np.ndarray, np.ndarray]] = []
+        for k in range(n_splits):
+            val_start = k * fold_size
+            val_end   = val_start + fold_size if k < n_splits - 1 else n
+            val_idx   = idx[val_start:val_end]
+            train_idx = np.concatenate([idx[:val_start], idx[val_end:]])
+            self._folds.append((train_idx, val_idx))
+
+        # ── pre-load per-fold ground-truth PDFs from the binary file ───────
+        # Reading PDFs directly from the file avoids recomputing them via
+        # sim.get_pdf() and eliminates the mu/sigma shape-mismatch issue.
+        logger.info("Pre-loading fold PDFs from binary file …")
+        self._fold_pdfs: List[np.ndarray] = []
+        for k, (_, val_idx) in enumerate(self._folds):
+            pdfs = dataset.load_subset_pdfs(val_idx)    # (n_val, n_bins)
+            self._fold_pdfs.append(pdfs)
+            logger.info(f"  Fold {k + 1}/{n_splits}: {len(val_idx):,} PDFs loaded "
+                        f"({pdfs.nbytes / 1e6:.1f} MB)")
+        logger.info("Fold PDFs ready.\n")
+
+    # ── objective (override) ──────────────────────────────────────────────────
+
+    def _objective(self, trial: optuna.Trial) -> float:
+        params     = self._suggest(trial)
+        fold_scores = []
+
+        for k, (train_idx, val_idx) in enumerate(self._folds):
+            # ── training: stream from disk, never load the full fold ───────
+            train_subset = torch.utils.data.Subset(self.dataset, train_idx.tolist())
+
+            # ── validation: materialise fold into RAM for generate() ───────
+            # n_val × (1 + condition_size) × 4 B ≈ 9 MB per fold at N=22, 100 K rows
+            val_ds = self.dataset.load_subset(val_idx)
+
+            model = self._build(params)
+            try:
+                # Pass num_workers into train via a temporary DataLoader override.
+                # MyCGAN/MyCWGAN.train() creates its own DataLoader internally,
+                # but we patch the DataLoader call to forward num_workers.
+                _orig_dl = torch.utils.data.DataLoader
+                def _patched_dl(dataset, **kwargs):
+                    kwargs.setdefault('num_workers', self.num_workers)
+                    kwargs.setdefault('pin_memory',  self.num_workers > 0)
+                    return _orig_dl(dataset, **kwargs)
+                torch.utils.data.DataLoader = _patched_dl   # type: ignore[assignment]
+                try:
+                    model.train(train_subset)
+                finally:
+                    torch.utils.data.DataLoader = _orig_dl  # always restore
+
+                score = _score(model, val_ds, self._fold_pdfs[k], self.bins)
+
+            except Exception as exc:
+                warnings.warn(f"Trial {trial.number} fold {k} failed: {exc}")
+                score = float("inf")
+
+            fold_scores.append(score)
+            trial.report(float(np.nanmean(fold_scores)), step=k)
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
+
+            del model
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        mean = float(np.nanmean(fold_scores))
+        trial.set_user_attr("fold_scores", fold_scores)
+        logger.info(
+            f"Trial {trial.number} | mean={mean:.5f} | "
+            f"folds={[round(s, 5) for s in fold_scores]}"
+        )
+        return mean
+
+
+def binary_validate_and_tune(
+    dataset: "BinaryDataset",            # type: ignore[name-defined]
+    bins: np.ndarray,
+    model_type: Literal["cgan", "cwgan"],
+    condition_size: int,
+    n_trials: int = 50,
+    n_splits: int = 5,
+    cv_epochs: int = 100,
+    num_workers: int = 0,
+    max_epoch_final: int = 200,
+    study_name: str = "gan_tuning",
+    storage: Optional[str] = None,
+) -> Tuple[MyCGAN, optuna.Study, ValidationReport]:
+    """
+    Validate a sample batch, tune hyperparameters via k-fold CV on a
+    ``BinaryDataset``, and return the best model ready for final training.
+
+    Parameters
+    ----------
+    dataset        : BinaryDataset built from a DataSimulator .bin file.
+    bins           : Bin edges (shape n_bins+1) from ``sim.save_configuration``.
+    model_type     : 'cgan' or 'cwgan'.
+    condition_size : Length of the path-history condition (= N, not N+1).
+    num_workers    : DataLoader workers for parallel binary I/O (0 = main thread).
+    max_epoch_final: Epochs for the final model returned by ``build_best_model``.
+
+    Example
+    -------
+    >>> from utilities import BinaryDataset
+    >>> import json, numpy as np
+    >>> dataset = BinaryDataset("data/training_1M")
+    >>> bins    = np.array(json.load(open("data/training_bins.json"))["bins"])
+    >>> best, study, report = binary_validate_and_tune(
+    ...     dataset, bins, "cwgan", condition_size=22,
+    ...     n_trials=30, n_splits=3, cv_epochs=20, num_workers=4,
+    ...     storage="sqlite:///cwgan_study.db",
+    ... )
+    >>> best.train(dataset)
+    >>> best.save_models("./models/best_cwgan")
+    """
+    # ── validate on a small in-memory sample ──────────────────────────────
+    sample_n  = min(2048, len(dataset))
+    sample_ds = dataset.load_subset(np.arange(sample_n))
+    report    = DataValidator(tensor_names=["target", "condition"]).validate(sample_ds)
+    print(report.summary())
+    report.raise_if_invalid()
+
+    tuner = BinaryGANHyperparameterTuner(
+        dataset=dataset, bins=bins, model_type=model_type,
+        condition_size=condition_size,
+        n_trials=n_trials, n_splits=n_splits, cv_epochs=cv_epochs,
+        num_workers=num_workers, study_name=study_name, storage=storage,
+    )
+    study      = tuner.tune()
+    best_model = tuner.build_best_model(study, max_epoch=max_epoch_final)
+    return best_model, study, report
+
 
 if __name__ == "__main__":
     from utilities import DataSimulator, prepare_data
@@ -400,7 +606,7 @@ if __name__ == "__main__":
     N_BINS = 100
     sim = DataSimulator(
         X0_range=(0.0, 0.0), mu_range=(0.0, 0.0),
-        sigma_range=(0.01, 0.8), T=round(22/252, 3),
+        sigma_range=(0.05, 1.0), T=round(22/252, 3),
         N=22, n_simulations=500000, seed=42,
     )
     trajectories = sim.get_paths()

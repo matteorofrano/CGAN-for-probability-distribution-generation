@@ -19,6 +19,7 @@ class MyCGAN():
     def __init__(self, max_epoch:int = 100, batch_size = 32,
                   n_critic:int = 1, z_noise_dim:int = 252,
                   loss_fn:Callable|None =  torch.nn.BCEWithLogitsLoss(),
+                  lr_g: float = 5e-4, lr_d: float = 5e-4,
                   name:str = 'ConditionalGAN'):
         """
         """
@@ -28,6 +29,8 @@ class MyCGAN():
         self.n_critic = n_critic
         self.z_dim = z_noise_dim
         self.loss_fn = loss_fn
+        self.lr_g = lr_g
+        self.lr_d = lr_d
 
         #architecture
         self.G=None
@@ -72,7 +75,7 @@ class MyCGAN():
         if self.D is None or self.G is None:
             raise Exception("Discriminator or Generator is not defined. Use set_discriminator or set_generator to initialize them")
         
-        if isinstance(data, TensorDataset)==False:
+        if not isinstance(data, torch.utils.data.Dataset):
             raise Exception(f"invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
         
         if self.loss_fn is None:
@@ -83,8 +86,8 @@ class MyCGAN():
         self.D.to(self.DEVICE)
         
         data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True, drop_last=True)
-        D_opt = torch.optim.Adam(self.D.parameters(), lr=0.0005, betas=(0.5, 0.999))
-        G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0005, betas=(0.5, 0.999))
+        D_opt = torch.optim.Adam(self.D.parameters(), lr=self.lr_d, betas=(0.5, 0.999))
+        G_opt = torch.optim.Adam(self.G.parameters(), lr=self.lr_g, betas=(0.5, 0.999))
 
         df = None
         step=0
@@ -204,7 +207,7 @@ class MyCGAN():
         if self.G is None:
             raise Exception("Generator is not defined. Train the model first or use set_generator to initialize it")
         
-        if isinstance(data, TensorDataset) == False:
+        if not isinstance(data, torch.utils.data.Dataset):
             raise Exception(f"Invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
         
         self.G.eval()
@@ -366,7 +369,9 @@ class MyCGAN():
             'batch_size': self.batch_size,
             'n_critic': self.n_critic,
             'z_dim': self.z_dim,
-            'model_name': self.MODEL_NAME
+            'model_name': self.MODEL_NAME,
+            'lr_g': self.lr_g,
+            'lr_d': self.lr_d,
         }
         config_path = os.path.join(save_dir, f"{self.MODEL_NAME}_config.json")
         with open(config_path, 'w') as f:
