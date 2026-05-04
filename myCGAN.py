@@ -65,9 +65,71 @@ class MyCGAN():
         else: 
             self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size,
                                       output_dim=output_dim, **discriminator_params)
+            
+    def _energy_score_loss(self, fake_samples_batch: list[torch.Tensor], x: torch.Tensor) -> torch.Tensor:
+        """
+        Sample-based Energy Score (= CRPS in 1D).
+        
+        ES(F, x) = E[|X - x|]  -  0.5 * E[|X - X'|]
+        
+        Args:
+            fake_samples_batch: list of M tensors of shape [B, 1], 
+                                each from a different noise draw z_m ~ N(0,I)
+            x: true next-step values, shape [B, 1]
+        
+        Returns:
+            scalar energy score (minimize this)
+        """
+        M = len(fake_samples_batch)
+        stacked = torch.stack(fake_samples_batch, dim=0)  # [M, B, 1]
+
+        # Term 1: E[|X - x|]  ->  mean over samples of |x̂_m - x|
+        term1 = torch.norm(stacked - x.unsqueeze(0), dim=-1).mean()  # [M, B] → scalar
+
+        # Term 2: 0.5 * E[|X - X'|]  ->  average pairwise distance between samples (diversity reward) 
+        # stacked: [M, B, 1] -> pairwise differences across the M dimension
+        # Loop over every unique pair (i, j) with i < j — avoids diagonal zeros
+        pairwise_sum = torch.tensor(0.0, device=stacked.device)
+        n_pairs = 0
+        for i in range(M):
+            for j in range(i + 1, M):
+                pairwise_sum += torch.mean(
+                    torch.norm(stacked[i] - stacked[j], dim=-1))  # [B] → scalar
+                n_pairs += 1
+
+        term2 = 0.5 * pairwise_sum / n_pairs
+
+        return term1 - term2  # minimize: push term1 down, push term2 up (spread)
+    
+    def _get_hybrid_loss(self, c:torch.Tensor, x:torch.Tensor,
+                         D_labels:torch.Tensor|None, current_batch_size:int,
+                         es_weight:float = 1.0):
+
+        if self.G is None or self.D is None:
+            raise ValueError("Generator or Discrimator are not initialized")
+        if self.loss_fn is None:
+            raise ValueError("Loss function has not been defined")
+        
+        M = 10  # number of noise draws per condition; 5-20 is sufficient
+        fake_samples_batch = [
+            self.G(c, torch.randn(current_batch_size, self.z_dim).to(self.DEVICE))
+            for _ in range(M)]
+        
+        fake_for_disc = fake_samples_batch[0]  # use one sample for adversarial loss
+        z_outputs = self.D(fake_for_disc, c)
+        
+        adv_loss = self.loss_fn(z_outputs, D_labels)
+        es_loss   = self._energy_score_loss(fake_samples_batch, x)
+        
+        G_loss = adv_loss + es_weight * es_loss 
+        del fake_samples_batch
+        return G_loss
 
 
-    def train(self, data: TensorDataset, save_history:bool = False, distance_metric:str = 'js_divergence'):
+    def train(self, data: TensorDataset, save_history:bool = False,
+               distance_metric:str = 'js_divergence', 
+               use_energy_score:bool = False,
+               es_weight: float = 1.0):
         """
         train process
         """
@@ -92,6 +154,7 @@ class MyCGAN():
         df = None
         step=0
         self.D.train()
+        self.G.train()
         start_time = time.time()
         for epoch in range(self.max_epoch):
             predictions_list = []
@@ -129,10 +192,15 @@ class MyCGAN():
                 if step % self.n_critic == 0:
                     # TRAIN GENERATOR
                     G_opt.zero_grad()
-                    z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                    z_outputs = self.D(self.G(c, z), c)
-                    G_loss = self.loss_fn(z_outputs, D_labels)
-                    
+                    if not use_energy_score:
+                        z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
+                        z_outputs = self.D(self.G(c, z), c)
+                        G_loss = self.loss_fn(z_outputs, D_labels)
+                    else:
+                        G_loss = self._get_hybrid_loss(c = c, x = x, D_labels = D_labels,
+                                                        current_batch_size = current_batch_size,
+                                                        es_weight=es_weight)
+
                     #backpropagation
                     G_loss.backward()
                     G_opt.step()
@@ -372,6 +440,7 @@ class MyCGAN():
             'model_name': self.MODEL_NAME,
             'lr_g': self.lr_g,
             'lr_d': self.lr_d,
+            'es_weight': getattr(self, 'es_weight', 1.0),
         }
         config_path = os.path.join(save_dir, f"{self.MODEL_NAME}_config.json")
         with open(config_path, 'w') as f:

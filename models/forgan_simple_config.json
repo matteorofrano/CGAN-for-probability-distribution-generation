@@ -3,5 +3,7 @@
   "batch_size": 32,
   "n_critic": 1,
   "z_dim": 32,
-  "model_name": "forgan_simple"
+  "model_name": "forgan_simple",
+  "lr_g": 0.0005,
+  "lr_d": 0.0005
 }

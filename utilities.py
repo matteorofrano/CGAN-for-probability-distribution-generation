@@ -327,16 +327,20 @@ def plot_learning_curve(df_csv:str):
 
 
 
-def plot_bin_dist(trues:np.ndarray|list,
-                   preds:np.ndarray|list,
-                   bins_values:np.ndarray|list,
-                   X_T: List[float]|None = None,
+def plot_bin_dist(trues: np.ndarray | list,
+                   preds: np.ndarray | list,
+                   bins_values: np.ndarray | list,
+                   X_T: List[float] | None = None,
                    means: np.ndarray | list | None = None,
                    stds: np.ndarray | list | None = None,
-                   ncols=3,
-                   zoom:bool = False):
+                   ncols: int | None = None,   
+                   zoom: bool = False):
 
     n = len(trues)
+
+    # Auto-compute grid dimensions if ncols not provided
+    if ncols is None:
+        ncols = math.ceil(math.sqrt(n))
     nrows = math.ceil(n / ncols)
 
     fig, axes = plt.subplots(

@@ -6,7 +6,7 @@ import numpy as np
 from myCGAN import MyCGAN
 from torch.utils.data import DataLoader
 from utilities import TensorDataset, DataSimulator, prepare_data, compute_js, pd
-
+from typing import Optional
 
 class MyCWGAN(MyCGAN):
     """
@@ -53,7 +53,7 @@ class MyCWGAN(MyCGAN):
         # Early stopping parameters
         self.early_stopping_patience = early_stopping_patience
         self.early_stopping_min_delta = early_stopping_min_delta
-        self.best_w_distance = float('inf') 
+        self.best_loss = torch.tensor(float('inf')) 
         self.patience_counter = 0
         self.best_generator_state = None
         self.best_critic_state = None
@@ -136,17 +136,17 @@ class MyCWGAN(MyCGAN):
         
         return gradient_penalty
     
-
-    def early_stop_check(self, current_w_distance, epoch):
+    def early_stop_check(self, current_loss: float, epoch: int,
+                     is_hybrid_loss: bool = False) -> bool:
         """
-        Determine if training should stop early based on Wasserstein distance
+        Determine if training should stop early based on metric loss
         
         Theory: The Wasserstein distance is a meaningful metric - lower means
         the generator's distribution is closer to the real data distribution.
         Unlike BCE loss in standard GANs, W-distance directly measures the
         "cost" of transforming one distribution into another.
         
-        When W-distance stops improving (plateaus), it suggests:
+        When loss metric stops improving (plateaus), it suggests:
         1. Generator has learned the distribution well
         2. Further training may lead to overfitting
         3. Computational resources are better spent elsewhere
@@ -158,46 +158,48 @@ class MyCWGAN(MyCGAN):
         Returns:
             bool: True if training should stop
         """
-    
-        if abs(current_w_distance) < (abs(self.best_w_distance) - self.early_stopping_min_delta):
-            # Significant improvement found
-            self.best_w_distance = current_w_distance
+
+        metric_name = "Hybrid score" if is_hybrid_loss else "W-distance"
+
+        # hybrid loss: lower is unconditionally better (can be negative)
+        # w-distance: closer to zero is better, hence abs()
+        if is_hybrid_loss:
+            improved = current_loss < self.best_loss - self.early_stopping_min_delta
+        else:
+            improved = abs(current_loss) < abs(self.best_loss - self.early_stopping_min_delta)
+
+        if improved:
+            self.best_loss = current_loss
             self.patience_counter = 0
-            
-            # Save best model states
             self.best_generator_state = copy.deepcopy(self.G.state_dict()) if self.G else None
             self.best_critic_state    = copy.deepcopy(self.D.state_dict()) if self.D else None
-
-            print(f"  → New best W-distance: {current_w_distance:.4f}")
+            print(f"  → New best {metric_name}: {current_loss:.4f}")
             return False
         else:
-            # No improvement
             self.patience_counter += 1
             print(f"  No improvement. Patience: {self.patience_counter}/{self.early_stopping_patience}")
-            
+
             if self.patience_counter >= self.early_stopping_patience:
                 print(f"\n Early stopping triggered at epoch {epoch}")
-                print(f" Best W-distance: {self.best_w_distance:.4f}")
-                
-                # Restore best model
+                print(f" Best {metric_name}: {self.best_loss:.4f}")
+
                 if self.best_generator_state:
                     if self.G:
                         self.G.load_state_dict(self.best_generator_state)
-                        print("   Restored best generator weights")
+                        print("  Restored best generator weights")
                     else:
-                        raise ValueError('Generator is None')      
-    
+                        raise ValueError('Generator is None')
+
                 if self.best_critic_state:
                     if self.D:
                         self.D.load_state_dict(self.best_critic_state)
-                        print("   Restored best critic weights")
+                        print("  Restored best critic weights")
                     else:
                         raise ValueError('Critic is None')
-                
+
                 return True
-            
+
             return False
-        
 
     def compute_epoch_wasserstein_distance(self, data_loader):
         """
@@ -244,10 +246,78 @@ class MyCWGAN(MyCGAN):
         self.G.train()
         
         return total_w_dist / num_batches if num_batches > 0 else float('inf')
+    
+    def compute_epoch_hybrid_loss(self, data_loader, es_weight: float = 1.0) -> float:
+        """
+        Compute average hybrid loss (Wasserstein + Energy Score) over the dataset.
+        Mirrors compute_epoch_wasserstein_distance — used for early stopping
+        when use_energy_score=True.
+        """
+        if self.D is None or self.G is None:
+            raise ValueError('Generator and Critic are not initialized.')
 
+        self.D.eval()
+        self.G.eval()
+
+        total_loss = 0.0
+        num_batches = 0
+
+        with torch.no_grad():
+            for output, trajectory in data_loader:
+                x = output.to(self.DEVICE)
+                c = trajectory.to(self.DEVICE)
+                current_batch_size = x.size(0)
+
+                # M samples from the generator — same M as used during training
+                fake_samples_batch = [
+                    self.G(c, torch.randn(current_batch_size, self.z_dim).to(self.DEVICE))
+                    for _ in range(10)
+                ]
+
+                wasserstein_component = -self.D(fake_samples_batch[0], c).mean().item()
+                es_component = self._energy_score_loss(fake_samples_batch, x).item()
+
+                total_loss += wasserstein_component + es_weight * es_component
+                num_batches += 1
+
+        self.D.train()
+        self.G.train()
+
+        return total_loss / num_batches if num_batches > 0 else float('inf')
+
+    def _get_hybrid_loss(self, c: torch.Tensor, x: torch.Tensor,
+                         D_labels: torch.Tensor|None, current_batch_size: int,
+                         es_weight: float = 1.0) -> torch.Tensor:
+        """
+        Override parent's _get_hybrid_loss for the Wasserstein setting.
+
+        Wasserstein generator loss is -E[C(fake)] (no labels, unbounded critic scores).
+        Energy score is inherited unchanged from MyCGAN._energy_score_loss.
+
+        Note: D_labels are not needed here — that argument exists only in the
+        BCE parent version and is intentionally dropped in this override.
+        """
+        if self.G is None or self.D is None:
+            raise ValueError("Generator or Discrimator are not initialized")
+        
+        fake_samples_batch = [
+            self.G(c, torch.randn(current_batch_size, self.z_dim).to(self.DEVICE))
+            for _ in range(10)]
+
+        # Wasserstein generator loss: maximize critic score on fakes → minimize its negative
+        wasserstein_loss = -self.D(fake_samples_batch[0], c).mean()
+
+        # Energy score: inherited from MyCGAN, identical for both GAN variants
+        es_loss = self._energy_score_loss(fake_samples_batch, x)
+        del fake_samples_batch
+
+        return wasserstein_loss + es_weight * es_loss
 
     def train(self, data: TensorDataset, save_history: bool = False,
-               distance_metric:str = 'js_divergence', early_stopping_waiting: int = 10):
+                distance_metric:str = 'js_divergence',
+                use_energy_score:bool = False, 
+                es_weight: float = 1.0,
+                early_stopping_waiting: int = 10):
         """
         Override training method with Wasserstein loss and gradient penalty
 
@@ -331,19 +401,22 @@ class MyCWGAN(MyCGAN):
                 if step % self.n_critic == 0:
                     G_opt.zero_grad()
 
-                    #generated samples
-                    z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
-                    fake_samples_g = self.G(c,z)
-                    critic_fake_g = self.D(fake_samples_g, c)
+                    if not use_energy_score:
+                        #generated samples
+                        z = torch.randn(current_batch_size, self.z_dim).to(self.DEVICE)
+                        fake_samples_g = self.G(c,z)
+                        critic_fake_g = self.D(fake_samples_g, c)
+                        G_loss = -critic_fake_g.mean()
+                        del fake_samples_g, critic_fake_g
+                    else:
+                        G_loss = self._get_hybrid_loss(c=c, x=x,
+                                                   current_batch_size=current_batch_size,
+                                                   es_weight=es_weight, D_labels=None)
+
 
                     #backpropagation -> generator minimize -E[C(fake)]
-                    G_loss = -critic_fake_g.mean()
                     G_loss.backward()
                     G_opt.step()
-
-                    # # clean up to prevent memory accumulation
-                    del fake_samples_g, critic_fake_g
-
 
                 # LOGGING
                 wasserstein_dist = critic_real_mean.item() - critic_fake_mean.item()
@@ -379,13 +452,16 @@ class MyCWGAN(MyCGAN):
             epoch_time = time.time() - epoch_start_time
             # -----EARLY STOP CHECK-----
             if epoch > early_stopping_waiting:
-                avg_w_distance = self.compute_epoch_wasserstein_distance(data_loader) 
+                if use_energy_score:
+                    epoch_metric = self.compute_epoch_hybrid_loss(data_loader, es_weight=es_weight)
+                else:
+                    epoch_metric = self.compute_epoch_wasserstein_distance(data_loader) 
                 print(f"\n Epoch {epoch} Summary:")
-                print(f"   Avg W-distance: {avg_w_distance:.4f}")
+                print(f"   Avg metric score: {epoch_metric:.4f}")
                 print(f"   Epoch time: {epoch_time:.2f}s")
                 
                 # Check early stopping
-                if self.early_stop_check(avg_w_distance, epoch):
+                if self.early_stop_check(epoch_metric, epoch, is_hybrid_loss=use_energy_score):
                     print(f"\n Training stopped early after {epoch + 1} epochs")
                     break
             
