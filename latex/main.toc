@@ -21,3 +21,4 @@
 \contentsline {subsection}{\numberline {3.0.2}ForGAN results}{27}{subsection.3.0.2}%
 \contentsline {subsection}{\numberline {3.0.3}ForWGAN results}{29}{subsection.3.0.3}%
 \contentsline {subsection}{\numberline {3.0.4}Improvements}{31}{subsection.3.0.4}%
+\contentsline {chapter}{\numberline {4}Beyond adversarial loss function}{33}{chapter.4}%

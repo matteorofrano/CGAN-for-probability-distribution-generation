@@ -206,13 +206,13 @@ In order to visually assess the capabilities of the model,
 different samples have been drawn such that every sampling parameter is fixed except for the volatility $\sigma$.
 In particular, six different samples are shown below where
 the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
-$\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$. From the results can be notices that also this new architecture
+$\sigma = [0.3, 0.5, 0.7, 0.9]$. From the results can be notices that also this new architecture
 struggles to effectively capture the variance of the target distribution when the volatility parameter is high.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan_simple.png}
-    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.3, 0.5, 0.7, 0.9]$.}
     \label{forgan_simple_sample_sigma}
 \end{figure}
 
@@ -280,7 +280,7 @@ TV Distance & 0.3239 \\
 A visual inspection of different samples with various degrees of volatility is presented below
 In particular, six different samples are shown below where
 the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
-$\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.
+$\sigma = [0.3, 0.5, 0.7, 0.9]$.
 From the results we can see an important improvement with respect to the simple ForGAN architecture 
 in the same way as the CWGAN-GP model showed better results than the CGAN one,
 suggesting that the Wasserstein loss with gradient penalty helps in stabilizing the training process and improving the quality of the generated distributions.
@@ -288,7 +288,7 @@ suggesting that the Wasserstein loss with gradient penalty helps in stabilizing 
 \begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{Background/images/samples_forgan.png}
-    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}
+    \caption{Samples obtained using fixed $X_0$ and $\mu$ while varying $\sigma = [0.3, 0.5, 0.7, 0.9]$.}
     \label{forgan_sample_sigma}
 \end{figure}
 
@@ -312,13 +312,4 @@ Research indicates that mode collapse is often tied to the generator converging 
 Once $G$ finds a sample that receives a high score from $D$, it may continue to reproduce that sample; 
 if $D$ cannot identify this repetitive behavior (due to converging to its own local minima), 
 the gradients for $G$ vanish, and the model becomes stuck.\\
-
-The Fin-GAN paper \cite{forgan:fin_gan} identifies specific triggers and solutions for these performance issues:
-\begin{itemize}
-    \item Weight Initialisation: Using He initialisation led to mode collapse in 67\% of simulations for ForGAN; however, switching to Xavier initialisation significantly alleviated the problem.
-    \item Loss Function Regularization: Including standard supervised terms like Mean Squared Error (MSE) or Sharpe Ratio (SR) with high coefficients can actually induce mode collapse by encouraging the model to only output values close to the target.
-    \item The paper suggests that adding a Profit and Loss (PnL) term to the generator's loss function acts as an effective regularizer. This term shifts the generated distributions and prevents the model from collapsing into single-point estimates, ensuring a more robust probabilistic forecast.
-\end{itemize}
-
-Alternative model choices for production the conditional distribution are Variationsl Autoencoders (VAEs), Normalizing Flows (NFs), Diffusion models and DeepAR models.
 

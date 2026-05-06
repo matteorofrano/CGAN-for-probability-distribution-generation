@@ -399,6 +399,49 @@
       \field{pages}{175\bibrangedash 199}
       \range{pages}{25}
     \endentry
+    \entry{srforgan:srforgan}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=a1b163e4420a009c1d6b0076ce43dfd7}{%
+           family={Pacchiardi},
+           familyi={P\bibinitperiod},
+           given={Lorenzo},
+           giveni={L\bibinitperiod}}}%
+        {{hash=812e39cd0945724779725b741ee7c8cb}{%
+           family={Adewoyin},
+           familyi={A\bibinitperiod},
+           given={Rilwan\bibnamedelima A},
+           giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=1bfe3443b0b08e9a166b07fa7572baec}{%
+           family={Dueben},
+           familyi={D\bibinitperiod},
+           given={Peter},
+           giveni={P\bibinitperiod}}}%
+        {{hash=af8c2045f576cb84ce423817fc4bd740}{%
+           family={Dutta},
+           familyi={D\bibinitperiod},
+           given={Ritabrata},
+           giveni={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{fullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{fullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{bibnamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authorbibnamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authornamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authorfullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{authorfullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Machine Learning Research}
+      \field{number}{45}
+      \field{title}{Probabilistic forecasting with generative networks via scoring rule minimization}
+      \field{volume}{25}
+      \field{year}{2024}
+      \field{pages}{1\bibrangedash 64}
+      \range{pages}{64}
+    \endentry
   \enddatalist
 \endrefsection
 \endinput
