@@ -18,7 +18,8 @@ So the expected score is uniquely minimized when the forecast distribution equal
 it is theoretically guaranteed to converge to the right answer, not just some approximation like the 
 GAN objective that minimizes a divergence between distributions which has a similar guarantee in principle, but the GAN only minimizes a variational lower bound of that divergence using a finite-capacity critic, which breaks the guarantee in practice.\\
 
-The paper uses the Energy Score as its primary scoring rule. 
+\section{SRForGAN Architecture}
+The paper \cite{srforgan:srforgan} uses the Energy Score as its primary scoring rule. 
 For $\beta \in (0,2)$, with $X, X' \sim P^\phi$ independent draws:
 \begin{equation}
     \label{eq:energy_score}
@@ -58,7 +59,11 @@ $$\mathbb{E}_{X \sim P^\phi}[\|X - y\|] = \mathbb{E}_{z \sim \mathcal{N}}[\|h_\p
 The randomness now lives entirely in $z$, which is fixed before the forward pass. 
 The generator $h_\phi$ is deterministic and differentiable with respect to its weights. Automatic differentiation libraries can therefore compute $\nabla_\phi S_E$ exactly.
 The unbiased Monte Carlo estimator of the full gradient, as discussed in Appendix C of the paper \cite{srforgan:srforgan} is:
-$$\hat{S}_E^{(\beta)}(\{x_j\}_{j=1}^m, y) = \frac{2}{m}\sum_{j=1}^m \|x_j - y\|^\beta - \frac{1}{m(m-1)}\sum_{\substack{j,k=1 \\ k \neq j}}^m \|x_j - x_k\|^\beta$$
+\begin{equation}
+    \label{eq:energy_score_estimator}
+    \hat{S}_E^{(\beta)}(\{x_j\}_{j=1}^m, y) = \frac{2}{m}\sum_{j=1}^m \|x_j - y\|^\beta - \frac{1}{m(m-1)}\sum_{\substack{j,k=1 \\ k \neq j}}^m \|x_j - x_k\|^\beta
+\end{equation}
+
 where each $x_j = h_\phi(z_j, c)$ with $z_j$ drawn independently. The $\frac{1}{m(m-1)}$ denominator excludes diagonal terms and makes this an unbiased estimator. 
 Moreover, the paper proves that exchanging gradient and expectation is valid almost surely under mild conditions on the neural network architecture. This means that minimizing the empirical energy score via SGD gives unbiased gradient estimates of the true objective, so convergence results from standard SGD theory apply.
 
@@ -106,6 +111,120 @@ In particular, the generator loss using the hybrid approach is defined as:
 
 
 
+% ---------------------------------------------------------------
+% Algorithm 1 — Unbiased Energy Score Estimate
+% ---------------------------------------------------------------
+\begin{algorithm}[H]
+\caption{Unbiased Energy Score Estimate $\hat{S}_E$}
+\label{alg:energy_score}
+\begin{algorithmic}[1]
+\REQUIRE Generator $h_{\phi}$, condition $c \in \mathbb{R}^l$,
+         observation $y \in \mathbb{R}^d$,
+         exponent $\beta \in (0,2)$
+\STATE Draw $m$ independent noise vectors $\{z_j\}_{j=1}^m \sim \mathcal{N}(0, I)$
+\STATE Generate $m$ samples $\{x_j\}_{j=1}^m \subset \mathbb{R}^d$ where $x_j = h_{\phi}(z_j, c)$
+
+
+\STATE \textbf{// Term 1: } $\frac{2}{m}\sum_{j=1}^{m}\|x_j - y\|^{\beta}$
+\STATE $T_1 \leftarrow \dfrac{2}{m}\displaystyle\sum_{j=1}^{m}\|x_j - y\|^{\beta}$
+
+\STATE \textbf{// Term 2: }
+       $\frac{1}{m(m-1)}\sum_{j \neq k}\|x_j - x_k\|^{\beta}$
+\STATE $T_2 \leftarrow \dfrac{1}{m(m-1)}\displaystyle\sum_{\substack{j,k=1 \\ j \neq k}}^{m}\|x_j - x_k\|^{\beta}$
+
+\RETURN $\hat{S}_E \leftarrow T_1 - T_2$
+\end{algorithmic}
+\end{algorithm}
+
+It is important to note that the available code implementation of the scoring rule includes also the 
+kernel score, which is a generalization of the energy score. The kernel score is defined as:
+\begin{equation}
+    \label{eq:kernel_score_estimator}
+    \hat{S}_k(\{x_j\}_{j=1}^m, y) = 
+    \frac{1}{m(m-1)}\sum_{\substack{j,k=1 \\ k \neq j}}^m k(x_j, x_k) 
+    - \frac{2}{m}\sum_{j=1}^m k(x_j, y), 
+    \quad k(x,x') = \exp\!\left(-\frac{\|x - x'\|^2}{2\gamma^2}\right)
+\end{equation}
+where $\gamma$ is a bandwidth parameter. The kernel score is also strictly proper and can be used as an alternative to the energy score, but the paper focuses on the energy score for its simplicity and interpretability in terms of accuracy and spread.\\
+One of the major proposition arising from \cite{srforgan:srforgan} is that the sum of the energy score and the kernel score is also a strictly proper scoring rule, which they call the energy-kernel score. This allows for a flexible combination of both scores in the generator's loss function, potentially leveraging the strengths of each to further improve forecasting performance.
+The energy-kernel score is defined as:
+\begin{equation}
+    \label{eq:energy_kernel_score_estimator}
+    \hat{S}_{E+k}^{(\beta)}(\{x_j\}_{j=1}^m, y) = 
+    \hat{S}_E^{(\beta)}(\{x_j\}_{j=1}^m, y) 
+    + \hat{S}_k(\{x_j\}_{j=1}^m, y)
+\end{equation}
+where $\hat{S}_E^{(\beta)}$ is the energy score estimator from Algorithm \ref{alg:energy_score} and $\hat{S}_k$ is the kernel score estimator from Equation \ref{eq:kernel_score_estimator}.
+
+
+% ---------------------------------------------------------------
+% Algorithm 2 — MySRForGAN Training
+% ---------------------------------------------------------------
+\begin{algorithm}[H]
+\caption{\textsc{SRForGAN} Training via Energy Score Minimisation}
+\label{alg:srforgan_train}
+\begin{algorithmic}[1]
+\REQUIRE
+    Training set $\mathcal{D}_{\text{train}} = \{(y_{t+l},\, y_{t-k+1:t})\}_{t=k}^{T-l}$,
+    validation set $\mathcal{D}_{\text{val}}$ (optional),
+    generator $h_{\phi}$ with parameters $\phi$,
+    scoring rule SR $\in \{\text{energy}, \text{kernel}, \text{energy-kernel}\}$,
+    number of generator draws $m$,
+    learning rate $\eta$,
+    maximum epochs $E_{\max}$,
+    early-stopping patience $P$,
+    minimum improvement threshold $\delta_{\min}$
+\ENSURE Trained generator parameters $\phi^*$
+
+\STATE Initialise Adam optimiser with parameters $\phi$ and learning rate $\eta$
+\STATE $\ell^*_{\text{val}} \leftarrow +\infty$;\quad
+       $p \leftarrow 0$;\quad
+       $\phi^* \leftarrow \phi$
+
+\FOR{$e = 1, \ldots, E_{\max}$}
+
+    \STATE \textbf{// --- Training pass ---}
+    \STATE Shuffle $\mathcal{D}_{\text{train}}$ into mini-batches
+           $\mathcal{B}_1, \ldots, \mathcal{B}_{N_B}$ of size $B$
+    \STATE $\ell_{\text{train}} \leftarrow 0$
+
+    \FOR{each mini-batch $(Y, C) \in \mathcal{B}_1, \ldots, \mathcal{B}_{N_B}$}
+        \STATE $\hat{\mathcal{L}} \leftarrow
+               \textsc{SRLoss}(C,\, Y,\, h_{\phi},\, \text{SR},\, m)$
+               \hfill\textit{// Algorithm~\ref{alg:energy_score}}
+        \STATE $\phi \leftarrow \phi - \eta\,\nabla_{\phi}\,\hat{\mathcal{L}}$
+               \hfill\textit{// Adam update, no critic needed}
+        \STATE $\ell_{\text{train}} \leftarrow \ell_{\text{train}} + \hat{\mathcal{L}}$
+    \ENDFOR
+    \STATE $\ell_{\text{train}} \leftarrow \ell_{\text{train}} / N_B$
+
+    \STATE \textbf{// --- Validation pass (no gradient) ---}
+    \IF{$\mathcal{D}_{\text{val}}$ is provided}
+        \STATE $\ell_{\text{val}} \leftarrow \textsc{SRLoss}$ evaluated on
+               $\mathcal{D}_{\text{val}}$ with $\nabla$ disabled
+        \IF{$\ell_{\text{val}} < \ell^*_{\text{val}} - \delta_{\min}$}
+            \STATE $\ell^*_{\text{val}} \leftarrow \ell_{\text{val}}$;\quad
+                   $p \leftarrow 0$;\quad
+                   $\phi^* \leftarrow \phi$
+                   \hfill\textit{// save best checkpoint}
+        \ELSE
+            \STATE $p \leftarrow p + 1$
+            \IF{$p \geq P$}
+                \STATE \textbf{break}
+                       \hfill\textit{// early stopping}
+            \ENDIF
+        \ENDIF
+    \ENDIF
+
+\ENDFOR
+
+\RETURN $\phi^*$
+\end{algorithmic}
+\end{algorithm}
+
+
+
+
 
 % ── local colour definitions ─────────────────────────────────────────────────
 \definecolor{cganblue}{RGB}{30,100,180}
@@ -126,134 +245,58 @@ In particular, the generator loss using the hybrid approach is defined as:
   \hfill{\color{commentgray}\small$\triangleright$\;\textit{#1}}}
  
 % ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Shared Subroutine — Energy Score Loss}
+
  
-Both models inherit the same \texttt{\_energy\_score\_loss} method.
-Given $M$ generator samples $\{\hat{x}_m\}_{m=1}^{M}$ and a batch of
-true targets $\mathbf{x} \in \mathbb{R}^{B \times D}$, the unbiased
-sample-based Energy Score estimator
-(Pacchiardi et al.\ 2024, Appendix C.1.1) is:
- 
-\begin{equation}
-  \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{x}\right)
-  =
-  \underbrace{
-    \frac{1}{MB}\sum_{m=1}^{M}\sum_{b=1}^{B}
-    \|\hat{x}_m^{(b)} - \mathbf{x}^{(b)}\|_2
-  }_{\text{Term 1 --- accuracy}}
-  \;-\;
-  \underbrace{
-    \frac{1}{2\binom{M}{2}B}
-    \sum_{\substack{i=1\\j>i}}^{M}
-    \sum_{b=1}^{B}
-    \|\hat{x}_i^{(b)} - \hat{x}_j^{(b)}\|_2
-  }_{\text{Term 2 --- spread reward}}
-  \label{eq:es}
-\end{equation}
- 
-The upper-triangle restriction ($j > i$) excludes diagonal
-self-differences and yields an \emph{unbiased} estimator with
-$\binom{M}{2} = M(M-1)/2$ unique pairs.
- 
-\begin{algorithm}[H]
-\caption{\textsc{EnergyScoreLoss}$\!\left(
-  \{\hat{x}_m\}_{m=1}^{M},\;\mathbf{x}\right)$
-  --- shared by \texttt{MyCGAN} and \texttt{MyCWGAN}}
-\begin{algorithmic}[1]
-\REQUIRE $\{\hat{x}_m\}_{m=1}^{M}$: list of $M$ generator outputs,
-         each of shape $[B \times D]$
-\REQUIRE $\mathbf{x}$: batch of true targets, shape $[B \times D]$
-\ENSURE  Scalar Energy Score $\in [0,+\infty)$;
-         equals $0$ iff $P^{\phi} = P^{*}$
- 
-\LINECOMMENT{Stack all M samples into one tensor}
-\STATE $\mathbf{S} \leftarrow
-  \mathrm{Stack}(\hat{x}_1,\ldots,\hat{x}_M)$
-  \COMMENT{shape $[M \times B \times D]$}
- 
-\LINECOMMENT{Term 1: mean L2 distance from each sample to the truth}
-\STATE $T_1 \leftarrow
-  \dfrac{1}{M \cdot B}
-  \displaystyle\sum_{m=1}^{M}\sum_{b=1}^{B}
-  \bigl\|\mathbf{S}[m,b,:] - \mathbf{x}[b,:]\bigr\|_2$
- 
-\LINECOMMENT{Term 2: mean pairwise L2 distance, upper triangle only}
-\STATE $\mathcal{P} \leftarrow [\;]$
-\FOR{$i = 1$ \textbf{to} $M$}
-  \FOR{$j = i+1$ \textbf{to} $M$}
-    \STATE $d_{ij} \leftarrow
-      \dfrac{1}{B}\displaystyle\sum_{b=1}^{B}
-      \bigl\|\mathbf{S}[i,b,:] - \mathbf{S}[j,b,:]\bigr\|_2$
-    \STATE $\mathcal{P}.\mathrm{append}(d_{ij})$
-  \ENDFOR
-\ENDFOR
-\STATE $T_2 \leftarrow
-  \dfrac{0.5}{\binom{M}{2}}
-  \displaystyle\sum_{d\,\in\,\mathcal{P}} d$
-  \COMMENT{$\binom{M}{2}$ unique pairs, diagonal excluded}
- 
-\RETURN $T_1 - T_2$
-  \COMMENT{subtract spread reward to penalise collapse}
-\end{algorithmic}
-\end{algorithm}
- 
-\newpage
- 
-% ─────────────────────────────────────────────────────────────────────────────
-\subsection*{{\color{cganblue}Algorithm 1 ---
-  \texttt{MyCGAN} Hybrid Generator Update}}
- 
-The adversarial term uses Binary Cross-Entropy (BCE).
-The full hybrid generator loss for one mini-batch is:
+The hybrid models, which use both the adversarial losses (Binary Cross-Entropy and Wasserstein distance) and the energy score, inherit the same energy score method from \ref{alg:energy_score}.\\
+The hybrid Forgan uses as adversarial term the Binary Cross-Entropy loss and the
+ full hybrid generator loss for one mini-batch $B$ is:
  
 \begin{equation}
   \Loss_{G}^{\mathrm{CGAN}}
   =
   \underbrace{
-    -\frac{1}{B}\sum_{b=1}^{B}
-    \log D\!\left(\hat{x}_1^{(b)},\,c^{(b)}\right)
+    -\frac{1}{B} \sum_{b=1}^B \log D(G(z^{(b)}, c^{(b)}))
   }_{\text{BCE adversarial loss}}
   \;+\;
-  \lambda\;
+  \frac{\lambda}{B}\;
   \underbrace{
-    \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{x}\right)
-  }_{\text{Energy Score (Eq.\,\ref{eq:es})}}
+    \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
+  }_{\text{Energy Score (\ref{alg:energy_score})}}
   \label{eq:cgan_hybrid}
 \end{equation}
  
 \begin{algorithm}[H]
-\caption{{\color{cganblue}\texttt{MyCGAN}} --- hybrid generator update
+\caption{{\color{cganblue}\texttt{ForGAN}} --- hybrid generator update
   (called when $\mathrm{step} \bmod n_{\mathrm{critic}} = 0$)}
 \begin{algorithmic}[1]
 \REQUIRE Generator $G_{\phi}$, Discriminator $D_{\psi}$
-\REQUIRE Condition batch $\mathbf{c}$, true targets $\mathbf{x}$,
+\REQUIRE Condition batch $\mathbf{c}$, true targets $\mathbf{y}$,
          real labels $\mathbf{1}$, samples $M$,
          ES weight $\lambda$, noise dim $N_z$
 \ENSURE  Updated generator parameters $\phi$
- 
-\STATE $\mathrm{ZeroGrad}(\phi)$
- 
+
+
 \LINECOMMENT{Draw M independent noise vectors; generate M samples}
 \STATE $\mathrm{samples} \leftarrow [\;]$
 \FOR{$m = 1$ \textbf{to} $M$}
   \STATE $\mathbf{z}_m \sim \mathcal{N}(\mathbf{0},\,\mathbf{I}_{N_z})$
   \COMMENT{fresh draw each iteration}
-  \STATE $\hat{x}_m \leftarrow G_{\phi}(\mathbf{c},\,\mathbf{z}_m)$
+  \STATE $\hat{y}_m \leftarrow G_{\phi}(\mathbf{c},\,\mathbf{z}_m)$
   \COMMENT{shape $[B \times D]$}
-  \STATE $\mathrm{samples}.\mathrm{append}(\hat{x}_m)$
+  \STATE $\mathrm{samples}.\mathrm{append}(\hat{y}_m)$
 \ENDFOR
  
 \LINECOMMENT{Adversarial term: pass only the first sample through D}
-\STATE $\mathrm{logits}
+\STATE $\mathrm{probs}
   \leftarrow D_{\psi}\!\left(\mathrm{samples}[1],\,\mathbf{c}\right)$
 \STATE $\Loss_{\mathrm{adv}}
-  \leftarrow \mathrm{BCE}(\mathrm{logits},\;\mathbf{1})$
+  \leftarrow \mathrm{BCE}(\mathrm{probs},\;\mathbf{1})$
   \COMMENT{generator wants $D$ to output 1 on fakes}
  
 \LINECOMMENT{Energy Score term: all M samples contribute}
 \STATE $\Loss_{\mathrm{ES}}
   \leftarrow
-  \textsc{EnergyScoreLoss}(\mathrm{samples},\;\mathbf{x})$
+  \textsc{EnergyScoreLoss}(\mathrm{samples},\;\mathbf{y})$
  
 \LINECOMMENT{Combine, backpropagate once, update}
 \STATE $\Loss_{G}
@@ -264,58 +307,44 @@ The full hybrid generator loss for one mini-batch is:
 \RETURN $\Loss_{G}$
 \end{algorithmic}
 \end{algorithm}
- 
-\textbf{Note.}\;
-$\hat{x}_1 = \mathrm{samples}[1]$ contributes to \emph{both}
-$\Loss_{\mathrm{adv}}$ (through $D_\psi$) and
-$\Loss_{\mathrm{ES}}$ (as element $m=1$ inside
-\textsc{EnergyScoreLoss}).
-PyTorch accumulates both gradient contributions correctly in a single
-\texttt{backward()} call.
- 
-\newpage
- 
-% ─────────────────────────────────────────────────────────────────────────────
-\subsection*{{\color{wganred}Algorithm 2 ---
-  \texttt{MyCWGAN} Hybrid Generator Update}}
- 
+
+
 The adversarial term is the Wasserstein generator loss
-$-\mathbb{E}[C(\hat{x})]$; no labels are needed since the critic
+$-\mathbb{E}[D(G(z, c))]$ so in this case no labels are needed since the critic
 output is an unbounded real score.
  
 \begin{equation}
   \Loss_{G}^{\mathrm{CWGAN}}
   =
   \underbrace{
-    -\frac{1}{B}\sum_{b=1}^{B}
-    C\!\left(\hat{x}_1^{(b)},\,c^{(b)}\right)
-  }_{\text{Wasserstein generator loss}}
+    -\frac{1}{B} \sum_{i=1}^B D(G(z^{(b)}, c^{(b)}))}_{\text{Wasserstein generator loss}}
   \;+\;
-  \lambda\;
+  \frac{\lambda}{B}\;
   \underbrace{
-    \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{x}\right)
-  }_{\text{Energy Score (Eq.\,\ref{eq:es})}}
+    \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
+  }_{\text{Energy Score (\ref{alg:energy_score})}}
   \label{eq:cwgan_hybrid}
 \end{equation}
  
+
+
+
 \begin{algorithm}[H]
-\caption{{\color{wganred}\texttt{MyCWGAN}} --- hybrid generator update
-  (called when $\mathrm{step} \bmod n_{\mathrm{critic}} = 0$)}
+\caption{{\color{wganred}\texttt{ForWGAN}} --- hybrid generator update}
 \begin{algorithmic}[1]
 \REQUIRE Generator $G_{\phi}$, Critic $C_{\psi}$
-\REQUIRE Condition batch $\mathbf{c}$, true targets $\mathbf{x}$,
+\REQUIRE Condition batch $\mathbf{c}$, true targets $\mathbf{y}$,
          samples $M$, ES weight $\lambda$, noise dim $N_z$
 \ENSURE  Updated generator parameters $\phi$
  
-\STATE $\mathrm{ZeroGrad}(\phi)$
  
 \LINECOMMENT{Draw M independent noise vectors; generate M samples}
 \STATE $\mathrm{samples} \leftarrow [\;]$
 \FOR{$m = 1$ \textbf{to} $M$}
   \STATE $\mathbf{z}_m \sim \mathcal{N}(\mathbf{0},\,\mathbf{I}_{N_z})$
-  \STATE $\hat{x}_m \leftarrow G_{\phi}(\mathbf{c},\,\mathbf{z}_m)$
+  \STATE $\hat{y}_m \leftarrow G_{\phi}(\mathbf{c},\,\mathbf{z}_m)$
   \COMMENT{shape $[B \times D]$}
-  \STATE $\mathrm{samples}.\mathrm{append}(\hat{x}_m)$
+  \STATE $\mathrm{samples}.\mathrm{append}(\hat{y}_m)$
 \ENDFOR
  
 \LINECOMMENT{Wasserstein term: no labels; maximise critic score on fakes}
@@ -327,7 +356,7 @@ output is an unbounded real score.
 \LINECOMMENT{Energy Score term: all M samples contribute}
 \STATE $\Loss_{\mathrm{ES}}
   \leftarrow
-  \textsc{EnergyScoreLoss}(\mathrm{samples},\;\mathbf{x})$
+  \textsc{EnergyScoreLoss}(\mathrm{samples},\;\mathbf{y})$
  
 \LINECOMMENT{Combine, backpropagate once, update}
 \STATE $\Loss_{G}
@@ -338,61 +367,11 @@ output is an unbounded real score.
 \end{algorithmic}
 \end{algorithm}
  
-% ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Critic / Discriminator Update (unchanged in both models)}
- 
-The critic is trained on \texttt{detach()}ed fake samples and does
-not interact with the Energy Score in any way.
- 
-\begin{equation}
-  \Loss_{D}^{\mathrm{CGAN}}
-  = -\mathbb{E}[\log D(\mathbf{x},\mathbf{c})]
-    -\mathbb{E}[\log(1 - D(\hat{x},\mathbf{c}))]
-\end{equation}
-\begin{equation}
-  \Loss_{C}^{\mathrm{CWGAN}}
-  = -\mathbb{E}[C(\mathbf{x},\mathbf{c})]
-    +\mathbb{E}[C(\hat{x},\mathbf{c})]
-    +\lambda_{\mathrm{GP}}\cdot
-    \mathrm{GP}(\mathbf{x},\hat{x},\mathbf{c})
-\end{equation}
- 
-% ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Structural Comparison}
- 
-\begin{center}
-\renewcommand{\arraystretch}{1.45}
-\begin{tabular}{lcc}
-\toprule
-Property
-  & {\color{cganblue}\textbf{MyCGAN}}
-  & {\color{wganred}\textbf{MyCWGAN}} \\
-\midrule
-Adversarial term
-  & $-\mathbb{E}[\log D(\hat{x},c)]$
-  & $-\mathbb{E}[C(\hat{x},c)]$ \\
-Discriminator output
-  & sigmoid $\in(0,1)$
-  & unbounded $\in(-\infty,+\infty)$ \\
-Labels needed
-  & yes ($\mathbf{1}$ for fakes)
-  & no \\
-Critic regularisation
-  & none
-  & gradient penalty (GP) \\
-Energy Score term
-  & $\ES(\{\hat{x}_m\},\mathbf{x})$
-  & $\ES(\{\hat{x}_m\},\mathbf{x})$ \\
-ES implementation
-  & \multicolumn{2}{c}{%
-      identical --- shared \texttt{\_energy\_score\_loss}} \\
-Early stopping metric
-  & not implemented
-  & $\Loss_{\mathrm{W}} + \lambda\Loss_{\mathrm{ES}}$ \\
-Better metric direction
-  & \multicolumn{2}{c}{lower is better
-    ($\Loss_{\mathrm{ES}}\geq 0$;
-     $\Loss_{\mathrm{W}}\leq 0$ when generator is strong)} \\
-\bottomrule
-\end{tabular}
-\end{center}
+
+The critic and the discriminator are trained on real and fake samples, respectively, and do not interact with the Energy Score in any way,
+so they follow the standard adversarial training procedure already described in the previous chapter \ref{alg:forGAN train}, \ref{alg:ForWGAN train}.
+
+\section{SRForGAN and Hybrid Forgan results}
+
+
+

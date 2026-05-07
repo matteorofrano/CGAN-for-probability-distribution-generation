@@ -181,7 +181,7 @@ causing the generator's gradients to approach zero and consequently impeding its
     
     \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
     \STATE \COMMENT{Update Generator: Maximize log(D(G(z))) (Non-saturating loss)}
-    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m \log D(G(z^{(i)}, c^{(i)}), c^{(i)})$
+    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m \log D(G(z^{(i)}, c^{(i)}))$
     \STATE $\theta_G \leftarrow \theta_G - \alpha \nabla_{\theta_G} L_{G}$
 \ENDWHILE
 \end{algorithmic}
@@ -342,7 +342,7 @@ within the space of 1-Lipschitz functions $\mathcal{D}$.
     \ENDFOR
     
     \STATE Sample latent noise $\{z^{(i)}\}_{i=1}^m \sim p(z)$.
-    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m D(G(z^{(i)}, c^{(i)}), c^{(i)})$
+    \STATE $L_{G} \leftarrow -\frac{1}{m} \sum_{i=1}^m D(G(z^{(i)}, c^{(i)}))$
     \STATE $\theta_G \leftarrow \text{Adam}(\nabla_{\theta_G} L_{G}, \theta_G, \alpha, \beta_1, \beta_2)$
 \ENDWHILE
 \end{algorithmic}
