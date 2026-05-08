@@ -24,3 +24,6 @@
 \contentsline {chapter}{\numberline {4}Beyond adversarial loss function}{33}{chapter.4}%
 \contentsline {section}{\numberline {4.1}SRForGAN Architecture}{34}{section.4.1}%
 \contentsline {section}{\numberline {4.2}SRForGAN and Hybrid Forgan results}{39}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}SRForGAN results}{40}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Hybrid ForGAN results}{41}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Hybrid ForWGAN results}{43}{subsection.4.2.3}%

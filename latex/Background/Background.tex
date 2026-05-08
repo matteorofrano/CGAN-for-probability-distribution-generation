@@ -5,9 +5,9 @@ depending on the output representation selected. The following setup for the exp
 \begin{itemize}
     \item \textbf{Initial price range}: $X_0 \in (0.0, 0.0)$
     \item \textbf{Drift range}: $\mu \in (0.0, 0.0)$
-    \item \textbf{Volatility range}: $\sigma \in (0.005, 0.8)$
-    \item \textbf{Time horizon}: $T = 1.0$ year
-    \item \textbf{Number of time steps}: $N = 252$
+    \item \textbf{Volatility range}: $\sigma \in (0.1, 1.2)$
+    \item \textbf{Time horizon}: $T = 22/252$ monthly horizon
+    \item \textbf{Number of time steps}: $N = 22$
     \item \textbf{Number of simulated paths}: $J = 100{,}000$
     \item \textbf{n-steps ahead}: $\tau = 1$
 \end{itemize}
@@ -16,9 +16,9 @@ The experimental setup is based on a data generation process designed to emulate
 for training and evaluating the GAN model. 
 The asset price trajectories are simulated over a fixed time horizon of one year, discretized into $N=252$ time steps corresponding to daily observations.
 For each experiment, $J=100{,}000$ independent paths are generated, ensuring sufficient sample diversity and statistical robustness.
-The initial asset price $X_0$ is drawn from a uniform range $(-1.0, 1.0)$, while the drift parameter $\mu$ is fixed at zero to isolate the model's ability to learn volatility-driven dynamics.
-The volatility parameter $\sigma$ is sampled from a wide range $(0.001,0.5)$ to capture varying market conditions, from near-deterministic to highly stochastic regimes.
-The PDF to be learned refers to the $10$-th step ahead distribution, that is the distribution of asset prices at time $T + 10$ (or $N dt + 10$) given information up to time $T$.
+The initial asset price $X_0$ is set for each trajectory to $0.0$, while the drift parameter $\mu$ is fixed at zero to isolate the model's ability to learn volatility-driven dynamics.
+The volatility parameter $\sigma$ is sampled from a wide range $(0.1, 1.2)$ to capture varying market conditions, from near-deterministic to highly stochastic regimes.
+The PDF to be learned refers to the $1$-th step ahead distribution, that is the distribution of asset prices at time $T + 1$ (or $N dt + 1$) given information up to time $T$.
 
 
 \section{Mean and Standard Deviation as target}

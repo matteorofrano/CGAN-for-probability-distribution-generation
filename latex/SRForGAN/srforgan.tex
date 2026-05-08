@@ -373,5 +373,165 @@ so they follow the standard adversarial training procedure already described in 
 
 \section{SRForGAN and Hybrid Forgan results}
 
+The experimental setup is based on the same setup of the previous chapter.
+The asset price trajectories are simulated over a fixed time horizon of one month, discretized into $N=22$ daily time steps.
+For each experiment, $J=100{,}000$ independent paths are generated, ensuring sufficient sample diversity and statistical robustness.
+The initial asset price $X_0$ is set for each trajectory to $0.0$, while the drift parameter $\mu$ is fixed at zero to isolate the model's ability to learn volatility-driven dynamics.
+The volatility parameter $\sigma$ is sampled from a wide range $(0.1, 1.2)$ to capture varying market conditions, from near-deterministic to highly stochastic regimes.
+The PDF to be learned refers to the $1$-th step ahead distribution, that is the distribution of asset prices at time $T + 1$ (or $N dt + 1$) given information up to time $T$.\\
+
+Also in this case, the target distribution of the next value $c_{T + \tau}$  by using montecarlo simulations. 
+The results are provided for the adversarial free SRForGAN architecture and also for the two 
+hybrid approaches using the ForGAN and ForWGAN.\\
+
+\subsection{SRForGAN results}
+
+\begin{table}[H]
+\centering
+\caption{Generator Architecture and Hyperparameters Summary}
+\label{tab:srforgan_architecture}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}                  & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 32 (Latent) + 22 (Cond.)           & --                              \\
+Hidden Layers              & [128, 256, 128, 64]                & --                              \\
+Output Dimension           & 1                                  & --                              \\
+Activation Function        & Leaky ReLU                         & --                              \\
+Normalization              & BatchNormalization                 & --                              \\
+Dropout                    & 0.0                                & --                              \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                      \\ \hline
+Batch Size                 & \multicolumn{2}{l}{32}                                            \\
+max\_epochs                & \multicolumn{2}{l}{100}                                          \\
+\hline
+\end{tabular}
+\end{table}
 
 
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+\label{tab:srforgan_results}
+KS Test Acceptance (\%) & 1.0000 \\
+JS Distance & 0.2029 \\
+Hellinger Distance & 0.1778 \\
+TV Distance & 0.1699 \\
+EMD Distance & 0.0086 \\
+\hline
+\end{tabular}
+\caption{Evaluation metrics rounded to four decimal places}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{SRForGAN/images/SRForGAN_samples.png}
+    \caption{Samples obtained using fixed $X_0$, $\mu$ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}
+    \label{srforgan_sample}
+\end{figure}
+
+
+\subsection{Hybrid ForGAN results}
+
+
+\begin{table}[H]
+\centering
+\caption{ForGAN Architecture and Hyperparameters Summary}
+\label{tab:forgan_hybrid_architecture}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}                  & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 32 (Latent) + 22 (Cond.)           & 1 (Data) + 22 (Cond.)           \\
+Hidden Layers              & [128, 256, 128, 64]                & [128, 256, 256, 128, 64]        \\
+Output Dimension           & 1                                  & 1                               \\
+Activation Function        & Leaky ReLU                         & Leaky ReLU                      \\
+Normalization              & BatchNormalization                 & None                            \\
+Dropout                    & 0.0                                & 0.0                             \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                      \\ \hline
+Batch Size                 & \multicolumn{2}{l}{32}                                            \\
+max\_epochs                & \multicolumn{2}{l}{100}                                          \\
+\hline
+\end{tabular}
+\end{table}
+
+
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+\label{tab:hybrid_forgan_results}
+KS Test Acceptance (\%) & 0.8530 \\
+JS Distance & 0.2822 \\
+Hellinger Distance & 0.2524 \\
+TV Distance & 0.24029 \\
+EMD Distance & 0.0102\\
+\hline
+\end{tabular}
+\caption{Evaluation metrics rounded to four decimal places}
+\end{table}
+    
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{SRForGAN/images/Hybrid_ForGAN_samples.png}
+    \caption{Samples obtained using fixed $X_0$, $\mu$ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}
+    \label{hybrid_forgan_sample}
+\end{figure}
+
+
+\subsection{Hybrid ForWGAN results}
+
+
+\begin{table}[H]
+\centering
+\caption{ForWGAN Architecture and Hyperparameters Summary}
+\label{tab:forwgan_hybrid_architecture}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}                  & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 32 (Latent) + 22 (Cond.)           & 1 (Data) + 22 (Cond.)           \\
+Hidden Layers              & [128, 256, 128, 64]                & [128, 256, 256, 128, 64]        \\
+Output Dimension           & 1                                  & 1                               \\
+Activation Function        & Leaky ReLU                         & Leaky ReLU                      \\
+Normalization              & None                               & LayerNormalization              \\
+Dropout                    & 0.0                                & 0.0                             \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                      \\ \hline
+Batch Size                 & \multicolumn{2}{l}{32}                                            \\
+max\_epochs                & \multicolumn{2}{l}{100}                                          \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l c}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+\label{tab:hybrid_forwgan_results}
+KS Test Acceptance (\%) & 0.9520 \\
+JS Distance & 0.2653 \\
+Hellinger Distance & 0.2348 \\
+TV Distance & 0.2291 \\
+EMD Distance & 0.0110\\
+\hline
+\end{tabular}
+\caption{Evaluation metrics rounded to four decimal places}
+\end{table}
+   
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{SRForGAN/images/Hybrid_ForWGAN_samples.png}
+    \caption{Samples obtained using fixed $X_0$, $\mu$ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}
+    \label{hybrid_forwgan_sample}
+\end{figure}
