@@ -1,0 +1,11 @@
+{
+  "max_epoch": 100,
+  "batch_size": 32,
+  "z_dim": 32,
+  "n_samples_sr": 10,
+  "scoring_rule": "energy",
+  "beta": 1.0,
+  "kernel_bandwidth": 1.0,
+  "model_name": "srforgan",
+  "lr_g": 0.001
+}

@@ -19,6 +19,7 @@ class MyCGAN():
     def __init__(self, max_epoch:int = 100, batch_size = 32,
                   n_critic:int = 1, z_noise_dim:int = 252,
                   loss_fn:Callable|None =  torch.nn.BCEWithLogitsLoss(),
+                  lr_g: float = 5e-4, lr_d: float = 5e-4,
                   name:str = 'ConditionalGAN'):
         """
         """
@@ -28,6 +29,8 @@ class MyCGAN():
         self.n_critic = n_critic
         self.z_dim = z_noise_dim
         self.loss_fn = loss_fn
+        self.lr_g = lr_g
+        self.lr_d = lr_d
 
         #architecture
         self.G=None
@@ -35,7 +38,7 @@ class MyCGAN():
 
         #device specific
         self.MODEL_NAME = name
-        self.DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # generator architecture
     def set_generator(self, condition_size=100, output_dim=2, 
@@ -62,9 +65,71 @@ class MyCGAN():
         else: 
             self.D = MyDiscriminator(input_size=input_size, condition_size=condition_size,
                                       output_dim=output_dim, **discriminator_params)
+            
+    def _energy_score_loss(self, fake_samples_batch: list[torch.Tensor], x: torch.Tensor) -> torch.Tensor:
+        """
+        Sample-based Energy Score (= CRPS in 1D).
+        
+        ES(F, x) = E[|X - x|]  -  0.5 * E[|X - X'|]
+        
+        Args:
+            fake_samples_batch: list of M tensors of shape [B, 1], 
+                                each from a different noise draw z_m ~ N(0,I)
+            x: true next-step values, shape [B, 1]
+        
+        Returns:
+            scalar energy score (minimize this)
+        """
+        M = len(fake_samples_batch)
+        stacked = torch.stack(fake_samples_batch, dim=0)  # [M, B, 1]
+
+        # Term 1: E[|X - x|]  ->  mean over samples of |x̂_m - x|
+        term1 = torch.norm(stacked - x.unsqueeze(0), dim=-1).mean()  # [M, B] → scalar
+
+        # Term 2: 0.5 * E[|X - X'|]  ->  average pairwise distance between samples (diversity reward) 
+        # stacked: [M, B, 1] -> pairwise differences across the M dimension
+        # Loop over every unique pair (i, j) with i < j — avoids diagonal zeros
+        pairwise_sum = torch.tensor(0.0, device=stacked.device)
+        n_pairs = 0
+        for i in range(M):
+            for j in range(i + 1, M):
+                pairwise_sum += torch.mean(
+                    torch.norm(stacked[i] - stacked[j], dim=-1))  # [B] → scalar
+                n_pairs += 1
+
+        term2 = 0.5 * pairwise_sum / n_pairs
+
+        return term1 - term2  # minimize: push term1 down, push term2 up (spread)
+    
+    def _get_hybrid_loss(self, c:torch.Tensor, x:torch.Tensor,
+                         D_labels:torch.Tensor|None, current_batch_size:int,
+                         es_weight:float = 1.0):
+
+        if self.G is None or self.D is None:
+            raise ValueError("Generator or Discrimator are not initialized")
+        if self.loss_fn is None:
+            raise ValueError("Loss function has not been defined")
+        
+        M = 10  # number of noise draws per condition; 5-20 is sufficient
+        fake_samples_batch = [
+            self.G(c, torch.randn(current_batch_size, self.z_dim).to(self.DEVICE))
+            for _ in range(M)]
+        
+        fake_for_disc = fake_samples_batch[0]  # use one sample for adversarial loss
+        z_outputs = self.D(fake_for_disc, c)
+        
+        adv_loss = self.loss_fn(z_outputs, D_labels)
+        es_loss   = self._energy_score_loss(fake_samples_batch, x)
+        
+        G_loss = adv_loss + es_weight * es_loss 
+        del fake_samples_batch
+        return G_loss
 
 
-    def train(self, data: TensorDataset, save_history:bool = False, distance_metric:str = 'js_divergence'):
+    def train(self, data: TensorDataset, save_history:bool = False,
+               distance_metric:str = 'js_divergence', 
+               use_energy_score:bool = False,
+               es_weight: float = 1.0):
         """
         train process
         """
@@ -72,7 +137,7 @@ class MyCGAN():
         if self.D is None or self.G is None:
             raise Exception("Discriminator or Generator is not defined. Use set_discriminator or set_generator to initialize them")
         
-        if isinstance(data, TensorDataset)==False:
+        if not isinstance(data, torch.utils.data.Dataset):
             raise Exception(f"invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
         
         if self.loss_fn is None:
@@ -83,12 +148,13 @@ class MyCGAN():
         self.D.to(self.DEVICE)
         
         data_loader = DataLoader(dataset=data, batch_size=self.batch_size, shuffle=True, drop_last=True)
-        D_opt = torch.optim.Adam(self.D.parameters(), lr=0.0005, betas=(0.5, 0.999))
-        G_opt = torch.optim.Adam(self.G.parameters(), lr=0.0005, betas=(0.5, 0.999))
+        D_opt = torch.optim.Adam(self.D.parameters(), lr=self.lr_d, betas=(0.5, 0.999))
+        G_opt = torch.optim.Adam(self.G.parameters(), lr=self.lr_g, betas=(0.5, 0.999))
 
         df = None
         step=0
         self.D.train()
+        self.G.train()
         start_time = time.time()
         for epoch in range(self.max_epoch):
             predictions_list = []
@@ -115,7 +181,7 @@ class MyCGAN():
 
                 #fake samples
                 z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                z_outputs = self.D(self.G(z, c).detach(), c)
+                z_outputs = self.D(self.G(c, z).detach(), c)
                 D_z_loss = self.loss_fn(z_outputs, D_fakes)
 
                 #backpropagation
@@ -126,10 +192,15 @@ class MyCGAN():
                 if step % self.n_critic == 0:
                     # TRAIN GENERATOR
                     G_opt.zero_grad()
-                    z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                    z_outputs = self.D(self.G(z, c), c)
-                    G_loss = self.loss_fn(z_outputs, D_labels)
-                    
+                    if not use_energy_score:
+                        z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
+                        z_outputs = self.D(self.G(c, z), c)
+                        G_loss = self.loss_fn(z_outputs, D_labels)
+                    else:
+                        G_loss = self._get_hybrid_loss(c = c, x = x, D_labels = D_labels,
+                                                        current_batch_size = current_batch_size,
+                                                        es_weight=es_weight)
+
                     #backpropagation
                     G_loss.backward()
                     G_opt.step()
@@ -143,7 +214,7 @@ class MyCGAN():
                     self.G.eval()
                     with torch.no_grad():
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                        generated = self.G(z, c).cpu().numpy()
+                        generated = self.G(c, z).cpu().numpy()
                     for i, row in enumerate(generated):
                         pred = row.tolist()
                         true = x[i, :].cpu().tolist()
@@ -204,7 +275,7 @@ class MyCGAN():
         if self.G is None:
             raise Exception("Generator is not defined. Train the model first or use set_generator to initialize it")
         
-        if isinstance(data, TensorDataset) == False:
+        if not isinstance(data, torch.utils.data.Dataset):
             raise Exception(f"Invalid input data format. A TensorDataset should be provided. Provided {type(data)}")
         
         self.G.eval()
@@ -233,7 +304,7 @@ class MyCGAN():
                     sample_values = []
                     for _ in range(1000):
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                        generated = self.G(z, c)
+                        generated = self.G(c, z)
                         sample_values.append(generated.cpu())
 
                     stacked = torch.stack(sample_values, dim=1).squeeze(-1)  #(batch, 1000)
@@ -241,7 +312,7 @@ class MyCGAN():
                     conditions_list.append(c.cpu())
                 else:
                     z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
-                    generated = self.G(z, c)   
+                    generated = self.G(c, z)   
                     predictions_list.append(generated.cpu())
                     conditions_list.append(c.cpu())
 
@@ -265,7 +336,7 @@ class MyCGAN():
         else:
             predictions = torch.cat(predictions_list, dim=0).numpy()
             
-        
+        self.G.train()
         return conditions, predictions
     
 
@@ -366,7 +437,10 @@ class MyCGAN():
             'batch_size': self.batch_size,
             'n_critic': self.n_critic,
             'z_dim': self.z_dim,
-            'model_name': self.MODEL_NAME
+            'model_name': self.MODEL_NAME,
+            'lr_g': self.lr_g,
+            'lr_d': self.lr_d,
+            'es_weight': getattr(self, 'es_weight', 1.0),
         }
         config_path = os.path.join(save_dir, f"{self.MODEL_NAME}_config.json")
         with open(config_path, 'w') as f:

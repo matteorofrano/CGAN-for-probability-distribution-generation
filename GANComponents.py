@@ -5,6 +5,22 @@ import torch.nn as nn
 import torch
 import os
 
+def _xavier_init_weights(m):
+    """
+    Apply Xavier (Glorot) initialization to linear layers
+    
+    Xavier initialization sets weights with variance scaled by fan_in and fan_out,
+    which helps maintain gradient magnitudes across layers.
+    """
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0.0)
+
+def _unwrap(model: nn.Module) -> nn.Module:
+    """Return model.module if wrapped in DataParallel, else model itself."""
+    return model.module if isinstance(model, nn.DataParallel) else model
+ 
 
 class MyDiscriminator(nn.Module):
     """
@@ -48,8 +64,9 @@ class MyDiscriminator(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
+        # Apply Xavier initialization
+        self.apply(_xavier_init_weights)
 
-    
     def forward(self, x, c):        
         x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
         v = torch.cat((x, c), 1) # v: [input, condition] concatenated vector
@@ -77,10 +94,11 @@ class MyDiscriminator(nn.Module):
         if filepath is None:
             filepath = "discriminator.pth"
 
+        core = _unwrap(self)
         save_dict = {
-            'model_state_dict': self.state_dict(),
-            'model_architecture': self.__class__.__name__,
-            'architecture_params': self.get_config()
+            'model_state_dict': core.state_dict(),
+            'model_architecture': core.__class__.__name__,
+            'architecture_params': core.get_config(),
         }
 
         torch.save(save_dict, filepath)
@@ -101,9 +119,9 @@ class MyDiscriminator(nn.Module):
             raise FileNotFoundError(f"Discriminator file not found at {filepath}")
 
         if device is None:
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        checkpoint = torch.load(filepath, map_location=device)
+        checkpoint = torch.load(filepath, map_location=device, weights_only=True)
 
         # Get architecture parameters
         architecture_params = checkpoint.get('architecture_params', {})
@@ -191,10 +209,13 @@ class MyGenerator(nn.Module):
 
         #Sequential model
         self.layers = nn.Sequential(*layers)
-        
-    def forward(self, x, z):
-        x, z = x.view(x.size(0), -1), z.view(z.size(0), -1).float()
-        v = torch.cat((x, z), 1) # v: [trajectory, noise] concatenated vector
+
+        # Apply Xavier initialization
+        self.apply(_xavier_init_weights)
+
+    def forward(self, c, z):
+        c, z = c.view(c.size(0), -1), z.view(z.size(0), -1).float()
+        v = torch.cat((c, z), 1) # v: [trajectory, noise] concatenated vector
         y_ = self.layers(v)
         return y_    
 
@@ -225,10 +246,11 @@ class MyGenerator(nn.Module):
             filepath = f"generator.pth"
         
         # Store all architecture parameters for perfect reconstruction
+        core = _unwrap(self)
         save_dict = {
-            'model_state_dict': self.state_dict(),
-            'model_architecture': self.__class__.__name__,
-            'architecture_params': self.get_config()  # Save ALL architecture parameters
+            'model_state_dict': core.state_dict(),
+            'model_architecture': core.__class__.__name__,
+            'architecture_params': core.get_config(),
         }
         
         torch.save(save_dict, filepath)
@@ -250,11 +272,10 @@ class MyGenerator(nn.Module):
         if device is None:
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
-        checkpoint = torch.load(filepath, map_location=device)
+        checkpoint = torch.load(filepath, map_location=device, weights_only=True)
         
         # Get architecture parameters
-        architecture_params = checkpoint.get('architecture_params', {})
-        
+        architecture_params = checkpoint.get('architecture_params', {}) 
         if not architecture_params:
             raise ValueError(
                 "No architecture parameters found in checkpoint. "
@@ -327,13 +348,18 @@ class RnnGenerator(MyGenerator):
         
         input_dense1 = latent_size+hidden_dim
         self.dense1 = nn.Linear(input_dense1, input_dense1)
-        self.dense2 = nn.Linear(input_dense1, 1)  
+        self.dense2 = nn.Linear(input_dense1, 1) 
+
+        # Apply Xavier initialization to dense layers
+        # RNN layers use orthogonal initialization by default which is also good
+        self.dense1.apply(_xavier_init_weights)
+        self.dense2.apply(_xavier_init_weights) 
         
         
-    def forward(self, x, z):
+    def forward(self, c, z):
         #x, z = x.view(x.size(0), -1), z.view(z.size(0), -1).float()
-        x = x.unsqueeze(-1)
-        h_out, _ = self.sequential_model(x)
+        c = c.unsqueeze(-1)
+        h_out, _ = self.sequential_model(c)
         
         c = h_out[:, -1, :] #takes the condition representation of the last hidden state
         combined = torch.cat((z, c), dim=1) # v: [trajectory, noise] concatenated vector
@@ -401,6 +427,9 @@ class RnnDiscriminator(MyDiscriminator):
                 raise ValueError(f'Available rnn architectures are the "lstm" and "gru". {rnn_layer} provided instead')
             
         self.dense = nn.Linear(hidden_dim, output_dim)
+
+        # Apply Xavier initialization to dense layer
+        self.dense.apply(_xavier_init_weights)
         
     def forward(self, x, c):        
         #x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()

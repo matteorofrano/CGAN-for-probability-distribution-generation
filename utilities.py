@@ -56,12 +56,21 @@ def prepare_data(X:np.ndarray,C:np.ndarray, eps=1e-9, preprocess:str|None = None
 
     if preprocess:       
         if preprocess == 'standardization':
-            X_mean = X_tensor.mean(dim=0)
-            X_std = X_tensor.std(dim=0) + eps
-
-            #standardization
-            X_tensor = (X_tensor - X_mean) / X_std
-            C_tensor = (C_tensor - C_tensor.mean(dim=0)) / (C_tensor.std(dim=0) + eps)
+            # Row-wise standardization 
+            C_mean = C_tensor.mean(dim=1, keepdim=True)
+            C_std = C_tensor.std(dim=1, keepdim=True) + eps
+            C_tensor = (C_tensor - C_mean) / C_std
+            
+            print(f"X tensor shape last axis {X_tensor.shape[1]}")
+            if X_tensor.shape[1] == 1:
+                # Use C_tensor statistics for standardization
+                X_mean = C_mean 
+                X_std = C_std    
+                X_tensor = (X_tensor - X_mean) / X_std
+            else:
+                X_mean = X_tensor.mean(dim=1, keepdim=True)
+                X_std = X_tensor.std(dim=1, keepdim=True) + eps
+                X_tensor = (X_tensor - X_mean) / X_std
         
         elif preprocess == 'log':
             X_tensor = torch.log(X_tensor + eps) # only target if probabilities
@@ -108,11 +117,14 @@ def freedman_diaconis_bins(data: np.ndarray) -> tuple:
 
     return bin_width, num_bins, bin_edges
 
-def compare_simulated_pdfs(true_pdfs: np.ndarray, generated_pdfs: np.ndarray) -> tuple:
+def compare_simulated_pdfs(true_pdfs: np.ndarray,
+                            generated_pdfs: np.ndarray, 
+                            use_opt_binning:bool = False) -> tuple:
     """
     Function used to compare the result from two simulated pdfs
     params: true_pdfs: a 2D numpy array containing for each row the simulations which approximate the true pdf 
     params: generated_pdfs: a 2D numpy array containing for each row the simulations which approximate the generated pdf
+    params: use_opt_binning: if true the freedman_diaconis_bins algorithm is used to provide number of bins and bin edges
     """
 
     if true_pdfs.shape != generated_pdfs.shape:
@@ -124,10 +136,15 @@ def compare_simulated_pdfs(true_pdfs: np.ndarray, generated_pdfs: np.ndarray) ->
     generated_discretized_pdfs = []
     bin_edges_list = []
     for i, simulated_pdf in enumerate(true_pdfs):
-        _, _, bin_edges = freedman_diaconis_bins(simulated_pdf)
-        hist_true, _ = np.histogram(simulated_pdf, bins=bin_edges)
-        hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)
-        
+        if use_opt_binning:
+            _, _, bin_edges = freedman_diaconis_bins(simulated_pdf)
+            hist_true, _ = np.histogram(simulated_pdf, bins=bin_edges)
+            hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)
+        else:
+            n_bins = int(np.ceil(np.sqrt(simulated_pdf.shape[0])))
+            hist_true, bin_edges = np.histogram(simulated_pdf, bins=n_bins)
+            hist_generated, _ = np.histogram(generated_pdfs[i], bins=bin_edges)    
+            
         if hist_true.sum() == 0 or hist_generated.sum() == 0:
             continue
 
@@ -310,10 +327,20 @@ def plot_learning_curve(df_csv:str):
 
 
 
-def plot_bin_dist(trues:np.ndarray|list, preds:np.ndarray|list,
-                   bins_values:np.ndarray|list, X_T: List[float]|None = None, ncols=3):
+def plot_bin_dist(trues: np.ndarray | list,
+                   preds: np.ndarray | list,
+                   bins_values: np.ndarray | list,
+                   X_T: List[float] | None = None,
+                   means: np.ndarray | list | None = None,
+                   stds: np.ndarray | list | None = None,
+                   ncols: int | None = None,   
+                   zoom: bool = False):
 
     n = len(trues)
+
+    # Auto-compute grid dimensions if ncols not provided
+    if ncols is None:
+        ncols = math.ceil(math.sqrt(n))
     nrows = math.ceil(n / ncols)
 
     fig, axes = plt.subplots(
@@ -338,22 +365,32 @@ def plot_bin_dist(trues:np.ndarray|list, preds:np.ndarray|list,
         bin_centers_row = 0.5 * (np.array(bins[:-1]) + np.array(bins[1:]))
 
         # find indices to zoom the distribution
-        indices = np.where(np.array(true) > 1e-7)[0]
-        if len(indices) > 0:
-            first_idx = indices[0]
-            last_idx = indices[-1]
-            start = int(first_idx - np.ceil(0.1 * first_idx))
-            end = int(last_idx + np.ceil(0.1 * (len(true) - last_idx)))
-            true = np.array(true)[start:end]
-            pred = np.array(pred)[start:end]
-            bin_centers_row = bin_centers_row[start:end]
-        else:
-            raise ValueError('the true distribution does not have any positive probability')
+        if zoom:
+            indices = np.where(np.array(true) > 1e-7)[0]
+            if len(indices) > 0:
+                first_idx = indices[0]
+                last_idx = indices[-1]
+                start = int(first_idx - np.ceil(0.1 * first_idx))
+                end = int(last_idx + np.ceil(0.1 * (len(true) - last_idx)))
+                true = np.array(true)[start:end]
+                pred = np.array(pred)[start:end]
+                bin_centers_row = bin_centers_row[start:end]
+            else:
+                raise ValueError('the true distribution does not have any positive probability')
 
         ax = axes[i]
         width = bin_centers_row[1] - bin_centers_row[0]  # bin width
         ax.bar(bin_centers_row, true, width=width, alpha=0.5, label="True histogram")
         ax.bar(bin_centers_row, pred, width=width, alpha=0.5, label="Generated histogram")
+
+        # Overlay theoretical normal distribution if mean and std are provided
+        if means is not None and stds is not None:
+            mu = means[i]
+            sigma = stds[i]
+            # Scale the PDF to match the probability mass (PDF * bin_width = probability per bin)
+            normal_pdf = norm.pdf(bin_centers_row, loc=mu, scale=sigma) * width
+            ax.plot(bin_centers_row, normal_pdf, color='black', linewidth=2,
+                    linestyle='--', label=f"N({round(mu, 3)}, {round(sigma, 3)})")
 
         if X_T is not None:
             ax.axvline(
@@ -481,7 +518,7 @@ class DataSimulator():
         return mc_distributions
 
     
-    def get_paths(self):
+    def get_paths(self, get_proxy_n:int = 0):
         """
         Simulates log prices with Brownian Motion.
         This function simulates M trajectories of the log stock price process over the time horizon [0, T] using N time steps.
@@ -539,8 +576,12 @@ class DataSimulator():
         paths[:, 1:] = self.X0.reshape(-1,1) + np.cumsum(increments, axis=1)
         self.paths = paths
         self.X_T = paths[:,-1]
+        result = paths
 
-        return paths
+        if get_proxy_n>0:
+            result = np.column_stack([self.sigma, self.paths[:, -get_proxy_n:]])
+
+        return result
     
     def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
                  P:np.ndarray|None=None, mc_sims:int = 0, verbose:bool = False):
@@ -561,8 +602,10 @@ class DataSimulator():
         # analytical parameters of the step ahead distribution
         XT = P if P is not None else self.X_T
         delta_t = n_steps_ahead * self.dt
-        mean = XT - ((self.mu - 0.5 * self.sigma**2) * delta_t)
+        mean = XT + ((self.mu - 0.5 * self.sigma**2) * delta_t)
         std = self.sigma * np.sqrt(delta_t)
+        self.means = mean
+        self.stds = std
 
         if mean.shape != std.shape:
             raise Exception(f'Shapes does not match. Mean\'s array shape {mean.shape} while std\'s array shape {std.shape}')
@@ -722,9 +765,14 @@ class DataSimulator():
 
     def load_binary_file(self, file_name:str):
 
+        if file_name.endswith('.bin'):
+            file_path = file_name
+        else:
+            file_path = file_name + '.bin'
+
         paths = []
         pdfs = []
-        with open(file_name, 'rb') as f:
+        with open(file_path, 'rb') as f:
             
             # read dtype headers
             n = struct.unpack('<I', f.read(4))[0] # how many bytes to read next
@@ -822,12 +870,181 @@ class DataSimulator():
         plt.ylabel("frequency")
         plt.show()
 
-
-
-
-
-
-
+class BinaryDataset(torch.utils.data.Dataset):
+    """
+    A memory-efficient, random-access PyTorch Dataset backed by a DataSimulator
+    binary file.  Designed for training ForGAN on datasets that exceed available RAM.
+ 
+    How random access works
+    -----------------------
+    Every record in the binary file has an identical byte size (fixed N and n_bins),
+    so the byte offset of record i is:
+ 
+        offset(i) = header_end + i * record_size
+ 
+    This gives O(1) seek-and-read per sample, exactly like a numpy memmap.
+ 
+    DataLoader worker safety
+    ------------------------
+    File handles are opened lazily inside each worker process via ``_get_fh()``.
+    The handle is deliberately excluded from pickling (``__getstate__``) so that
+    each spawned/forked worker starts with ``_fh = None`` and opens its own handle
+    on first access — no shared-descriptor races.
+ 
+    Item format
+    -----------
+    ``__getitem__`` returns ``(target, condition)`` to match the TensorDataset
+    convention produced by ``prepare_data(targets, paths)``:
+ 
+        target    – path[-1:]  shape (1,)   the next-step log-price X_T
+        condition – path[:-1]  shape (N,)   the observed path history
+ 
+    Batch helpers
+    -------------
+    ``load_subset(indices)``      → TensorDataset  (for fold scoring in tuner)
+    ``load_subset_pdfs(indices)`` → np.ndarray      (analytical PDFs from file,
+                                                      for fold JS comparison)
+    """
+ 
+    def __init__(self, file_path: str):
+        if not file_path.endswith('.bin'):
+            file_path = file_path + '.bin'
+        self.file_path = file_path
+ 
+        # ── parse binary header ───────────────────────────────────────────
+        with open(self.file_path, 'rb') as f:
+            n = struct.unpack('<I', f.read(4))[0]
+            self.dtype_paths = np.dtype(f.read(n).decode('utf-8'))
+            n = struct.unpack('<I', f.read(4))[0]
+            self.dtype_pdf   = np.dtype(f.read(n).decode('utf-8'))
+            self._header_end = f.tell()
+ 
+            # Read the first record header to discover fixed path / pdf lengths
+            rec_hdr = f.read(8)
+            if len(rec_hdr) < 8:
+                raise ValueError(f"Binary file '{file_path}' contains no data records.")
+            self._len_path, self._len_pdf = struct.unpack('<II', rec_hdr)
+ 
+        # ── fixed record layout ───────────────────────────────────────────
+        # [4 B len_path][4 B len_pdf][path bytes][pdf bytes]
+        self._path_nbytes   = self._len_path * self.dtype_paths.itemsize
+        self._pdf_nbytes    = self._len_pdf  * self.dtype_pdf.itemsize
+        self._record_size   = 8 + self._path_nbytes + self._pdf_nbytes
+ 
+        # ── count records from file size ──────────────────────────────────
+        file_size = os.path.getsize(self.file_path)
+        data_size = file_size - self._header_end
+        if data_size % self._record_size != 0:
+            raise ValueError(
+                f"File size is inconsistent with the computed record size "
+                f"({self._record_size} bytes). The file may be corrupted or truncated."
+            )
+        self._n_records = data_size // self._record_size
+ 
+        # ── lazy per-worker file handle (never pickled) ───────────────────
+        self._fh = None
+ 
+    # ── pickling support for DataLoader multiprocessing ──────────────────────
+ 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['_fh'] = None      # exclude file handle — each worker opens its own
+        return state
+ 
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._fh = None
+ 
+    def _get_fh(self):
+        """Return an open file handle, creating one for this worker if needed."""
+        if self._fh is None or self._fh.closed:
+            self._fh = open(self.file_path, 'rb')
+        return self._fh
+ 
+    def __del__(self):
+        if self._fh is not None and not self._fh.closed:
+            self._fh.close()
+ 
+    # ── Dataset protocol ─────────────────────────────────────────────────────
+ 
+    def __len__(self) -> int:
+        return self._n_records
+ 
+    def __getitem__(self, idx: int):
+        """
+        Returns (target, condition) for sample ``idx``:
+            target    – torch.float32 tensor shape (1,)   = path[-1]  (X_T)
+            condition – torch.float32 tensor shape (N,)   = path[:-1] (history)
+ 
+        The PDF stored in the file is NOT returned here; it is only used by
+        ``load_subset_pdfs`` for evaluation inside the tuner.
+        """
+        if idx < 0 or idx >= self._n_records:
+            raise IndexError(f"Index {idx} out of range [0, {self._n_records}).")
+ 
+        # Byte offset: skip record-header (8 bytes) to reach path data directly
+        offset = self._header_end + idx * self._record_size + 8
+        fh = self._get_fh()
+        fh.seek(offset)
+ 
+        path = np.frombuffer(fh.read(self._path_nbytes), dtype=self.dtype_paths).astype(np.float32)
+        # PDF bytes are skipped — not needed for per-sample training
+ 
+        # Convention: target = last step, condition = preceding history
+        return (
+            torch.tensor(path[-1:], dtype=torch.float32),   # (1,)
+            torch.tensor(path[:-1], dtype=torch.float32),   # (N,)
+        )
+ 
+    # ── Batch helpers ─────────────────────────────────────────────────────────
+ 
+    def _sorted_read(self, indices: np.ndarray, load_pdf: bool = True, load_path: bool = True):
+        """
+        Internal helper: read path and/or pdf bytes for a set of indices.
+        Reads are issued in ascending file-offset order for sequential I/O,
+        then results are placed back into their original output positions.
+        """
+        n = len(indices)
+        paths = np.empty((n, self._len_path), dtype=np.float32) if load_path else None
+        pdfs  = np.empty((n, self._len_pdf),  dtype=np.float32) if load_pdf  else None
+ 
+        sorted_pairs = sorted(enumerate(indices), key=lambda x: x[1])
+        with open(self.file_path, 'rb') as f:
+            for out_i, file_idx in sorted_pairs:
+                # +8 to skip the per-record [len_path, len_pdf] header
+                f.seek(self._header_end + file_idx * self._record_size + 8)
+                if load_path:
+                    paths[out_i] = np.frombuffer(f.read(self._path_nbytes), dtype=self.dtype_paths)
+                else:
+                    f.seek(self._path_nbytes, 1)   # skip path bytes (seek relative to current pos)
+                if load_pdf:
+                    pdfs[out_i] = np.frombuffer(f.read(self._pdf_nbytes), dtype=self.dtype_pdf)
+        return paths, pdfs
+ 
+    def load_subset(self, indices: np.ndarray) -> TensorDataset:
+        """
+        Load a subset of records as a TensorDataset in (target, condition) format.
+        Used by the tuner to materialise a validation fold for ``model.generate()``.
+ 
+        Memory cost: ``len(indices) × (1 + N) × 4`` bytes  (≈ 9 MB for 100 K rows, N=22)
+        """
+        paths, _ = self._sorted_read(indices, load_pdf=False, load_path=True)
+        targets    = torch.tensor(paths[:, -1:], dtype=torch.float32)   # (n, 1)
+        conditions = torch.tensor(paths[:, :-1], dtype=torch.float32)   # (n, N)
+        return TensorDataset(targets, conditions)
+ 
+    def load_subset_pdfs(self, indices: np.ndarray) -> np.ndarray:
+        """
+        Load only the analytical PDF vectors for a subset of indices.
+        Used by ``BinaryGANHyperparameterTuner`` to retrieve per-fold ground-truth
+        distributions without recomputing them from ``sim.mu`` / ``sim.sigma``.
+ 
+        Returns
+        -------
+        np.ndarray of shape (len(indices), n_bins), dtype float32
+        """
+        _, pdfs = self._sorted_read(indices, load_pdf=True, load_path=False)
+        return pdfs
 
 
 
@@ -838,7 +1055,7 @@ if __name__ == '__main__':
     # data simulation 
     X0_range = (0.0,1.0)
     mu_range = (0.0, 0.0)
-    sigma_range = (0.001, 1.0)
+    sigma_range = (0.1, 1.0)
     T = 1.0        # Time horizon (1 year)
     N = 3        # Number of time steps
     J = 2        # Number of paths to simulate
@@ -854,6 +1071,6 @@ if __name__ == '__main__':
     print(sim.paths)
     print(sim.pdf)
 
-    file_paths, file_pdf = sim.load_binary_file('data/inputs/demo.bin')
+    file_paths, file_pdf = sim.load_binary_file('data/inputs/demo')
     print(file_paths)
     print(file_pdf)
