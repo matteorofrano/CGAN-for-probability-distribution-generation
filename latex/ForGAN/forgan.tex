@@ -40,10 +40,10 @@ The algorithm is as follows:
 
 
 \subsection{ForGAN simplified task}
-In the following section a simplefied version of the problem is discussed.
-In particular, here the condition vector is given by just 2 elements,
-the sampled volatility $\sigma$ which will be constant for all 
-the trajectories and the last value of the trajectory $X_T$.
+In the following section a simplified version of the problem is discussed.
+In particular, here the condition vector is given by just trajectories obtained from the same volatility parameter $\sigma = 0.5$,
+which will be constant for all 
+the trajectories.
 The goal of this experiment is to understand if the proposed ForGAN architecture is able to capture the variance and mean of the target distribution when the volatility is fixed for all trajectories.
 
 Below are presented the architecture and metrics results for the simple ForGAN architecture:
@@ -183,7 +183,7 @@ Max Epochs                 & \multicolumn{2}{l}{100}                            
 \end{table}
 
 The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
-the resulting p-values are accepted 30\% of times, which is inline with the results obtained for the CGAN model.\\
+the resulting p-values are accepted 48\% of times, which is inline with the results obtained for the CGAN model.\\
 Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.49 which is worse than the CWGAN-GP model, suggesting that Wasserstein distance provides a better training convergence and generalization capabilities.
 
 \begin{table}[h]
@@ -192,10 +192,10 @@ Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around
 \hline
 \textbf{Metric} & \textbf{Value} \\
 \hline
-EMD Distance & 0.0275 \\
-JS Distance & 0.4778 \\
-Hellinger Distance & 0.4301 \\
-TV Distance & 0.4529 \\
+EMD Distance & 0.0255 \\
+JS Distance & 0.4378 \\
+Hellinger Distance & 0.4001 \\
+TV Distance & 0.4129 \\
 \hline
 \end{tabular}
 \caption{ForGAN performance metrics averaged over 1000 samples}

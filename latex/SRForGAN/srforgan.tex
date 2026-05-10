@@ -201,7 +201,7 @@ where $\hat{S}_E^{(\beta)}$ is the energy score estimator from Algorithm \ref{al
     \STATE \textbf{// --- Validation pass (no gradient) ---}
     \IF{$\mathcal{D}_{\text{val}}$ is provided}
         \STATE $\ell_{\text{val}} \leftarrow \textsc{SRLoss}$ evaluated on
-               $\mathcal{D}_{\text{val}}$ with $\nabla$ disabled
+               $\mathcal{D}_{\text{val}}$ 
         \IF{$\ell_{\text{val}} < \ell^*_{\text{val}} - \delta_{\min}$}
             \STATE $\ell^*_{\text{val}} \leftarrow \ell_{\text{val}}$;\quad
                    $p \leftarrow 0$;\quad
@@ -258,9 +258,9 @@ The hybrid Forgan uses as adversarial term the Binary Cross-Entropy loss and the
     -\frac{1}{B} \sum_{b=1}^B \log D(G(z^{(b)}, c^{(b)}))
   }_{\text{BCE adversarial loss}}
   \;+\;
-  \frac{\lambda}{B}\;
   \underbrace{
-    \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
+    \frac{\lambda}{B}\;
+    \sum_{b=1}^B \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
   }_{\text{Energy Score (\ref{alg:energy_score})}}
   \label{eq:cgan_hybrid}
 \end{equation}
@@ -319,9 +319,9 @@ output is an unbounded real score.
   \underbrace{
     -\frac{1}{B} \sum_{i=1}^B D(G(z^{(b)}, c^{(b)}))}_{\text{Wasserstein generator loss}}
   \;+\;
-  \frac{\lambda}{B}\;
   \underbrace{
-    \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
+    \frac{\lambda}{B}\;
+    \sum_{i=1}^B \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
   }_{\text{Energy Score (\ref{alg:energy_score})}}
   \label{eq:cwgan_hybrid}
 \end{equation}
