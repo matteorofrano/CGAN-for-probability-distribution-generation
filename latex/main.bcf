@@ -2394,6 +2394,16 @@
     <bcf:citekey order="16" intorder="1">srforgan:srforgan</bcf:citekey>
     <bcf:citekey order="17" intorder="1">srforgan:srforgan</bcf:citekey>
     <bcf:citekey order="18" intorder="1">srforgan:srforgan</bcf:citekey>
+    <bcf:citekey order="19" intorder="1">heston1993</bcf:citekey>
+    <bcf:citekey order="20" intorder="1">cox1985</bcf:citekey>
+    <bcf:citekey order="21" intorder="1">feller1951</bcf:citekey>
+    <bcf:citekey order="22" intorder="1">kloeden1992</bcf:citekey>
+    <bcf:citekey order="23" intorder="1">milstein1974</bcf:citekey>
+    <bcf:citekey order="24" intorder="1">lord2010</bcf:citekey>
+    <bcf:citekey order="25" intorder="1">heston1993</bcf:citekey>
+    <bcf:citekey order="26" intorder="1">albrecher2007</bcf:citekey>
+    <bcf:citekey order="27" intorder="1">gilpelaez1951</bcf:citekey>
+    <bcf:citekey order="28" intorder="1">bluestein1970</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">

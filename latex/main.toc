@@ -1,29 +1,63 @@
 \babel@toc {english}{}\relax 
-\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Training Data}{3}{section.1.1}%
-\contentsline {subsection}{\numberline {1.1.1}Condition input data}{4}{subsection.1.1.1}%
-\contentsline {subsection}{\numberline {1.1.2}Target output data}{4}{subsection.1.1.2}%
-\contentsline {section}{\numberline {1.2}Models and architectures overview}{6}{section.1.2}%
-\contentsline {subsection}{\numberline {1.2.1}CGAN formulation}{6}{subsection.1.2.1}%
-\contentsline {subsection}{\numberline {1.2.2}Wasserstein CGAN formulation}{7}{subsection.1.2.2}%
-\contentsline {subsection}{\numberline {1.2.3}ForGAN}{11}{subsection.1.2.3}%
-\contentsline {section}{\numberline {1.3}Performance metrics and statistical tests}{12}{section.1.3}%
-\contentsline {subsection}{\numberline {1.3.1}Distance metrics}{13}{subsection.1.3.1}%
-\contentsline {subsection}{\numberline {1.3.2}The Kolmogorov-Smirnov test}{13}{subsection.1.3.2}%
-\contentsline {chapter}{\numberline {2}CGAN experimental results}{15}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Mean and Standard Deviation as target}{15}{section.2.1}%
-\contentsline {section}{\numberline {2.2}Bins probabilities as target}{17}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}Conditional GAN results}{17}{subsection.2.2.1}%
-\contentsline {subsection}{\numberline {2.2.2}Conditional Wasserstein GAN results}{20}{subsection.2.2.2}%
-\contentsline {section}{\numberline {2.3}Possible improvements}{23}{section.2.3}%
-\contentsline {chapter}{\numberline {3}ForGAN architecture}{24}{chapter.3}%
-\contentsline {subsection}{\numberline {3.0.1}ForGAN simplified task}{25}{subsection.3.0.1}%
-\contentsline {subsection}{\numberline {3.0.2}ForGAN results}{27}{subsection.3.0.2}%
-\contentsline {subsection}{\numberline {3.0.3}ForWGAN results}{29}{subsection.3.0.3}%
-\contentsline {subsection}{\numberline {3.0.4}Improvements}{31}{subsection.3.0.4}%
-\contentsline {chapter}{\numberline {4}Beyond adversarial loss function}{33}{chapter.4}%
-\contentsline {section}{\numberline {4.1}SRForGAN Architecture}{34}{section.4.1}%
-\contentsline {section}{\numberline {4.2}SRForGAN and Hybrid Forgan results}{39}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}SRForGAN results}{40}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}Hybrid ForGAN results}{41}{subsection.4.2.2}%
-\contentsline {subsection}{\numberline {4.2.3}Hybrid ForWGAN results}{43}{subsection.4.2.3}%
+\contentsline {chapter}{\numberline {1}Introduction}{4}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Training Data}{4}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Condition input data}{5}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Target output data}{5}{subsection.1.1.2}%
+\contentsline {section}{\numberline {1.2}Models and architectures overview}{7}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}CGAN formulation}{7}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Wasserstein CGAN formulation}{8}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}ForGAN}{12}{subsection.1.2.3}%
+\contentsline {section}{\numberline {1.3}Performance metrics and statistical tests}{13}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Distance metrics}{14}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}The Kolmogorov-Smirnov test}{14}{subsection.1.3.2}%
+\contentsline {chapter}{\numberline {2}CGAN experimental results}{16}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Mean and Standard Deviation as target}{16}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Bins probabilities as target}{18}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Conditional GAN results}{18}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Conditional Wasserstein GAN results}{21}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}Possible improvements}{24}{section.2.3}%
+\contentsline {chapter}{\numberline {3}ForGAN architecture}{25}{chapter.3}%
+\contentsline {subsection}{\numberline {3.0.1}ForGAN simplified task}{26}{subsection.3.0.1}%
+\contentsline {subsection}{\numberline {3.0.2}ForGAN results}{28}{subsection.3.0.2}%
+\contentsline {subsection}{\numberline {3.0.3}ForWGAN results}{30}{subsection.3.0.3}%
+\contentsline {subsection}{\numberline {3.0.4}Improvements}{32}{subsection.3.0.4}%
+\contentsline {chapter}{\numberline {4}Beyond adversarial loss function}{34}{chapter.4}%
+\contentsline {section}{\numberline {4.1}SRForGAN Architecture}{35}{section.4.1}%
+\contentsline {section}{\numberline {4.2}SRForGAN and Hybrid Forgan results}{40}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}SRForGAN results}{41}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Hybrid ForGAN results}{42}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Hybrid ForWGAN results}{44}{subsection.4.2.3}%
+\contentsline {chapter}{\numberline {5}The Heston Stochastic Volatility Data Simulator}{46}{chapter.5}%
+\contentsline {section}{\numberline {5.1}The Heston Stochastic Volatility Model}{46}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Limitations of Constant-Volatility Models}{46}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}The Heston System of SDEs}{46}{subsection.5.1.2}%
+\contentsline {paragraph}{Log-price SDE (Eq.\,\ref {eq:logprice_sde}).}{47}{section*.2}%
+\contentsline {paragraph}{Variance SDE (Eq.\,\ref {eq:var_sde}).}{47}{section*.3}%
+\contentsline {paragraph}{Correlation (Eq.\,\ref {eq:correlation}).}{47}{section*.4}%
+\contentsline {subsection}{\numberline {5.1.3}The Feller Condition}{47}{subsection.5.1.3}%
+\contentsline {section}{\numberline {5.2}Correlated Brownian Increments}{47}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Numerical Discretisation}{48}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Euler--Maruyama for the Log-Price}{48}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Milstein Scheme with Full Truncation for the Variance}{48}{subsection.5.3.2}%
+\contentsline {paragraph}{Full truncation.}{48}{section*.5}%
+\contentsline {section}{\numberline {5.4}The Characteristic Function}{49}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Definition and Properties}{49}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}The Heston Characteristic Function}{49}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}The ``Little Trap'' Formulation}{49}{subsection.5.4.3}%
+\contentsline {section}{\numberline {5.5}Fourier Inversion of the Characteristic Function}{50}{section.5.5}%
+\contentsline {subsection}{\numberline {5.5.1}The Gil-Pelaez Inversion Formula}{50}{subsection.5.5.1}%
+\contentsline {subsection}{\numberline {5.5.2}Simpson's Rule Quadrature Weights}{50}{subsection.5.5.2}%
+\contentsline {section}{\numberline {5.6}From Standard FFT to Fractional FFT}{51}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}The Discrete Fourier Transform}{51}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}The Fractional DFT and Bluestein's Algorithm}{51}{subsection.5.6.2}%
+\contentsline {paragraph}{The Bluestein identity.}{51}{section*.6}%
+\contentsline {paragraph}{Decoupling in the simulator.}{52}{section*.7}%
+\contentsline {section}{\numberline {5.7}The PDF Computation Pipeline}{52}{section.5.7}%
+\contentsline {subsection}{\numberline {5.7.1}Grid Initialisation}{53}{subsection.5.7.1}%
+\contentsline {subsection}{\numberline {5.7.2}Phase Shift for the Lower Bound}{53}{subsection.5.7.2}%
+\contentsline {subsection}{\numberline {5.7.3}PDF Extraction and Clipping}{53}{subsection.5.7.3}%
+\contentsline {subsection}{\numberline {5.7.4}Binning and Normalisation}{53}{subsection.5.7.4}%
+\contentsline {subsection}{\numberline {5.7.5}Raw Moment Output}{54}{subsection.5.7.5}%
+\contentsline {section}{\numberline {5.8}Monte Carlo Fallback and Validation}{54}{section.5.8}%
+\contentsline {section}{\numberline {5.9}Parameter Sampling Strategy}{54}{section.5.9}%
+\contentsline {section}{\numberline {5.10}Summary}{55}{section.5.10}%
