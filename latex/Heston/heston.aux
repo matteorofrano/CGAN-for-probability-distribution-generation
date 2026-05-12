@@ -83,10 +83,47 @@
 \newlabel{sec:params}{{5.9}{54}{Parameter Sampling Strategy}{section.5.9}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5.10}Summary}{55}{section.5.10}\protected@file@percent }
 \newlabel{sec:summary}{{5.10}{55}{Summary}{section.5.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.11}Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{55}{section.5.11}\protected@file@percent }
+\newlabel{sec:frfft_validation}{{5.11}{55}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{section.5.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11.1}Theoretical Background}{55}{subsection.5.11.1}\protected@file@percent }
+\newlabel{subsec:bs_cf}{{5.11.1}{55}{Theoretical Background}{subsection.5.11.1}{}}
+\newlabel{eq:bs_sde}{{5.38}{55}{Theoretical Background}{equation.5.38}{}}
+\newlabel{eq:bs_normal}{{5.39}{56}{Theoretical Background}{equation.5.39}{}}
+\newlabel{eq:bs_cf}{{5.40}{56}{Theoretical Background}{equation.5.40}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11.2}Experimental Design}{56}{subsection.5.11.2}\protected@file@percent }
+\newlabel{subsec:experiment_design}{{5.11.2}{56}{Experimental Design}{subsection.5.11.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Simulation parameters.}{56}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{frFFT hyper-parameters.}{56}{section*.9}\protected@file@percent }
+\newlabel{eq:lambda}{{5.41}{56}{frFFT hyper-parameters}{equation.5.41}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11.3}Step A: Validation of the Analytical Moments}{56}{subsection.5.11.3}\protected@file@percent }
+\newlabel{subsec:step_a}{{5.11.3}{56}{Step A: Validation of the Analytical Moments}{subsection.5.11.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Step A: comparison between directly computed analytical parameters and those returned by \texttt  {DataSimulator.get\_pdf(n\_bins=None)}. All differences are zero to double-precision.}}{57}{table.5.1}\protected@file@percent }
+\newlabel{tab:step_a}{{5.1}{57}{Step A: comparison between directly computed analytical parameters and those returned by \texttt {DataSimulator.get\_pdf(n\_bins=None)}. All differences are zero to double-precision}{table.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11.4}Step B: frFFT Inversion and the Aliasing Phenomenon}{57}{subsection.5.11.4}\protected@file@percent }
+\newlabel{subsec:step_b}{{5.11.4}{57}{Step B: frFFT Inversion and the Aliasing Phenomenon}{subsection.5.11.4}{}}
+\newlabel{eq:gp_discrete}{{5.42}{57}{Step B: frFFT Inversion and the Aliasing Phenomenon}{equation.5.42}{}}
+\newlabel{eq:fft_input}{{5.43}{57}{Step B: frFFT Inversion and the Aliasing Phenomenon}{equation.5.43}{}}
+\newlabel{eq:frfft_sum}{{5.44}{57}{Step B: frFFT Inversion and the Aliasing Phenomenon}{equation.5.44}{}}
+\@writefile{toc}{\contentsline {paragraph}{The aliasing phenomenon.}{57}{section*.10}\protected@file@percent }
+\newlabel{eq:raw_integral}{{5.45}{57}{The aliasing phenomenon}{equation.5.45}{}}
+\@writefile{toc}{\contentsline {paragraph}{Moment accuracy.}{58}{section*.11}\protected@file@percent }
+\newlabel{eq:frfft_moments}{{5.46}{58}{Moment accuracy}{equation.5.46}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.2}{\ignorespaces Step B: moment accuracy of the frFFT-recovered density. The frFFT mean matches the analytical mean to within $\approx 10^{-7}$ and the standard deviation to within $\approx 10^{-7}$.}}{58}{table.5.2}\protected@file@percent }
+\newlabel{tab:step_b}{{5.2}{58}{Step B: moment accuracy of the frFFT-recovered density. The frFFT mean matches the analytical mean to within $\approx 10^{-7}$ and the standard deviation to within $\approx 10^{-7}$}{table.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11.5}Step C: Distribution Metrics on the Fine Grid}{58}{subsection.5.11.5}\protected@file@percent }
+\newlabel{subsec:step_c}{{5.11.5}{58}{Step C: Distribution Metrics on the Fine Grid}{subsection.5.11.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.3}{\ignorespaces Step C: distribution metrics between the frFFT density and the analytical Gaussian, computed at the $\approx 38$ active fine-grid points per trajectory. All finite metrics are exactly zero; the \texttt  {nan} entries in the JS column are a numerical artefact of zero mass at boundary points and are interpreted as zero.}}{59}{table.5.3}\protected@file@percent }
+\newlabel{tab:step_c}{{5.3}{59}{Step C: distribution metrics between the frFFT density and the analytical Gaussian, computed at the $\approx 38$ active fine-grid points per trajectory. All finite metrics are exactly zero; the \texttt {nan} entries in the JS column are a numerical artefact of zero mass at boundary points and are interpreted as zero}{table.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11.6}Residual Analysis}{59}{subsection.5.11.6}\protected@file@percent }
+\newlabel{subsec:residuals}{{5.11.6}{59}{Residual Analysis}{subsection.5.11.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $10^{-14}$ (trajectory 0) and $10^{-15}$ (trajectories 1--3), confirming that the residuals are at the level of double-precision machine epsilon. The oscillatory, zero-mean pattern is characteristic of floating-point rounding noise with no systematic bias.}}{60}{figure.5.1}\protected@file@percent }
+\newlabel{fig:frfft_residuals}{{5.1}{60}{Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $10^{-14}$ (trajectory 0) and $10^{-15}$ (trajectories 1--3), confirming that the residuals are at the level of double-precision machine epsilon. The oscillatory, zero-mean pattern is characteristic of floating-point rounding noise with no systematic bias}{figure.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11.7}Summary and Interpretation}{61}{subsection.5.11.7}\protected@file@percent }
+\newlabel{subsec:validation_summary}{{5.11.7}{61}{Summary and Interpretation}{subsection.5.11.7}{}}
 \@setckpt{Heston/heston}{
-\setcounter{page}{56}
-\setcounter{equation}{37}
-\setcounter{enumi}{5}
+\setcounter{page}{62}
+\setcounter{equation}{46}
+\setcounter{enumi}{4}
 \setcounter{enumii}{0}
 \setcounter{enumiii}{0}
 \setcounter{enumiv}{0}
@@ -94,13 +131,13 @@
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
 \setcounter{chapter}{5}
-\setcounter{section}{10}
-\setcounter{subsection}{0}
+\setcounter{section}{11}
+\setcounter{subsection}{7}
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{0}
-\setcounter{table}{0}
+\setcounter{figure}{1}
+\setcounter{table}{3}
 \setcounter{tabx@nest}{0}
 \setcounter{listtotal}{0}
 \setcounter{listcount}{0}
@@ -222,10 +259,10 @@
 \setcounter{float@type}{16}
 \setcounter{parentequation}{0}
 \setcounter{lstnumber}{1}
-\setcounter{section@level}{1}
-\setcounter{Item}{7}
+\setcounter{section@level}{2}
+\setcounter{Item}{11}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{56}
+\setcounter{bookmark@seq@number}{64}
 \setcounter{r@tfl@t}{0}
 \setcounter{algorithm}{14}
 \setcounter{ALC@unique}{181}

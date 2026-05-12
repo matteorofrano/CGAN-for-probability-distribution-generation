@@ -61,3 +61,15 @@
 \contentsline {section}{\numberline {5.8}Monte Carlo Fallback and Validation}{54}{section.5.8}%
 \contentsline {section}{\numberline {5.9}Parameter Sampling Strategy}{54}{section.5.9}%
 \contentsline {section}{\numberline {5.10}Summary}{55}{section.5.10}%
+\contentsline {section}{\numberline {5.11}Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{55}{section.5.11}%
+\contentsline {subsection}{\numberline {5.11.1}Theoretical Background}{55}{subsection.5.11.1}%
+\contentsline {subsection}{\numberline {5.11.2}Experimental Design}{56}{subsection.5.11.2}%
+\contentsline {paragraph}{Simulation parameters.}{56}{section*.8}%
+\contentsline {paragraph}{frFFT hyper-parameters.}{56}{section*.9}%
+\contentsline {subsection}{\numberline {5.11.3}Step A: Validation of the Analytical Moments}{56}{subsection.5.11.3}%
+\contentsline {subsection}{\numberline {5.11.4}Step B: frFFT Inversion and the Aliasing Phenomenon}{57}{subsection.5.11.4}%
+\contentsline {paragraph}{The aliasing phenomenon.}{57}{section*.10}%
+\contentsline {paragraph}{Moment accuracy.}{58}{section*.11}%
+\contentsline {subsection}{\numberline {5.11.5}Step C: Distribution Metrics on the Fine Grid}{58}{subsection.5.11.5}%
+\contentsline {subsection}{\numberline {5.11.6}Residual Analysis}{59}{subsection.5.11.6}%
+\contentsline {subsection}{\numberline {5.11.7}Summary and Interpretation}{61}{subsection.5.11.7}%
