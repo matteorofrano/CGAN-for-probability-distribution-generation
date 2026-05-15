@@ -2394,6 +2394,13 @@
     <bcf:citekey order="16" intorder="1">srforgan:srforgan</bcf:citekey>
     <bcf:citekey order="17" intorder="1">srforgan:srforgan</bcf:citekey>
     <bcf:citekey order="18" intorder="1">srforgan:srforgan</bcf:citekey>
+    <bcf:citekey order="19" intorder="1">heston:heston_paper</bcf:citekey>
+    <bcf:citekey order="20" intorder="1">heston:cir_process</bcf:citekey>
+    <bcf:citekey order="21" intorder="1">heston:euler_maruyama</bcf:citekey>
+    <bcf:citekey order="22" intorder="1">heston:milstein</bcf:citekey>
+    <bcf:citekey order="23" intorder="1">heston:heston_paper</bcf:citekey>
+    <bcf:citekey order="24" intorder="1">heston:little_trap</bcf:citekey>
+    <bcf:citekey order="25" intorder="1">heston:gil_pelaez</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">
