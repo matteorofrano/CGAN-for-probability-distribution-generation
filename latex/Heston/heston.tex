@@ -223,58 +223,76 @@ where the transforms are taken on a zero-padded array of length $M \geq 2N - 1$ 
     \item Multiply the first $N$ outputs: $y_k = e^{-i\pi\alpha k^2} Y_k$, $k = 0, \ldots, N-1$.
 \end{enumerate}
 
+
+
 \begin{algorithm}[H]
-    \label{alg:frFFT}
-\caption{Batched Fractional FFT via Bluestein's Identity}
+    \label{alg:frFTT}
+\caption{Batched Fractional FFT via Bluestein's Convolution Identity}
 \begin{algorithmic}[1]
-\REQUIRE Input batch $\mathbf{X} \in \mathbb{C}^{B \times N}$, fractional parameter
-         $\alpha = \eta\lambda / (2\pi)$
+\REQUIRE Input batch $\mathbf{X} \in \mathbb{C}^{B \times N}$,
+         fractional parameter $\alpha = \eta\lambda/(2\pi)$
 \ENSURE  Output batch $\mathbf{Y} \in \mathbb{C}^{B \times N}$ where
-         $Y_{b,k} = \sum_{j=0}^{N-1} X_{b,j}\, e^{-i 2\pi\alpha j k}$
+         $Y_{b,k} = \sum_{j=0}^{N-1} X_{b,j}\,e^{-i2\pi\alpha jk}$
 
-\LINECOMMENT{Compute next power-of-two FFT length to avoid circular aliasing}
-\STATE $M \leftarrow 2^{\lceil \log_2(2N - 1) \rceil}$
+\LINECOMMENT{%
+  Bluestein rewrites the bilinear exponent as a sum of three quadratic ones:
+  $jk = \tfrac{1}{2}\bigl[j^2 + k^2 - (k-j)^2\bigr]$, so
+  $e^{-i2\pi\alpha jk} = e^{-i\pi\alpha j^2}\,e^{-i\pi\alpha k^2}\,
+                          e^{\,i\pi\alpha(k-j)^2}$.
+  The target sum therefore factorises as a convolution:
+  $Y_{b,k} = e^{-i\pi\alpha k^2}\!\sum_{j=0}^{N-1}
+    \underbrace{X_{b,j}\,e^{-i\pi\alpha j^2}}_{a_{b,j}}\;
+    \underbrace{e^{\,i\pi\alpha(k-j)^2}}_{h_{k-j}}$
+}
 
-\LINECOMMENT{Build the chirp sequence $\text{chirp}[j] = e^{i\pi\alpha j^2}$, $j = 0,\ldots,N-1$}
-\STATE $\mathbf{j} \leftarrow [0,\, 1,\, \ldots,\, N-1]^{\top}$
-\STATE $\mathbf{chirp} \leftarrow \exp\!\left(i\pi\alpha\,\mathbf{j}^{\odot 2}\right)
-       \in \mathbb{C}^{N}$
-
-\LINECOMMENT{Phase-modulate each input row by the conjugate chirp}
-\FOR{$b = 1$ \textbf{to} $B$}
-    \STATE $\mathbf{a}_{b} \leftarrow \mathbf{X}_{b} \odot \overline{\mathbf{chirp}}$
-    \COMMENT{$a_{b,j} = X_{b,j}\, e^{-i\pi\alpha j^{2}}$}
+\LINECOMMENT{Step 1 --- absorb the $j$-dependent phase into the input}
+\FOR{$j = 1$ \textbf{to} $J$}
+    \STATE $a_{j,b} \leftarrow X_{j, b}\,e^{-i\pi\alpha b^2}$,\quad
+           $b = 0,\ldots,N-1$
 \ENDFOR
 
-\LINECOMMENT{Zero-pad modulated inputs to length $M$}
-\STATE $\mathbf{a}_{\mathrm{pad}} \leftarrow \mathbf{0}_{B \times M}$
-\STATE $\mathbf{a}_{\mathrm{pad}}[\,:,\; 0 : N] \leftarrow \mathbf{a}$
+\LINECOMMENT{Step 2 --- define the quadratic-phase convolution kernel}
+\STATE $h_m \leftarrow e^{\,i\pi\alpha m^2}$,\quad $m = 0,\ldots,N-1$
 
-\LINECOMMENT{Build the circular convolution kernel of length $M$}
+\LINECOMMENT{Step 3 --- next power-of-two length prevents circular aliasing}
+\STATE $M \leftarrow 2^{\lceil\log_2(2N-1)\rceil}$
+
+\LINECOMMENT{Step 4 --- zero-pad $\mathbf{a}$ to length $M$}
+\STATE $\mathbf{a}_{\mathrm{pad}} \leftarrow \mathbf{0}_{J\times M}$;\quad
+       $\mathbf{a}_{\mathrm{pad}}[\,:,\,0:N] \leftarrow \mathbf{a}$
+
+\LINECOMMENT{%
+  Step 5 --- embed $h$ in circular order so that linear and circular
+  convolution agree on indices $0,\ldots,N-1$
+}
 \STATE $\mathbf{h}_{\mathrm{pad}} \leftarrow \mathbf{0}_{M}$
-\STATE $\mathbf{h}_{\mathrm{pad}}[0 : N]
-       \leftarrow \mathbf{chirp}$
-       \COMMENT{causal half: $h[0],\ldots, h[N-1]$}
-\STATE $\mathbf{h}_{\mathrm{pad}}[M-N+1 : M]
-       \leftarrow \mathrm{flip}\!\left(\mathbf{chirp}[1:]\right)$
-       \COMMENT{acausal half: $h[-(N-1)],\ldots, h[-1]$}
+\STATE $\mathbf{h}_{\mathrm{pad}}[0:N]
+       \leftarrow [h_0,\,h_1,\,\ldots,\,h_{N-1}]$
+       \COMMENT{non-negative lags}
+\STATE $\mathbf{h}_{\mathrm{pad}}[M-N+1:M]
+       \leftarrow [h_{N-1},\,\ldots,\,h_1]$
+       \COMMENT{negative lags wrapped to the tail}
 
-\LINECOMMENT{Circular convolution via FFT (complexity $\mathcal{O}(M\log M)$)}
-\STATE $\hat{\mathbf{A}} \leftarrow \mathrm{FFT}\!\left(\mathbf{a}_{\mathrm{pad}},\; \mathrm{axis}=1\right)$
-       \COMMENT{shape $B \times M$}
-\STATE $\hat{\mathbf{H}} \leftarrow \mathrm{FFT}\!\left(\mathbf{h}_{\mathrm{pad}}\right)$
-       \COMMENT{shape $M$, shared across the batch}
+\LINECOMMENT{%
+  Step 6 --- linear convolution $\mathbf{a}\star\mathbf{h}$ via
+  the convolution theorem; complexity $\mathcal{O}(M\log M)$ per batch
+}
 \STATE $\mathbf{conv} \leftarrow
-       \mathrm{IFFT}\!\left(\hat{\mathbf{A}} \odot \hat{\mathbf{H}},\; \mathrm{axis}=1\right)$
-       \COMMENT{shape $B \times M$}
+       \mathrm{IFFT}\!\Bigl(
+         \mathrm{FFT}(\mathbf{a}_{\mathrm{pad}},\;\mathrm{axis}=1)
+         \odot
+         \mathrm{FFT}(\mathbf{h}_{\mathrm{pad}})
+       \Bigr)$
+       \COMMENT{shape $J\times M$; $\mathbf{h}_{\mathrm{pad}}$ is shared across the batch}
 
-\LINECOMMENT{Multiply first $N$ outputs by the conjugate chirp to complete Bluestein's identity}
-\STATE $\mathbf{Y} \leftarrow
-       \mathbf{conv}[\,:,\; 0 : N]
-       \odot \overline{\mathbf{chirp}}$
-       \COMMENT{$Y_{b,k} = e^{-i\pi\alpha k^{2}}\,\mathrm{conv}_{b,k}$}
+\LINECOMMENT{%
+  Step 7 --- multiply by the $k$-dependent phase to complete Bluestein's
+  factorisation; keep only the first $N$ outputs
+}
+\STATE $Y_{j,k} \leftarrow e^{-i\pi\alpha k^2}\,\mathrm{conv}_{j,k}$,\quad
+       $k = 0,\ldots,N-1,\quad j = 1,\ldots,J$
 
-\RETURN $\mathbf{Y}$
+\RETURN $\mathbf{Y} \in \mathbb{C}^{J\times N}$
 \end{algorithmic}
 \end{algorithm}
 
