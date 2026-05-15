@@ -1,19 +1,23 @@
 \chapter{The Heston Stochastic Volatility Data Simulator}
 \label{chap:heston}
 
-This chapter provides a self-contained technical exposition of the \texttt{HestonSimulator} class, a data-generation object that produces trajectories of financial log-prices under the Heston (1993) stochastic volatility model and computes the conditional probability density function (PDF) of future log-prices using the Fractional Fast Fourier Transform (frFFT). Every mathematical concept required to understand the implementation is introduced from first principles.
+This chapter provides experimental results  of the SRForgan applied to Heston model trajectories. Moreover, a technical exposition of how the trajectories and probability distribution functions is provided. In particular the \texttt{HestonSimulator} class, a data-generation object that produces trajectories of financial log-prices under the Heston (1993) stochastic volatility model and computes the conditional probability density function (PDF) of future log-prices using the Fractional Fast Fourier Transform (frFFT).
+Every mathematical concept required to understand the implementation is introduced from first principles.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{The Heston Stochastic Volatility Model}
 \label{sec:heston_model}
 
-\subsection{Limitations of Constant-Volatility Models}
-
-The classical Black--Scholes model assumes that the instantaneous volatility of an asset price is a deterministic constant $\sigma$. This assumption leads to a log-normal distribution for the terminal asset price, which is analytically tractable but empirically inadequate: financial markets exhibit a so-called \textit{volatility smile}, whereby options at different strikes imply different values of $\sigma$ when inverted through the Black--Scholes formula. This observation alone establishes that volatility cannot be constant.
+The classical Black--Scholes model assumes that the instantaneous volatility of an asset price is a deterministic constant $\sigma$.
+This assumption leads to a log-normal distribution for the terminal asset price, which is analytically tractable but empirically inadequate sincefinancial markets exhibit a so-called
+\textit{volatility smile}, whereby options at different strikes imply different values of $\sigma$ 
+when inverted through the Black--Scholes formula. 
+This observation alone establishes that volatility cannot be constant.
 
 \subsection{The Heston System of SDEs}
 
-To remedy this shortcoming, \cite{heston1993} introduced a two-factor model in which both the log-price $X_t = \ln S_t$ and the instantaneous variance $v_t$ are stochastic. The system of stochastic differential equations (SDEs) in the \texttt{HestonSimulator} is written in \textit{log-price form}:
+To remedy this shortcoming, \cite{heston:heston_paper} introduced in 1993 a two-factor model in which both the log-price $X_t = \ln S_t$ and the instantaneous variance $v_t$ are stochastic.
+The system of stochastic differential equations (SDEs) in the \texttt{HestonSimulator} is written in \textit{log-price form}:
 
 \begin{align}
     dX_t &= \left(\mu - \tfrac{1}{2}v_t\right)dt + \sqrt{v_t}\, dW_t^X \label{eq:logprice_sde}\\
@@ -22,52 +26,42 @@ To remedy this shortcoming, \cite{heston1993} introduced a two-factor model in w
 \end{align}
 
 Each term carries a precise financial interpretation.
+\begin{itemize}
+    \item Log-price SDE (Eq. \ref{eq:logprice_sde}). Applying It\^{o}'s lemma to $X_t = \ln S_t$ under the assumption that $S_t$ follows a geometric Brownian motion with stochastic diffusion coefficient $\sqrt{v_t}$ yields the drift $\mu - v_t/2$. The term $\mu$ is the risk-neutral drift (typically the risk-free rate), while the $-v_t/2$ correction, 
+    called the \textit{It\^{o} correction}, arises from the quadratic variation of $X_t$ and ensures that $\mathbb{E}[S_t] = S_0 e^{\mu t}$.
+    \item Variance SDE (Eq.\,\ref{eq:var_sde}). The variance $v_t$ evolves according to a \textit{Cox--Ingersoll--Ross} (CIR) process \cite{heston:cir_process}.
+     The three parameters have well-defined roles: $\kappa > 0$ is the \textit{mean-reversion speed}, 
+     controlling how quickly $v_t$ is pulled back toward its long-run equilibrium; $\theta > 0$ is
+      the \textit{long-run variance}, the level to which $v_t$ reverts; and $\sigma_v > 0$ is the \textit{volatility of volatility} (vol-of-vol), 
+      governing the magnitude of random fluctuations in $v_t$.
+      \item Correlation (Eq.\,\ref{eq:correlation}). The two Brownian motions $W^X$ and $W^v$ are correlated with instantaneous correlation $\rho \in (-1, 1)$. For equities, $\rho$ is typically negative: a negative shock to the asset price tends to be accompanied by an increase in variance, a well-documented empirical phenomenon known as the \textit{leverage effect}.
+\end{itemize}
 
-\paragraph{Log-price SDE (Eq.\,\ref{eq:logprice_sde}).} Applying It\^{o}'s lemma to $X_t = \ln S_t$ under the assumption that $S_t$ follows a geometric Brownian motion with stochastic diffusion coefficient $\sqrt{v_t}$ yields the drift $\mu - v_t/2$. The term $\mu$ is the risk-neutral drift (typically the risk-free rate), while the $-v_t/2$ correction, called the \textit{It\^{o} correction}, arises from the quadratic variation of $X_t$ and ensures that $\mathbb{E}[S_t] = S_0 e^{\mu t}$.
-
-\paragraph{Variance SDE (Eq.\,\ref{eq:var_sde}).} The variance $v_t$ evolves according to a \textit{Cox--Ingersoll--Ross} (CIR) process \cite{cox1985}. The three parameters have well-defined roles: $\kappa > 0$ is the \textit{mean-reversion speed}, controlling how quickly $v_t$ is pulled back toward its long-run equilibrium; $\theta > 0$ is the \textit{long-run variance}, the level to which $v_t$ reverts; and $\sigma_v > 0$ is the \textit{volatility of volatility} (vol-of-vol), governing the magnitude of random fluctuations in $v_t$.
-
-\paragraph{Correlation (Eq.\,\ref{eq:correlation}).} The two Brownian motions $W^X$ and $W^v$ are correlated with instantaneous correlation $\rho \in (-1, 1)$. For equities, $\rho$ is typically negative: a negative shock to the asset price tends to be accompanied by an increase in variance, a well-documented empirical phenomenon known as the \textit{leverage effect}.
-
-\subsection{The Feller Condition}
-
-A key requirement for the CIR process is that $v_t \geq 0$ at all times. \cite{feller1951} proved that the boundary $v_t = 0$ is never reached (i.e., $v_t > 0$ almost surely) if and only if
+A key requirement for the CIR process is that $v_t \geq 0$ at all times. it has been proved that the boundary $v_t = 0$ is never reached (i.e., $v_t > 0$ almost surely) if and only if
 
 \begin{equation}
     2\kappa\theta > \sigma_v^2.
     \label{eq:feller}
 \end{equation}
 
-When condition (\ref{eq:feller}) is violated, the process touches zero with positive probability. In the simulator, this boundary is handled numerically by the \textit{full-truncation} scheme described in Section~\ref{sec:discretisation}.
+When condition (\ref{eq:feller}) is violated, the process touches zero with positive probability. In the simulator, this boundary is handled numerically by the \textit{full-truncation} scheme described in Section~\ref{sec:discretisation}.\\
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{Correlated Brownian Increments}
-\label{sec:brownian}
 
-To simulate the correlated pair $(dW_t^X, dW_t^v)$ over a discrete time step $\Delta t$, one exploits the fact that any bivariate Gaussian vector with correlation $\rho$ can be constructed from two independent standard normals $Z_1, Z_2 \sim \mathcal{N}(0,1)$ via the \textit{Cholesky decomposition}. Specifically, the increments
+To simulate and compute the correlated pair $(dW_t^X, dW_t^v)$ over a discrete time step $\Delta t$, one exploits the fact that any bivariate Gaussian vector with correlation $\rho$ can be constructed from two independent standard normals $Z_1, Z_2 \sim \mathcal{N}(0,1)$ via the \textit{Cholesky decomposition}. Specifically, the increments
 
 \begin{align}
     \Delta W^X &= \sqrt{\Delta t}\, Z_1 \label{eq:dWX}\\
     \Delta W^v &= \sqrt{\Delta t}\left(\rho\, Z_1 + \sqrt{1-\rho^2}\, Z_2\right) \label{eq:dWv}
 \end{align}
 
-satisfy $\mathbb{E}[\Delta W^X] = \mathbb{E}[\Delta W^v] = 0$, $\text{Var}(\Delta W^X) = \text{Var}(\Delta W^v) = \Delta t$, and $\text{Cov}(\Delta W^X, \Delta W^v) = \rho\,\Delta t$, which matches the covariance structure prescribed by Eq.~(\ref{eq:correlation}). This construction is implemented directly in \texttt{get\_paths()} (lines 225--228 of the source):
-
-\begin{equation}
-    \texttt{dW\_v} = \sqrt{\Delta t}\bigl(\rho\cdot Z_1 + \sqrt{1-\rho^2}\cdot Z_2\bigr).
-\end{equation}
-
-The decomposition is exact regardless of the sign or magnitude of $\rho$, provided $|\rho| < 1$.
-
+satisfy $\mathbb{E}[\Delta W^X] = \mathbb{E}[\Delta W^v] = 0$, $\text{Var}(\Delta W^X) = \text{Var}(\Delta W^v) = \Delta t$, and $\text{Cov}(\Delta W^X, \Delta W^v) = \rho\,\Delta t$, which matches the covariance structure prescribed by Eq.~(\ref{eq:correlation}). 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{Numerical Discretisation}
+\subsection{Numerical Discretisation of the Heston SDEs}
 \label{sec:discretisation}
 
-Equations (\ref{eq:logprice_sde})--(\ref{eq:var_sde}) do not admit closed-form solutions in general, so they must be integrated numerically. The simulator supports two schemes.
-
-\subsection{Euler--Maruyama for the Log-Price}
-
-The \textit{Euler--Maruyama} scheme \cite{kloeden1992} is the SDE analogue of Euler's method for ODEs. For a generic It\^{o} SDE $dY_t = a(Y_t)\,dt + b(Y_t)\,dW_t$, the scheme reads
+Since equations (\ref{eq:logprice_sde})--(\ref{eq:var_sde}) do not admit closed-form solutions in general, so they must be integrated numerically. The proposed simulator supports two schemes:\\
+The \textit{Euler--Maruyama} scheme \cite{heston:euler_maruyama} is the SDE analogue of Euler's method for ODEs. For a generic It\^{o} SDE $dY_t = a(Y_t)\,dt + b(Y_t)\,dW_t$, the scheme reads
 
 \begin{equation}
     Y_{n+1} = Y_n + a(Y_n)\,\Delta t + b(Y_n)\,\Delta W_n.
@@ -82,19 +76,16 @@ Applied to the log-price SDE (\ref{eq:logprice_sde}), with $\hat{v}_n = \max(v_n
 \end{equation}
 
 The Euler--Maruyama scheme has strong convergence order $1/2$ and weak convergence order $1$ for SDEs with globally Lipschitz coefficients.
-
-\subsection{Milstein Scheme with Full Truncation for the Variance}
-
-The \textit{Milstein scheme} \cite{milstein1974} improves upon Euler--Maruyama by including an additional correction term derived from It\^{o}'s formula applied to the diffusion coefficient. For an SDE with diffusion $b(Y) = \sigma_v\sqrt{Y}$, the correction is
+The second proposed discretization technique is the \textit{Milstein scheme} \cite{heston:milstein} improves upon Euler--Maruyama by including an additional correction term derived from It\^{o}'s formula applied to the diffusion coefficient. For an SDE with diffusion $b(Y) = \sigma_v\sqrt{Y}$, the correction is
 
 \begin{equation}
     \frac{1}{2}b(Y_n)\frac{\partial b}{\partial Y}(Y_n)\bigl((\Delta W_n)^2 - \Delta t\bigr) = \frac{\sigma_v^2}{4}\bigl((\Delta W_n^v)^2 - \Delta t\bigr).
     \label{eq:milstein_correction}
 \end{equation}
 
-This term captures the curvature of the diffusion coefficient and raises the strong convergence order from $1/2$ to $1$.
+This term captures the curvature of the diffusion coefficient and raises the strong convergence order from $1/2$ to $1$.\\
 
-\paragraph{Full truncation.} Because the CIR process can reach zero when the Feller condition fails (or nearly so), a naive Milstein step may produce $v_{n+1} < 0$, which would make $\sqrt{v_{n+1}}$ undefined at the next step. The \textit{full-truncation} strategy \cite{lord2010} addresses this in two stages:
+Because the CIR process can reach zero when the Feller condition fails (or nearly so), a naive Milstein step may produce $v_{n+1} < 0$, which would make $\sqrt{v_{n+1}}$ undefined at the next step. A \textit{full-truncation} strategy addresses this in two stages:
 
 \begin{enumerate}
     \item Before computing the drift and diffusion, replace $v_n$ with $\hat{v}_n = \max(v_n, 0)$ inside all coefficient functions.
@@ -111,30 +102,27 @@ The complete full-truncation Milstein step for the variance is therefore
 This approach is implemented at lines 242--253 of the source, where the \texttt{scheme} flag selects between Milstein (default) and pure Euler--Maruyama (which omits the last correction term).
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{The Characteristic Function}
-\label{sec:cf}
+\subsection{The Characteristic Function and the Fourier Inversion Formula}
 
-\subsection{Definition and Properties}
-
-The \textit{characteristic function} (CF) of a real-valued random variable $X$ is defined as
+The \textit{characteristic function} of a real-valued random variable $X$ is defined as
 
 \begin{equation}
     \varphi(u) = \mathbb{E}\!\left[e^{iuX}\right], \quad u \in \mathbb{R},
     \label{eq:cf_def}
 \end{equation}
 
-where $i = \sqrt{-1}$. The CF is the Fourier transform of the PDF and encodes all information about the distribution of $X$. Its fundamental importance stems from the fact that many stochastic models—including the Heston model—admit a closed-form CF even when the PDF itself does not exist in closed form. If $\varphi$ is known analytically, the PDF can be recovered numerically via Fourier inversion (Section~\ref{sec:fourier_inv}).
-
-\subsection{The Heston Characteristic Function}
-
-For the Heston model, \cite{heston1993} derived the conditional CF of the log-price $X_{t+\tau}$ given the state $(X_t, v_t)$ at time $t$. The CF takes the affine-exponential form
+where $i = \sqrt{-1}$. The Characteristic Function is the Fourier transform of the PDF and encodes all information about the distribution
+ of $X$. Its fundamental importance stems from the fact that many stochastic models, including the Heston model, 
+ admit a closed-form CF even when the PDF itself does not exist in closed form. If $\varphi$ is known analytically, the PDF can be recovered numerically via Fourier inversion.\\
+For the Heston model, \cite{heston:heston_paper} it has been derived the conditional CF of the log-price $X_{t+\tau}$ given the state $(X_t, v_t)$ at time $t$.
+The CF takes the affine-exponential form
 
 \begin{equation}
     \varphi(u;\tau) = \exp\!\Bigl(iuX_0 + iu\mu\tau + A(u,\tau) + B(u,\tau)\,v_0\Bigr),
     \label{eq:cf_heston}
 \end{equation}
 
-where $X_0 = X_t$ is the current log-price, $v_0 = v_t$ is the current variance, and $\tau$ is the forecast horizon. The functions $A$ and $B$ depend on the model parameters through an intermediate quantity $d$:
+where $X_0 = X_t$ is the current log-price, $v_0 = v_t$ is the current variance, and $\tau$ is the forecast horizon. The function $A$ captures the long-run contribution while $B$ captures the effect of the current variance. They both depend on the model parameters through an intermediate quantity $d$:
 
 \begin{align}
     d &= \sqrt{(\kappa - \rho\sigma_v\, iu)^2 + \sigma_v^2(u^2 + iu)}, \quad \text{Re}(d) \geq 0, \label{eq:d_heston}\\
@@ -143,25 +131,14 @@ where $X_0 = X_t$ is the current log-price, $v_0 = v_t$ is the current variance,
     B(u,\tau) &= \frac{v_0}{\sigma_v^2}(\kappa - \rho\sigma_v\, iu - d)\frac{1 - e^{-d\tau}}{1 - \tilde{g}\,e^{-d\tau}}. \label{eq:B_heston}
 \end{align}
 
-\subsection{The ``Little Trap'' Formulation}
+The original Heston CF involves a complex-valued square root and a complex logarithm. Because the complex logarithm is multi-valued, numerical implementations must track the correct branch, which can lead to discontinuities in the CF as $u$ varies, a phenomenon known as the \textit{branch-cut problem}. This instability causes spurious oscillations in the numerically inverted PDF.
 
-The original Heston CF involves a complex-valued square root and a complex logarithm. Because the complex logarithm is multi-valued, numerical implementations must track the correct branch, which can lead to discontinuities in the CF as $u$ varies—a phenomenon known as the \textit{branch-cut problem}. This instability causes spurious oscillations in the numerically inverted PDF.
+In \cite{heston:little_trap} Albrecher showed that a simple reformulation of Eq.~(\ref{eq:g_tilde}) eliminates the branch-cut issue entirely. The key insight is to define $\tilde{g}$ as the ratio $(\xi - d)/(\xi + d)$ where $\xi = \kappa - \rho\sigma_v\, iu$, and to enforce $\text{Re}(d) \geq 0$ in Eq.~(\ref{eq:d_heston}) by choosing the branch of the square root with non-negative real part. Under this convention, the logarithm in Eq.~(\ref{eq:A_heston}) remains on a consistent branch for all $u$, and the CF is smooth and numerically stable.\\
 
-\cite{albrecher2007} (the ``Little Trap'' paper) showed that a simple reformulation of Eq.~(\ref{eq:g_tilde}) eliminates the branch-cut issue entirely. The key insight is to define $\tilde{g}$ as the ratio $(\xi - d)/(\xi + d)$ where $\xi = \kappa - \rho\sigma_v\, iu$, and to enforce $\text{Re}(d) \geq 0$ in Eq.~(\ref{eq:d_heston}) by choosing the branch of the square root with non-negative real part. Under this convention, the logarithm in Eq.~(\ref{eq:A_heston}) remains on a consistent branch for all $u$, and the CF is smooth and numerically stable. This is implemented in \texttt{\_heston\_cf()} at lines 318--323:
 
-\begin{equation}
-    d \;\leftarrow\; \begin{cases} d & \text{if } \text{Re}(d) \geq 0, \\ -d & \text{otherwise.} \end{cases}
-\end{equation}
 
-The code evaluates Eqs.~(\ref{eq:d_heston})--(\ref{eq:B_heston}) in vectorised form using NumPy broadcasting: parameters of shape $(J, 1)$ are combined with the frequency grid of shape $(1, N_\text{fft})$ to produce the CF array of shape $(J, N_\text{fft})$ in a single pass over all $J$ trajectories and all $N_\text{fft}$ frequency points.
 
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Fourier Inversion of the Characteristic Function}
-\label{sec:fourier_inv}
-
-\subsection{The Gil-Pelaez Inversion Formula}
-
-Given the CF $\varphi(u)$ of a continuous random variable $X$ with PDF $f(x)$, the \textit{Gil-Pelaez inversion theorem} \cite{gilpelaez1951} states that
+Given the CF $\varphi(u)$ of a continuous random variable $X$ with PDF $f(x)$, the \textit{Gil-Pelaez inversion theorem} \cite{heston:gil_pelaez} states that
 
 \begin{equation}
     f(x) = \frac{1}{\pi}\int_0^\infty \text{Re}\!\left[\varphi(u)\,e^{-iux}\right]du.
@@ -175,25 +152,13 @@ This follows from the standard Fourier inversion theorem and the fact that $\var
     \label{eq:gilpelaez_discrete}
 \end{equation}
 
-where $w_j$ are numerical quadrature weights (Section~\ref{sec:simpson}).
-
-\subsection{Simpson's Rule Quadrature Weights}
-\label{sec:simpson}
-
+where $w_j$ are numerical quadrature weights.
 The choice of quadrature weights $w_j$ in Eq.~(\ref{eq:gilpelaez_discrete}) determines the accuracy of the numerical integral. Simple rectangular (Euler) weights give first-order accuracy. The implementation instead uses \textit{Simpson's rule}, which achieves fourth-order accuracy by approximating the integrand as a piecewise quadratic polynomial. For $N_\text{fft}$ equally spaced points with step $\eta$, Simpson's rule assigns weights
 
 \begin{equation}
     w_j = \frac{1}{3}\begin{cases} 1 & j = 0 \text{ or } j = N_\text{fft}-1, \\ 4 & j \text{ odd}, \\ 2 & j \text{ even}, \; j \neq 0, N_\text{fft}-1, \end{cases}
     \label{eq:simpson}
 \end{equation}
-
-which is exactly what lines 498--501 of the source code implement by setting \texttt{w[1:-1:2] = 4.0} and \texttt{w[2:-2:2] = 2.0} before dividing by 3.
-
-% ─────────────────────────────────────────────────────────────────────────────
-\section{From Standard FFT to Fractional FFT}
-\label{sec:fft}
-
-\subsection{The Discrete Fourier Transform}
 
 The \textit{Discrete Fourier Transform} (DFT) of a sequence $\{x_j\}_{j=0}^{N-1}$ is defined as
 
@@ -205,7 +170,7 @@ The \textit{Discrete Fourier Transform} (DFT) of a sequence $\{x_j\}_{j=0}^{N-1}
 The \textit{Fast Fourier Transform} (FFT) computes Eq.~(\ref{eq:dft}) in $\mathcal{O}(N\log N)$ operations rather than the $\mathcal{O}(N^2)$ required by direct summation. To apply the FFT to the inversion formula (\ref{eq:gilpelaez_discrete}), one evaluates Eq.~(\ref{eq:gilpelaez_discrete}) simultaneously at the grid of log-price values $x_k = b + k\lambda$, $k = 0, \ldots, N_\text{fft}-1$, for some lower bound $b$ and spacing $\lambda$. Inserting this into Eq.~(\ref{eq:gilpelaez_discrete}):
 
 \begin{align}
-    f(x_k) &\approx \frac{\eta}{\pi}\,\text{Re}\!\left[e^{-ij\eta\, b}\sum_{j=0}^{N_\text{fft}-1} w_j\,\varphi(j\eta)\,e^{-i2\pi\cdot\frac{\eta\lambda}{2\pi}\cdot jk}\right].
+    f(x_k) \approx \frac{\eta}{\pi}\,\mathrm{Re} \left[\sum_{j=0}^{N_{\mathrm{FFT}}-1}w_j\,\varphi(j\eta)\,e^{-ij\eta b}\,e^{-i2\pi\frac{\eta\lambda}{2\pi}jk}\right]
     \label{eq:fft_coupl}
 \end{align}
 
@@ -216,10 +181,7 @@ Comparing with Eq.~(\ref{eq:dft}), the sum is a DFT if and only if the exponent 
     \label{eq:std_fft_constraint}
 \end{equation}
 
-This \textit{coupling constraint} links the frequency step $\eta$ and the spatial step $\lambda$: making the log-price grid finer (smaller $\lambda$) forces a larger $\eta$, which reduces the effective integration range in frequency and may introduce aliasing or truncation errors. This rigid coupling is the central limitation of the standard FFT approach to Fourier inversion.
-
-\subsection{The Fractional DFT and Bluestein's Algorithm}
-\label{sec:frfft}
+This \textit{coupling constraint} links the frequency step $\eta$ and the spatial step $\lambda$: making the log-price grid finer (smaller $\lambda$) forces a larger $\eta$, which reduces the effective integration range in frequency and may introduce aliasing or truncation errors. This rigid coupling is the central limitation of the standard FFT approach to Fourier inversion.\\
 
 The \textit{Fractional DFT} (frDFT) generalises Eq.~(\ref{eq:dft}) by replacing $1/N$ with an arbitrary real parameter $\alpha$:
 
@@ -229,8 +191,8 @@ The \textit{Fractional DFT} (frDFT) generalises Eq.~(\ref{eq:dft}) by replacing 
 \end{equation}
 
 Comparing with Eq.~(\ref{eq:fft_coupl}), choosing $\alpha = \eta\lambda/(2\pi)$ evaluates the inversion integral at the spatial grid $\{x_k\}$ without any constraint between $\eta$ and $\lambda$. The user is therefore free to choose $\eta$ and $\lambda$ independently, completely decoupling frequency resolution from spatial resolution.
-
-\paragraph{The Bluestein identity.} Computing Eq.~(\ref{eq:frdft}) naively requires $\mathcal{O}(N^2)$ operations. \cite{bluestein1970} observed that the product $jk$ can be written as
+However, computing Eq.~(\ref{eq:frdft}) naively requires $\mathcal{O}(N^2)$ operations. 
+Bluestein observed that the product $jk$ can be written as
 
 \begin{equation}
     jk = \frac{j^2 + k^2 - (j-k)^2}{2},
@@ -261,9 +223,62 @@ where the transforms are taken on a zero-padded array of length $M \geq 2N - 1$ 
     \item Multiply the first $N$ outputs: $y_k = e^{-i\pi\alpha k^2} Y_k$, $k = 0, \ldots, N-1$.
 \end{enumerate}
 
-This is implemented in the static method \texttt{\_frfft\_batch()} (lines 344--403), where the computation is performed simultaneously for all $J$ trajectories (the \textit{batch} dimension), with \texttt{NumPy}'s vectorised FFT operating along the last axis.
+\begin{algorithm}[H]
+    \label{alg:frFFT}
+\caption{Batched Fractional FFT via Bluestein's Identity}
+\begin{algorithmic}[1]
+\REQUIRE Input batch $\mathbf{X} \in \mathbb{C}^{B \times N}$, fractional parameter
+         $\alpha = \eta\lambda / (2\pi)$
+\ENSURE  Output batch $\mathbf{Y} \in \mathbb{C}^{B \times N}$ where
+         $Y_{b,k} = \sum_{j=0}^{N-1} X_{b,j}\, e^{-i 2\pi\alpha j k}$
 
-\paragraph{Decoupling in the simulator.} In \texttt{get\_pdf()}, the fractional parameter is set by default to $\alpha = 2/N_\text{fft}$, giving the spatial spacing
+\LINECOMMENT{Compute next power-of-two FFT length to avoid circular aliasing}
+\STATE $M \leftarrow 2^{\lceil \log_2(2N - 1) \rceil}$
+
+\LINECOMMENT{Build the chirp sequence $\text{chirp}[j] = e^{i\pi\alpha j^2}$, $j = 0,\ldots,N-1$}
+\STATE $\mathbf{j} \leftarrow [0,\, 1,\, \ldots,\, N-1]^{\top}$
+\STATE $\mathbf{chirp} \leftarrow \exp\!\left(i\pi\alpha\,\mathbf{j}^{\odot 2}\right)
+       \in \mathbb{C}^{N}$
+
+\LINECOMMENT{Phase-modulate each input row by the conjugate chirp}
+\FOR{$b = 1$ \textbf{to} $B$}
+    \STATE $\mathbf{a}_{b} \leftarrow \mathbf{X}_{b} \odot \overline{\mathbf{chirp}}$
+    \COMMENT{$a_{b,j} = X_{b,j}\, e^{-i\pi\alpha j^{2}}$}
+\ENDFOR
+
+\LINECOMMENT{Zero-pad modulated inputs to length $M$}
+\STATE $\mathbf{a}_{\mathrm{pad}} \leftarrow \mathbf{0}_{B \times M}$
+\STATE $\mathbf{a}_{\mathrm{pad}}[\,:,\; 0 : N] \leftarrow \mathbf{a}$
+
+\LINECOMMENT{Build the circular convolution kernel of length $M$}
+\STATE $\mathbf{h}_{\mathrm{pad}} \leftarrow \mathbf{0}_{M}$
+\STATE $\mathbf{h}_{\mathrm{pad}}[0 : N]
+       \leftarrow \mathbf{chirp}$
+       \COMMENT{causal half: $h[0],\ldots, h[N-1]$}
+\STATE $\mathbf{h}_{\mathrm{pad}}[M-N+1 : M]
+       \leftarrow \mathrm{flip}\!\left(\mathbf{chirp}[1:]\right)$
+       \COMMENT{acausal half: $h[-(N-1)],\ldots, h[-1]$}
+
+\LINECOMMENT{Circular convolution via FFT (complexity $\mathcal{O}(M\log M)$)}
+\STATE $\hat{\mathbf{A}} \leftarrow \mathrm{FFT}\!\left(\mathbf{a}_{\mathrm{pad}},\; \mathrm{axis}=1\right)$
+       \COMMENT{shape $B \times M$}
+\STATE $\hat{\mathbf{H}} \leftarrow \mathrm{FFT}\!\left(\mathbf{h}_{\mathrm{pad}}\right)$
+       \COMMENT{shape $M$, shared across the batch}
+\STATE $\mathbf{conv} \leftarrow
+       \mathrm{IFFT}\!\left(\hat{\mathbf{A}} \odot \hat{\mathbf{H}},\; \mathrm{axis}=1\right)$
+       \COMMENT{shape $B \times M$}
+
+\LINECOMMENT{Multiply first $N$ outputs by the conjugate chirp to complete Bluestein's identity}
+\STATE $\mathbf{Y} \leftarrow
+       \mathbf{conv}[\,:,\; 0 : N]
+       \odot \overline{\mathbf{chirp}}$
+       \COMMENT{$Y_{b,k} = e^{-i\pi\alpha k^{2}}\,\mathrm{conv}_{b,k}$}
+
+\RETURN $\mathbf{Y}$
+\end{algorithmic}
+\end{algorithm}
+
+In the current implementation, the fractional parameter is set by default to $\alpha = 2/N_\text{fft}$, giving the spatial spacing
 
 \begin{equation}
     \lambda = \frac{2\pi\alpha}{\eta} = \frac{4\pi}{N_\text{fft}\,\eta}.
@@ -273,91 +288,225 @@ This is implemented in the static method \texttt{\_frfft\_batch()} (lines 344--4
 For $N_\text{fft} = 4096$ and $\eta = 0.25$, this yields $\lambda \approx 0.0031$, which is two orders of magnitude finer than the $\lambda_{\text{std}} = 2\pi/(N_\text{fft}\,\eta) \approx 0.0061$ that the standard FFT would enforce. The user can further tighten the grid by choosing a smaller $\alpha$ without any effect on the frequency resolution $\eta$.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{The PDF Computation Pipeline}
-\label{sec:pdf_pipeline}
+\subsection{The PDF Computation Pipeline}
 
-The method \texttt{get\_pdf()} assembles the above components into a complete PDF computation. The following describes each stage of the pipeline.
+In order to obtain the probability distribution function the code assembles the above components into a complete PDF computation. The following describes each stage of the pipeline.
 
-\subsection{Grid Initialisation}
 
-For each of the $J$ trajectories, a lower bound $b_j$ for the log-price evaluation grid is determined from an approximate mean and standard deviation of the forecast distribution. Since the exact moments depend on the full path of $v_t$, an approximation using the long-run variance $\theta$ is used:
-
-\begin{align}
-    \text{approx\_mean}_j &= X_{0,j} + \left(\mu_j - \tfrac{1}{2}\theta_j\right)\tau, \label{eq:approx_mean}\\
-    \text{approx\_std}_j  &= \sqrt{\max(\theta_j, 0)\,\tau}, \label{eq:approx_std}\\
-    b_j &= \text{approx\_mean}_j - c\cdot\text{approx\_std}_j, \label{eq:lower_bound}
-\end{align}
-
-where $c = 5$ (the parameter \texttt{x\_width}) ensures that the grid spans approximately $\pm 5$ standard deviations around the forecast mean, capturing virtually all of the probability mass.
-
-\subsection{Phase Shift for the Lower Bound}
-
-Equation (\ref{eq:gilpelaez_discrete}) evaluated at $x_k = b + k\lambda$ factors as
-
-\begin{equation}
+\begin{itemize}
+    \item \textbf{Grid Initialisation}. For each of the $J$ trajectories, a lower bound $b_j$ for the log-price evaluation grid is determined from an approximate mean and standard deviation of the forecast distribution. Since the exact moments depend on the full path of $v_t$, an approximation using the long-run variance $\theta$ is used:
+    \begin{align}
+        \text{approx\_mean}_j &= X_{0,j} + \left(\mu_j - \tfrac{1}{2}\theta_j\right)\tau, \label{eq:approx_mean}\\
+        \text{approx\_std}_j  &= \sqrt{\max(\theta_j, 0)\,\tau}, \label{eq:approx_std}\\
+        b_j &= \text{approx\_mean}_j - c\cdot\text{approx\_std}_j, \label{eq:lower_bound}
+    \end{align}
+    where $c = 5$ (the parameter \texttt{x\_width}) ensures that the grid spans approximately $\pm 5$ standard deviations around the forecast mean, capturing virtually all of the probability mass.
+    \item \textbf{Phase Shift for the lower bound}. Equation (\ref{eq:gilpelaez_discrete}) evaluated at $x_k = b + k\lambda$ factors as
+    \begin{equation}
     f(b + k\lambda) \approx \frac{\eta}{\pi}\,\text{Re}\!\left[\sum_{j=0}^{N_\text{fft}-1} \underbrace{\bigl(w_j\,\varphi(j\eta)\,e^{-ij\eta b}\bigr)}_{\text{frFFT input}} \cdot e^{-i2\pi\alpha jk}\right].
     \label{eq:phase_shifted}
-\end{equation}
-
-The factor $e^{-ij\eta b}$ shifts the output grid's origin to $b$ without changing the frequency-domain data. In the code, this is the \texttt{phase} array (line 511), computed as \texttt{np.exp(-1j * u * b)}, which is multiplied element-wise with the weighted CF before passing to \texttt{\_frfft\_batch()}.
-
-\subsection{PDF Extraction and Clipping}
-
-After the frFFT, the approximate PDF values are
-
-\begin{equation}
+    \end{equation}
+    The factor $e^{-ij\eta b}$ shifts the output grid's origin to $b$ without changing the frequency-domain data. 
+    \item \textbf{PDF extraction and clipping}. After the frFFT, the approximate PDF values are
+    \begin{equation}
     f(x_k) \approx \frac{\eta}{\pi}\,\text{Re}\!\left[y_k\right], \quad k = 0, \ldots, N_\text{fft}-1.
     \label{eq:pdf_extract}
-\end{equation}
-
-Numerical inversion can produce small negative values due to discretisation error and finite truncation of the frequency integral. These artefacts are removed by clipping: \texttt{pdf\_fine = np.maximum(pdf\_fine, 0.0)}, which has negligible effect on well-resolved distributions.
-
-\subsection{Binning and Normalisation}
-
-The fine PDF grid (of spacing $\lambda$, typically $\sim 0.003$) is resampled onto a coarser shared bin structure with $n_\text{bins}$ equally spaced bins spanning the global range of all $J$ trajectories. Each fine-grid value contributes probability mass $f(x_k)\cdot\lambda$ to the bin containing $x_k$, computed via \texttt{np.histogram} with density weights. The resulting histogram is then normalised row-by-row so that each row sums to one, yielding a proper discrete probability distribution over $n_\text{bins}$ categories.
-
-\subsection{Raw Moment Output}
-
-When \texttt{n\_bins=None}, the method instead computes the mean and standard deviation directly from the fine frFFT grid using the rectangle rule:
-
-\begin{align}
+    \end{equation}
+    Numerical inversion can produce small negative values due to discretisation error and finite truncation of the frequency integral. These artefacts are removed by clipping: \texttt{pdf\_fine = np.maximum(pdf\_fine, 0.0)}, which has negligible effect on well-resolved distributions.
+    \item \textbf{Binning and Normalisation}. The fine PDF grid (of spacing $\lambda$, typically $\sim 0.003$) is resampled onto a coarser shared bin structure with $n_\text{bins}$ equally spaced bins spanning the global range of all $J$ trajectories. Each fine-grid value contributes probability mass $f(x_k)\cdot\lambda$ to the bin containing $x_k$, computed via \texttt{np.histogram} with density weights. The resulting histogram is then normalised row-by-row so that each row sums to one, yielding a proper discrete probability distribution over $n_\text{bins}$ categories.
+    \item \textbf{Raw moments output}. When \texttt{n\_bins=None}, the method instead computes the mean and standard deviation directly from the fine frFFT grid using the rectangle rule:
+    \begin{align}
     \mathbb{E}[X] &\approx \frac{\sum_k f(x_k)\,x_k\,\lambda}{\sum_k f(x_k)\,\lambda}, \label{eq:raw_mean}\\
     \text{Var}(X) &\approx \frac{\sum_k f(x_k)\,(x_k - \mathbb{E}[X])^2\,\lambda}{\sum_k f(x_k)\,\lambda}. \label{eq:raw_var}
-\end{align}
+    \end{align}
+    The output is then a $(J, 2)$ array with columns containing the mean and standard deviation for each trajectory.
+\end{itemize}
 
-The output is then a $(J, 2)$ array with columns containing the mean and standard deviation for each trajectory.
 
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Monte Carlo Fallback and Validation}
-\label{sec:mc}
 
-The method \texttt{\_mc\_pdf()} provides a reference implementation based on direct Monte Carlo simulation. For each of the $J$ starting conditions $(X_{0,j}, v_{0,j})$, a large number \texttt{mc\_sims} of independent forward paths are generated using the full-truncation Euler--Maruyama scheme over \texttt{n\_steps} steps. The terminal log-prices are then histogrammed onto the shared bin structure to produce an empirical approximation of the PDF.
+
+\begin{algorithm}[H]
+    \label{alg:heston_pdf}
+\caption{Heston PDF via Fractional FFT and Gil-Pelaez Inversion}
+\begin{algorithmic}[1]
+\REQUIRE Simulated terminal states $\{X_{T}^{(j)}, v_{T}^{(j)}\}_{j=1}^{J}$,
+         Heston parameters $\{\mu^{(j)}, \kappa^{(j)}, \theta^{(j)},
+         \sigma_v^{(j)}, \rho^{(j)}\}_{j=1}^{J}$
+\REQUIRE Steps ahead $n_{\tau}$, time step $\Delta t$,
+         FFT length $N$, frequency step $\eta$,
+         fractional parameter $\alpha$, grid half-width $c$,
+         number of output bins $K$ (or \texttt{None})
+\ENSURE  Discretised conditional PDF or raw moments for each trajectory
+
+\LINECOMMENT{Forecast horizon and x-domain spacing}
+\STATE $\tau \leftarrow n_{\tau}\,\Delta t$
+\STATE $\lambda \leftarrow 2\pi\alpha / \eta$
+
+\LINECOMMENT{Per-trajectory lower bounds for the x-grid}
+\FOR{$j = 1$ \textbf{to} $J$}
+    \STATE $\tilde{\mu}^{(j)}   \leftarrow X_{T}^{(j)}
+           + \bigl(\mu^{(j)} - \tfrac{1}{2}\theta^{(j)}\bigr)\tau$
+           \COMMENT{approximate centre}
+    \STATE $\tilde{\sigma}^{(j)} \leftarrow \sqrt{\theta^{(j)}\,\tau}$
+           \COMMENT{approximate spread}
+    \STATE $b^{(j)} \leftarrow \tilde{\mu}^{(j)} - c\,\tilde{\sigma}^{(j)}$
+           \COMMENT{grid lower bound}
+\ENDFOR
+
+\LINECOMMENT{Frequency grid and Simpson quadrature weights}
+\STATE $u_n \leftarrow n\,\eta$,\quad $n = 0, \ldots, N-1$
+\STATE $w_0 \leftarrow 1/3$;\quad
+       $w_n \leftarrow 4/3$ for $n$ odd;\quad
+       $w_n \leftarrow 2/3$ for $n$ even, $n \notin \{0, N-1\}$;\quad
+       $w_{N-1} \leftarrow 1/3$
+
+\LINECOMMENT{Evaluate Heston characteristic function (Algorithm $\star$) for all trajectories}
+\STATE $\boldsymbol{\varphi} \leftarrow
+       \textsc{HestonCF}\!\left(
+         \mathbf{u},\,\tau,\,
+         \{X_{T}^{(j)}\},\{v_{T}^{(j)}\},
+         \{\mu^{(j)}\},\{\kappa^{(j)}\},\{\theta^{(j)}\},\{\sigma_v^{(j)}\},\{\rho^{(j)}\}
+       \right)
+       \in \mathbb{C}^{J \times N}$
+
+\LINECOMMENT{Phase-shift to lower bound $b^{(j)}$, then weight by quadrature}
+\STATE $\mathbf{Z}^{(j)}_n \leftarrow
+       w_n\,\varphi^{(j)}_n\,
+       e^{-i\,u_n\,b^{(j)}}$,\quad
+       $j = 1,\ldots,J,\quad n = 0,\ldots,N-1$
+
+\LINECOMMENT{Batched frFFT inversion (Algorithm~\ref{alg:frFFT})}
+\STATE $\mathbf{Y} \leftarrow
+       \textsc{FrFFT\_Batch}\!\left(\mathbf{Z},\,\alpha\right)
+       \in \mathbb{C}^{J \times N}$
+
+\LINECOMMENT{Recover density values and clip numerical artefacts}
+\STATE $f^{(j)}_k \leftarrow
+       \max\!\left(0,\;
+         \dfrac{\eta}{\pi}\,\mathrm{Re}\!\left[Y^{(j)}_k\right]
+       \right)$,\quad
+       $k = 0,\ldots,N-1$
+
+\LINECOMMENT{x-grid for each trajectory}
+\STATE $x^{(j)}_k \leftarrow b^{(j)} + k\,\lambda$,\quad
+       $k = 0,\ldots,N-1$
+
+\IF{$K$ is \texttt{None}}
+    \LINECOMMENT{Return raw moments via numerical integration}
+    \FOR{$j = 1$ \textbf{to} $J$}
+        \STATE $C^{(j)} \leftarrow \lambda\sum_{k} f^{(j)}_k$
+               \COMMENT{normalisation constant}
+        \STATE $\bar{x}^{(j)} \leftarrow
+               \lambda\sum_{k} x^{(j)}_k\,f^{(j)}_k \;/\; C^{(j)}$
+        \STATE $s^{(j)} \leftarrow
+               \sqrt{\lambda\sum_{k}
+                 \bigl(x^{(j)}_k - \bar{x}^{(j)}\bigr)^{2}
+                 f^{(j)}_k \;/\; C^{(j)}}$
+    \ENDFOR
+    \RETURN $\bigl[\bar{x}^{(j)},\,s^{(j)}\bigr]_{j=1}^{J}$
+\ENDIF
+
+\LINECOMMENT{Build shared bin edges covering all trajectories}
+\STATE $x_{\min} \leftarrow \min_j\!\left(\tilde{\mu}^{(j)} - c\,\tilde{\sigma}^{(j)}\right)$;\quad
+       $x_{\max} \leftarrow \max_j\!\left(\tilde{\mu}^{(j)} + c\,\tilde{\sigma}^{(j)}\right)$
+\STATE $\mathcal{B} \leftarrow \mathrm{linspace}(x_{\min},\,x_{\max},\,K+1)$
+
+\LINECOMMENT{Resample fine PDF onto shared bins (rectangle rule) and normalise}
+\FOR{$j = 1$ \textbf{to} $J$}
+    \STATE $p^{(j)}_\ell \leftarrow
+           \sum_{k:\,x^{(j)}_k \in \mathcal{B}_\ell}
+             f^{(j)}_k\,\lambda$,\quad
+           $\ell = 1,\ldots,K$
+           \COMMENT{probability mass per bin}
+    \STATE $p^{(j)}_\ell \leftarrow p^{(j)}_\ell \;/\; \sum_{\ell'} p^{(j)}_{\ell'}$
+           \COMMENT{row-normalise; set entries $< 10^{-7}$ to zero first}
+\ENDFOR
+\RETURN $\mathbf{p} \in \mathbb{R}^{J \times K}$
+
+\end{algorithmic}
+\end{algorithm}
+
+Moreover, the code provides a reference implementation based on direct Monte Carlo simulation. For each of the $J$ starting conditions $(X_{0,j}, v_{0,j})$, a large number \texttt{mc\_sims} of independent forward paths are generated using the full-truncation Euler--Maruyama scheme over \texttt{n\_steps} steps. The terminal log-prices are then histogrammed onto the shared bin structure to produce an empirical approximation of the PDF.
 
 The Monte Carlo estimator is consistent (converges to the true PDF as \texttt{mc\_sims} $\to\infty$) but slow: its computational cost is $\mathcal{O}(J \cdot \texttt{mc\_sims} \cdot \texttt{n\_steps})$. The frFFT method, by contrast, evaluates the exact Heston CF and inverts it in $\mathcal{O}(J \cdot N_\text{fft}\log N_\text{fft})$ operations, making it orders of magnitude faster for large $J$.
 
-The \texttt{plot\_pdf\_comparison()} method overlays the frFFT PDF against a Monte Carlo histogram for visual validation, providing a direct check that the numerical inversion is accurate. Typical agreement between the two methods is excellent for smooth, unimodal distributions and degrades only when the distribution has very heavy tails that require a wider frequency grid or larger $N_\text{fft}$.
 
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Parameter Sampling Strategy}
-\label{sec:params}
+\begin{algorithm}[H]
+    \label{alg:heston_mc_pdf}
+\caption{Monte-Carlo Conditional PDF Estimator for the Heston Model}
+\begin{algorithmic}[1]
+\REQUIRE Terminal states $\{X_{T}^{(j)}, v_{T}^{(j)}\}_{j=1}^{J}$,
+         Heston parameters
+         $\{\mu^{(j)}, \kappa^{(j)}, \theta^{(j)}, \sigma_v^{(j)}, \rho^{(j)}\}_{j=1}^{J}$
+\REQUIRE Number of MC samples $S$, number of steps $n_{\tau}$,
+         time step $\Delta t$, bin edges $\mathcal{B}$ with $K$ bins
+\ENSURE  Discretised conditional PDF for each trajectory
 
-The \texttt{HestonSimulator} supports two modes for specifying each parameter across the $J$ simulated trajectories. Each model parameter (e.g.\ $\mu$, $\kappa$, $\theta$, $\sigma_v$, $\rho$, $v_0$, $X_0$) is specified as either a \texttt{tuple} $(lo, hi)$ or a \texttt{list}.
+\LINECOMMENT{Allocate matrix of terminal log-prices}
+\STATE $\mathbf{T} \leftarrow \mathbf{0}_{J \times S}$
 
-If a \texttt{tuple} is provided, $J$ values are drawn independently and uniformly from $[\textit{lo},\, \textit{hi}]$:
+\LINECOMMENT{Draw $S$ independent sample paths per trajectory}
+\FOR{$s = 1$ \textbf{to} $S$}
+    \STATE $X^{(j)} \leftarrow X_{T}^{(j)}$,\quad
+           $v^{(j)} \leftarrow \max\!\left(v_{T}^{(j)},\, 0\right)$,\quad
+           $j = 1, \ldots, J$
 
-\begin{equation}
-    \theta_j \sim \mathcal{U}[\textit{lo},\, \textit{hi}], \quad j = 1, \ldots, J.
-\end{equation}
+    \FOR{$n = 1$ \textbf{to} $n_{\tau}$}
+        \LINECOMMENT{Correlated Brownian increments via Cholesky decomposition}
+        \STATE $Z_1^{(j)},\, Z_2^{(j)} \overset{\mathrm{iid}}{\sim}
+               \mathcal{N}(0, 1)$,\quad $j = 1,\ldots,J$
+        \STATE $\Delta W_X^{(j)} \leftarrow \sqrt{\Delta t}\; Z_1^{(j)}$
+        \STATE $\Delta W_v^{(j)} \leftarrow \sqrt{\Delta t}
+               \left(\rho^{(j)} Z_1^{(j)}
+                 + \sqrt{1 - (\rho^{(j)})^2}\; Z_2^{(j)}\right)$
 
-If a \texttt{list} is provided, the values are used directly. If the list contains a single value, it is broadcast to all $J$ trajectories (constant parameter). This flexibility allows the simulator to generate a diverse dataset of trajectories spanning a wide region of the parameter space in a single call, which is useful for training machine learning models that must generalise across different market regimes.
+        \LINECOMMENT{Full truncation before diffusion evaluation}
+        \STATE $\hat{v}^{(j)} \leftarrow \max\!\left(v^{(j)},\, 0\right)$
 
-The random number generator is seeded via \texttt{numpy.random.default\_rng(seed)}, ensuring full reproducibility.
+        \LINECOMMENT{Euler--Maruyama update for log-price}
+        \STATE $X^{(j)} \leftarrow X^{(j)}
+               + \left(\mu^{(j)} - \tfrac{1}{2}\hat{v}^{(j)}\right)\Delta t
+               + \sqrt{\hat{v}^{(j)}}\;\Delta W_X^{(j)}$
 
-% ─────────────────────────────────────────────────────────────────────────────
-\section{Summary}
-\label{sec:summary}
+        \LINECOMMENT{Euler--Maruyama update for variance with full truncation}
+        \STATE $v^{(j)} \leftarrow \max\!\Bigl(
+               v^{(j)}
+               + \kappa^{(j)}\!\left(\theta^{(j)} - \hat{v}^{(j)}\right)\Delta t
+               + \sigma_v^{(j)}\sqrt{\hat{v}^{(j)}}\;\Delta W_v^{(j)},\;
+               0\Bigr)$
+    \ENDFOR
 
-The \texttt{HestonSimulator} integrates the following chain of mathematical techniques into a single coherent pipeline. 
+    \STATE $T^{(j)}_s \leftarrow X^{(j)}$,\quad $j = 1,\ldots,J$
+    \COMMENT{store terminal log-price for this sample}
+\ENDFOR
+
+\IF{$K$ is \texttt{None}}
+    \LINECOMMENT{Return raw moments}
+    \FOR{$j = 1$ \textbf{to} $J$}
+        \STATE $\bar{x}^{(j)} \leftarrow \dfrac{1}{S}\sum_{s=1}^{S} T_s^{(j)}$
+        \STATE $s^{(j)} \leftarrow
+               \sqrt{\dfrac{1}{S}\sum_{s=1}^{S}
+                 \left(T_s^{(j)} - \bar{x}^{(j)}\right)^{2}}$
+    \ENDFOR
+    \RETURN $\bigl[\bar{x}^{(j)},\, s^{(j)}\bigr]_{j=1}^{J}$
+\ENDIF
+
+\LINECOMMENT{Histogram terminal draws onto shared bin edges and normalise}
+\FOR{$j = 1$ \textbf{to} $J$}
+    \STATE $p^{(j)}_\ell \leftarrow
+           \bigl|\bigl\{s : T_s^{(j)} \in \mathcal{B}_\ell\bigr\}\bigr|$,\quad
+           $\ell = 1, \ldots, K$
+           \COMMENT{count falls per bin}
+    \STATE $p^{(j)}_\ell \leftarrow p^{(j)}_\ell \;/\; \sum_{\ell'} p^{(j)}_{\ell'}$
+           \COMMENT{normalise; set entries $< 10^{-7}$ to zero first}
+\ENDFOR
+\RETURN $\mathbf{p} \in \mathbb{R}^{J \times K}$
+
+\end{algorithmic}
+\end{algorithm}
+
+
+So the \texttt{HestonSimulator} integrates the following chain of mathematical techniques into a single coherent pipeline. 
 The Heston SDE system (\ref{eq:logprice_sde})--(\ref{eq:correlation}) is discretised using correlated Brownian increments constructed via Cholesky decomposition, 
 with the full-truncation Milstein scheme for the variance and Euler--Maruyama for the log-price. 
 The conditional PDF of future log-prices is obtained by evaluating the closed-form Heston CF in its numerically 
@@ -382,7 +531,7 @@ while completely decoupling the frequency resolution $\eta$ from the spatial res
 \label{sec:frfft_validation}
 
 The implementation of the fractional Fast Fourier Transform presented in the
-preceding sections constitutes a complex numerical pipeline: it involves a
+preceding section constitutes a complex numerical pipeline: it involves a
 quadrature approximation of an improper integral, a chirp-modulated linear
 convolution evaluated through nested FFT calls, and a subsequent restriction
 of the recovered density to a bounded support.  Each step introduces
@@ -401,10 +550,8 @@ to that closed-form Gaussian, one obtains a ground-truth benchmark that is
 model-free with respect to the numerical algorithm under test.  The
 experiment is therefore not a Monte Carlo approximation: it is an exact
 algebraic comparison, and any discrepancy between the two densities is
-attributable entirely to numerical error in the frFFT machinery.
+attributable entirely to numerical error in the frFFT machinery.\\
 
-\subsection{Theoretical Background}
-\label{subsec:bs_cf}
 
 Under the Black-Scholes model the log-price evolves according to the
 stochastic differential equation
@@ -445,24 +592,19 @@ converges rapidly.
 \label{subsec:experiment_design}
 
 The experiment is structured in three sequential validation steps, each
-targeting a different layer of the computational pipeline.
+targeting a different layer of the computational pipeline.\\
 
-\paragraph{Simulation parameters.}
-A set of $J = 4$ independent trajectories is simulated using the
-\texttt{DataSimulator} class, with $N = 50$ time steps over a horizon of
+
+A set of $J = 1000$ independent trajectories is simulated using the
+\texttt{DataSimulator} class described in \ref{alg:y condition}, with $N = 50$ time steps over a horizon of
 $T = 1$ year, giving a time-step size of $dt = T/N = 0.02$ years.  The
 per-trajectory drift and volatility parameters are drawn uniformly:
-$\mu \sim \mathcal{U}(0,\, 0.1)$ and $\sigma \sim \mathcal{U}(0.1,\, 0.6)$,
+$\mu \sim \mathcal{U}(0,\, 0.1)$ and $\sigma \sim \mathcal{U}(0.1,\, 1.2)$,
 while the initial log-price satisfies $X_0 \sim \mathcal{U}(0,\, 1)$.  With
-a one-step-ahead forecast horizon $\tau = dt = 0.02$ yr, the resulting
-Gaussian standard deviations $\sigma_{\mathrm{BS}} = \sigma\sqrt{\tau}$ lie
-in the range $[0.014, 0.085]$, making the conditional distributions quite
-narrow relative to a typical price domain.
+a one-step-ahead forecast horizon $\tau = dt = 0.02$ years.\\
 
-\paragraph{frFFT hyper-parameters.}
 The inversion is performed with $N_{\mathrm{FFT}} = 4096$ frequency nodes
-and a frequency-domain step $\eta = 0.25$.  Following the default convention
-of \texttt{HestonSimulator.get\_pdf}, the fractional parameter is set to
+and a frequency-domain step $\eta = 0.25$.  Following algorithm \ref{alg:frFFT}. The fractional parameter is set to
 $\alpha = 2/N_{\mathrm{FFT}} \approx 4.88 \times 10^{-4}$, which yields an
 $x$-domain spacing of
 \begin{equation}
@@ -472,14 +614,12 @@ $x$-domain spacing of
 The lower bound of the $x$-grid for each trajectory $k$ is placed at
 $b_k = \mu_{\mathrm{BS},k} - 5\,\sigma_{\mathrm{BS},k}$, centring the
 grid on the Gaussian peak and ensuring that $\pm 5\sigma$ tails are always
-covered.
+covered.\\
 
-\subsection{Step A: Validation of the Analytical Moments}
-\label{subsec:step_a}
-
+\paragraph{Step A: Analytical moments sanity check.}
 Before engaging the frFFT at all, the first validation step confirms that the
-\texttt{DataSimulator.get\_pdf} method correctly implements
-equation~\eqref{eq:bs_normal}.  When called with \texttt{n\_bins=None}, the
+method used to obtain the probability distribution function described in \ref{alg:x target} correctly implements
+equation~\eqref{eq:bs_normal}.  The
 method returns a $(J \times 2)$ array whose columns are the analytical mean
 $\mu_{\mathrm{BS},k}$ and standard deviation $\sigma_{\mathrm{BS},k}$ for
 each trajectory $k$.  These are compared against the values computed directly
@@ -487,7 +627,7 @@ from the simulation parameters and the closed-form expressions in
 equation~\eqref{eq:bs_normal}.
 
 The results, summarised in Table~\ref{tab:step_a}, show that the analytical
-moments returned by \texttt{get\_pdf} are \emph{bit-for-bit identical} to the
+moments returned by \ref{alg:x target} are \emph{bit-for-bit identical} to the
 directly computed values: the absolute difference in both mean and standard
 deviation is exactly zero across all four trajectories.  This is expected,
 since both quantities are computed from the same floating-point operations on
@@ -497,7 +637,7 @@ error in the formula for the analytical parameters.
 \begin{table}[H]
 \centering
 \caption{Step A: comparison between directly computed analytical parameters
-and those returned by \texttt{DataSimulator.get\_pdf(n\_bins=None)}.
+and those returned by \ref{alg:x target} for the first 4 trajectories.
 All differences are zero to double-precision.}
 \label{tab:step_a}
 \begin{tabular}{ccccccc}
@@ -513,9 +653,7 @@ $k$ & $\mu_{\mathrm{BS},k}$ & \texttt{get\_pdf} mean & $|\Delta\mu|$
 \end{tabular}
 \end{table}
 
-\subsection{Step B: frFFT Inversion and the Aliasing Phenomenon}
-\label{subsec:step_b}
-
+\paragraph{Step B: frFFT Inversion.}
 The core validation step applies the Gil-Pelaez inversion formula to the
 Black-Scholes CF of equation~\eqref{eq:bs_cf}.  The inversion approximates
 the probability density function as
@@ -531,7 +669,7 @@ the probability density function as
 \end{equation}
 where $w_j$ are Simpson quadrature weights.  The sum over $j$ is evaluated
 simultaneously at all $k = 0, \ldots, N_{\mathrm{FFT}} - 1$ grid points
-using the batched fractional FFT of \texttt{HestonSimulator.\_frfft\_batch},
+using the batched fractional FFT described in algorithm \ref{alg:frFFT},
 which implements Bluestein's identity.  Concretely, defining the frequency-domain
 input
 \begin{equation}
@@ -546,9 +684,7 @@ equation~\eqref{eq:gp_discrete} reduces to the fractional DFT
     f(x_k) = \frac{\eta}{\pi}\,\mathrm{Re}[Y[k]],
     \label{eq:frfft_sum}
 \end{equation}
-which is the quantity computed by \texttt{\_frfft\_batch}.
 
-\paragraph{The aliasing phenomenon.}
 An important numerical subtlety arises from the choice $\alpha = 2/N$.
 In this regime, the frFFT evaluates the standard DFT at even-indexed
 frequencies: $Y[k] = \hat{X}[2k]$, where $\hat{X}$ denotes the length-$N$
@@ -582,9 +718,8 @@ $[\mu_{\mathrm{BS}} - 5\sigma_{\mathrm{BS}},\,
 and then rescaled so that $\lambda \sum_k f(x_k) = 1$.  This restriction also
 has a direct physical interpretation: a $\pm 5\sigma$ interval captures
 $99.9999\%$ of the Gaussian probability mass, so no meaningful probability is
-discarded.
+discarded.\\
 
-\paragraph{Moment accuracy.}
 Following normalisation, the mean and standard deviation of the recovered
 density are computed numerically from the frFFT grid as
 \begin{equation}
@@ -600,7 +735,7 @@ parameters and the corresponding absolute errors.
 
 \begin{table}[H]
 \centering
-\caption{Step B: moment accuracy of the frFFT-recovered density.  The
+\caption{Step B: moment accuracy of the frFFT-recovered density for the first 4 trajectories.  The
 frFFT mean matches the analytical mean to within $\approx 10^{-7}$ and the
 standard deviation to within $\approx 10^{-7}$.}
 \label{tab:step_b}
@@ -626,7 +761,7 @@ entirely consistent with the quadrature discretisation error of the
 Gil-Pelaez inversion and contain no evidence of a systematic implementation
 defect.
 
-\subsection{Step C: Distribution Metrics on the Fine Grid}
+\paragraph{Step C: Distribution Metrics.}
 \label{subsec:step_c}
 
 The final validation step compares the full shape of the frFFT-recovered
@@ -654,7 +789,7 @@ The results are reproduced in Table~\ref{tab:step_c}.
 \begin{table}[H]
 \centering
 \caption{Step C: distribution metrics between the frFFT density and the
-analytical Gaussian, computed at the $\approx 38$ active fine-grid points
+analytical Gaussian for the first 4 trajectories, computed at the $\approx 38$ active fine-grid points
 per trajectory.  All finite metrics are exactly zero; the \texttt{nan}
 entries in the JS column are a numerical artefact of zero mass at boundary
 points and are interpreted as zero.}
@@ -678,24 +813,22 @@ interpretation: at each of the 38 active quadrature points, the probability
 mass $p_j = f_{\mathrm{frFFT}}(x_j) \cdot \lambda$ and
 $q_j = f_{\mathrm{Gauss}}(x_j) \cdot \lambda$ agree to within
 double-precision floating-point resolution, so no measurable distance exists
-between the two discrete distributions.  The \texttt{nan} entries in the JS
-column for trajectories 0 and 2 are a known numerical artefact: at the
-boundary grid points of the support both $p_j$ and $q_j$ are extremely small
-(they correspond to values in the $\pm 5\sigma$ tails), and their ratio
-approaches the indeterminate form $0 \cdot \log(0/0)$.  The
-\texttt{scipy.spatial.distance.jensenshannon} implementation propagates
-this as \texttt{nan} rather than resolving it to zero by continuity.
-Since the KS, TV, and Hellinger distances are all exactly zero for those
-same trajectories, the \texttt{nan} carries no information about a genuine
-distributional discrepancy and the mean JS is correctly reported as zero.
+between the two discrete distributions.\\
 
-\subsection{Residual Analysis}
-\label{subsec:residuals}
-
-To probe the numerical error more finely, Figure~\ref{fig:frfft_residuals}
+To probe the numerical error more finely the plots of the probability densities obtained from the frFFT and the analytical Gaussian are shown in Figure~\ref{fig:frfft_plots}. 
+Moreover, Figure~\ref{fig:frfft_residuals}
 plots the pointwise residual
 $r(x_k) = f_{\mathrm{frFFT}}(x_k) - f_{\mathrm{Gauss}}(x_k)$
-at every active grid point in the support for each of the four trajectories.
+at every active grid point in the support for four randomly sampled trajectories.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Heston/images/fft_plots.png}
+    \caption{Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories.  The two curves are visually indistinguishable,
+     confirming the distributional identity established by the zero-distance metrics in Table~\ref{tab:step_c}.}
+    \label{fig:frfft_plots}
+\end{figure}
+
 
 \begin{figure}[H]
     \centering
@@ -703,21 +836,15 @@ at every active grid point in the support for each of the four trajectories.
     \caption{Pointwise residuals between the normalised frFFT density and the
     analytical Gaussian density, evaluated at the active fine-grid points
     within $\pm 5\sigma$ of each trajectory's mean.  The vertical axes carry
-    exponents of $10^{-14}$ (trajectory 0) and $10^{-15}$ (trajectories
-    1--3), confirming that the residuals are at the level of double-precision
-    machine epsilon.  The oscillatory, zero-mean pattern is characteristic of
-    floating-point rounding noise with no systematic bias.}
+    exponents of $1^{-15}$, confirming that the residuals are at the level of double-precision
+    machine epsilon.}
     \label{fig:frfft_residuals}
 \end{figure}
 
 The figure reveals several important features.  First, the magnitude of the
-residuals is between $10^{-15}$ and $10^{-14}$, which lies within one to
+residuals is around $1^{-15}$, which lies within one to
 two orders of magnitude of the IEEE 754 double-precision machine epsilon
-$\varepsilon_{\mathrm{mach}} = 2^{-52} \approx 2.22 \times 10^{-16}$.  Given
-that the density values themselves are on the order of
-$1/\sigma_{\mathrm{BS}} \approx 10$ to $50$, the relative residual is
-approximately $10^{-15}/10 = 10^{-16}$, which is indistinguishable from
-the rounding error floor of double-precision arithmetic.  In other words,
+$\varepsilon_{\mathrm{mach}} = 2^{-52} \approx 2.22 \times 10^{-16}$. In other words,
 the frFFT recovers the Gaussian density \emph{to the last representable bit}.
 
 Second, the residuals are visibly oscillatory and change sign multiple times
@@ -734,17 +861,6 @@ $|\varphi_{\mathrm{BS}}(1024)| = \exp(-\tfrac{1}{2}\sigma_{\mathrm{BS}}^2
 \cdot 1024^2) \approx 10^{-2400}$, making the truncation error entirely
 negligible.
 
-Third, the residuals for trajectory 0 are approximately an order of
-magnitude larger ($\sim 10^{-14}$) than those for trajectories 1-3
-($\sim 10^{-15}$).  This is consistent with trajectory 0 having the smallest
-$\sigma_{\mathrm{BS}} = 0.0232$: a narrower Gaussian has a higher peak
-density (approximately $1/(\sigma_{\mathrm{BS}}\sqrt{2\pi}) \approx 17.2$),
-so the absolute rounding error, which scales with the magnitude of the
-quantity being represented, is slightly larger in absolute terms, even
-though the \emph{relative} error remains at the machine-epsilon level across
-all trajectories.  This scaling is precisely what one would expect from a
-correctly implemented algorithm and provides further confirmation that the
-residuals have no pathological origin.
 
 \subsection{Summary and Interpretation}
 \label{subsec:validation_summary}

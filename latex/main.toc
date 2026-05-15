@@ -29,47 +29,13 @@
 \contentsline {subsection}{\numberline {4.2.3}Hybrid ForWGAN results}{44}{subsection.4.2.3}%
 \contentsline {chapter}{\numberline {5}The Heston Stochastic Volatility Data Simulator}{46}{chapter.5}%
 \contentsline {section}{\numberline {5.1}The Heston Stochastic Volatility Model}{46}{section.5.1}%
-\contentsline {subsection}{\numberline {5.1.1}Limitations of Constant-Volatility Models}{46}{subsection.5.1.1}%
-\contentsline {subsection}{\numberline {5.1.2}The Heston System of SDEs}{46}{subsection.5.1.2}%
-\contentsline {paragraph}{Log-price SDE (Eq.\,\ref {eq:logprice_sde}).}{47}{section*.2}%
-\contentsline {paragraph}{Variance SDE (Eq.\,\ref {eq:var_sde}).}{47}{section*.3}%
-\contentsline {paragraph}{Correlation (Eq.\,\ref {eq:correlation}).}{47}{section*.4}%
-\contentsline {subsection}{\numberline {5.1.3}The Feller Condition}{47}{subsection.5.1.3}%
-\contentsline {section}{\numberline {5.2}Correlated Brownian Increments}{47}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Numerical Discretisation}{48}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}Euler--Maruyama for the Log-Price}{48}{subsection.5.3.1}%
-\contentsline {subsection}{\numberline {5.3.2}Milstein Scheme with Full Truncation for the Variance}{48}{subsection.5.3.2}%
-\contentsline {paragraph}{Full truncation.}{48}{section*.5}%
-\contentsline {section}{\numberline {5.4}The Characteristic Function}{49}{section.5.4}%
-\contentsline {subsection}{\numberline {5.4.1}Definition and Properties}{49}{subsection.5.4.1}%
-\contentsline {subsection}{\numberline {5.4.2}The Heston Characteristic Function}{49}{subsection.5.4.2}%
-\contentsline {subsection}{\numberline {5.4.3}The ``Little Trap'' Formulation}{49}{subsection.5.4.3}%
-\contentsline {section}{\numberline {5.5}Fourier Inversion of the Characteristic Function}{50}{section.5.5}%
-\contentsline {subsection}{\numberline {5.5.1}The Gil-Pelaez Inversion Formula}{50}{subsection.5.5.1}%
-\contentsline {subsection}{\numberline {5.5.2}Simpson's Rule Quadrature Weights}{50}{subsection.5.5.2}%
-\contentsline {section}{\numberline {5.6}From Standard FFT to Fractional FFT}{51}{section.5.6}%
-\contentsline {subsection}{\numberline {5.6.1}The Discrete Fourier Transform}{51}{subsection.5.6.1}%
-\contentsline {subsection}{\numberline {5.6.2}The Fractional DFT and Bluestein's Algorithm}{51}{subsection.5.6.2}%
-\contentsline {paragraph}{The Bluestein identity.}{51}{section*.6}%
-\contentsline {paragraph}{Decoupling in the simulator.}{52}{section*.7}%
-\contentsline {section}{\numberline {5.7}The PDF Computation Pipeline}{52}{section.5.7}%
-\contentsline {subsection}{\numberline {5.7.1}Grid Initialisation}{53}{subsection.5.7.1}%
-\contentsline {subsection}{\numberline {5.7.2}Phase Shift for the Lower Bound}{53}{subsection.5.7.2}%
-\contentsline {subsection}{\numberline {5.7.3}PDF Extraction and Clipping}{53}{subsection.5.7.3}%
-\contentsline {subsection}{\numberline {5.7.4}Binning and Normalisation}{53}{subsection.5.7.4}%
-\contentsline {subsection}{\numberline {5.7.5}Raw Moment Output}{54}{subsection.5.7.5}%
-\contentsline {section}{\numberline {5.8}Monte Carlo Fallback and Validation}{54}{section.5.8}%
-\contentsline {section}{\numberline {5.9}Parameter Sampling Strategy}{54}{section.5.9}%
-\contentsline {section}{\numberline {5.10}Summary}{55}{section.5.10}%
-\contentsline {section}{\numberline {5.11}Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{55}{section.5.11}%
-\contentsline {subsection}{\numberline {5.11.1}Theoretical Background}{55}{subsection.5.11.1}%
-\contentsline {subsection}{\numberline {5.11.2}Experimental Design}{56}{subsection.5.11.2}%
-\contentsline {paragraph}{Simulation parameters.}{56}{section*.8}%
-\contentsline {paragraph}{frFFT hyper-parameters.}{56}{section*.9}%
-\contentsline {subsection}{\numberline {5.11.3}Step A: Validation of the Analytical Moments}{56}{subsection.5.11.3}%
-\contentsline {subsection}{\numberline {5.11.4}Step B: frFFT Inversion and the Aliasing Phenomenon}{57}{subsection.5.11.4}%
-\contentsline {paragraph}{The aliasing phenomenon.}{57}{section*.10}%
-\contentsline {paragraph}{Moment accuracy.}{58}{section*.11}%
-\contentsline {subsection}{\numberline {5.11.5}Step C: Distribution Metrics on the Fine Grid}{58}{subsection.5.11.5}%
-\contentsline {subsection}{\numberline {5.11.6}Residual Analysis}{59}{subsection.5.11.6}%
-\contentsline {subsection}{\numberline {5.11.7}Summary and Interpretation}{61}{subsection.5.11.7}%
+\contentsline {subsection}{\numberline {5.1.1}The Heston System of SDEs}{46}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Numerical Discretisation of the Heston SDEs}{47}{subsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.1.3}The Characteristic Function and the Fourier Inversion Formula}{48}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.4}The PDF Computation Pipeline}{52}{subsection.5.1.4}%
+\contentsline {section}{\numberline {5.2}Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{57}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Experimental Design}{58}{subsection.5.2.1}%
+\contentsline {paragraph}{Step A: Analytical moments sanity check.}{58}{section*.2}%
+\contentsline {paragraph}{Step B: frFFT Inversion.}{58}{section*.3}%
+\contentsline {paragraph}{Step C: Distribution Metrics.}{60}{section*.4}%
+\contentsline {subsection}{\numberline {5.2.2}Summary and Interpretation}{63}{subsection.5.2.2}%
