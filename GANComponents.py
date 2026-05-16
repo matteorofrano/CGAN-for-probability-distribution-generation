@@ -268,7 +268,7 @@ class MyGenerator(nn.Module):
             raise FileNotFoundError(f"Generator file not found at {filepath}")
         
         if device is None:
-            device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         checkpoint = torch.load(filepath, map_location=device, weights_only=True)
         

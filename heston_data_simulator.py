@@ -616,8 +616,13 @@ class HestonSimulator(DataSimulator):
 
         # ── Histogram onto shared bins ────────────────────────────────────────
         probabilities = np.zeros((J, len(self.bins) - 1), dtype=np.float32)
+        if n_bins is not None:
+            hist_bins_input = self.bins if self.bins is not None else np.ceil(np.sqrt(mc_sims))
+        else:
+            hist_bins_input = np.ceil(np.sqrt(mc_sims))
+
         for j_idx in range(J):
-            hist, bin_edges = np.histogram(terminal[j_idx], bins= self.bins if self.bins is not None else np.ceil(np.sqrt(mc_sims)))
+            hist, bin_edges = np.histogram(terminal[j_idx], bins= hist_bins_input)
             total   = hist.sum()
             self.bin_edges = bin_edges
             if total > 0:
@@ -680,6 +685,7 @@ class HestonSimulator(DataSimulator):
         n_steps_ahead: int = 1,
         Nfft: int = 4096,
         eta: float = 0.25,
+        x_width: float = 12.0
     ):
         """
         Overlay the frFFT PDF against a Monte-Carlo histogram for a handful
@@ -700,11 +706,22 @@ class HestonSimulator(DataSimulator):
 
         indices = trajectory_indices or list(range(min(4, self.n_simulations)))
         tau     = n_steps_ahead * self.dt
+        dt      = self.dt
+        sqrt_dt = np.sqrt(dt)
 
         ncols = min(len(indices), 2)
         nrows = int(np.ceil(len(indices) / ncols))
         fig, axes = plt.subplots(nrows, ncols, figsize=(7 * ncols, 4 * nrows))
         axes = np.array(axes).flatten()
+
+        alpha_frfft = 2.0 / Nfft
+        lam         = 2.0 * np.pi * alpha_frfft / eta
+
+        u_arr = np.arange(Nfft, dtype=np.float64) * eta
+        w     = np.ones(Nfft)
+        w[1:-1:2] = 4.0
+        w[2:-2:2] = 2.0
+        w        /= 3.0
 
         for plot_i, j_idx in enumerate(indices):
             ax = axes[plot_i]
@@ -712,20 +729,22 @@ class HestonSimulator(DataSimulator):
             # ── Monte-Carlo reference ─────────────────────────────────────────
             X_mc = np.full(mc_sims, self.X_T[j_idx])
             v_mc = np.full(mc_sims, self.v_T[j_idx])
-            dt, sqrt_dt = self.dt, np.sqrt(self.dt)
             for _ in range(n_steps_ahead):
-                Z1 = self.rng.standard_normal(mc_sims)
-                Z2 = self.rng.standard_normal(mc_sims)
+                Z1   = self.rng.standard_normal(mc_sims)
+                Z2   = self.rng.standard_normal(mc_sims)
                 dW_X = sqrt_dt * Z1
                 dW_v = sqrt_dt * (
                     self.rho[j_idx] * Z1
                     + np.sqrt(1.0 - self.rho[j_idx]**2) * Z2
                 )
-                sv   = np.sqrt(np.maximum(v_mc, 0.0))
-                X_mc += (self.mu[j_idx] - 0.5 * v_mc) * dt + sv * dW_X
+                # Full truncation: clamp variance before using in coefficients
+                v_pos = np.maximum(v_mc, 0.0)                   # BUG 3 FIX
+                sv    = np.sqrt(v_pos)
+                X_mc += (self.mu[j_idx] - 0.5 * v_pos) * dt + sv * dW_X
                 v_mc += (
-                    self.kappa[j_idx] * (self.theta[j_idx] - v_mc) * dt
+                    self.kappa[j_idx] * (self.theta[j_idx] - v_pos) * dt
                     + self.sigma_v[j_idx] * sv * dW_v
+                    + 0.25 * self.sigma_v[j_idx]**2 * (dW_v**2 - dt)  # BUG 4 FIX
                 )
                 v_mc = np.maximum(v_mc, 0.0)
 
@@ -735,9 +754,6 @@ class HestonSimulator(DataSimulator):
             )
 
             # ── frFFT PDF ─────────────────────────────────────────────────────
-            alpha_frfft = 2.0 / Nfft
-            lam         = 2.0 * np.pi * alpha_frfft / eta
-
             X0_j  = np.array([self.X_T[j_idx]])
             v0_j  = np.array([self.v_T[j_idx]])
             mu_j  = np.array([self.mu[j_idx]])
@@ -746,21 +762,21 @@ class HestonSimulator(DataSimulator):
             sv_j  = np.array([self.sigma_v[j_idx]])
             rh_j  = np.array([self.rho[j_idx]])
 
-            u_arr = np.arange(Nfft, dtype=np.float64) * eta
-            w     = np.ones(Nfft)
-            w[1:-1:2] = 4.0
-            w[2:-2:2] = 2.0
-            w        /= 3.0
+            phi = self._heston_cf(
+                u_arr, tau, X0_j, v0_j, mu_j, kap_j, th_j, sv_j, rh_j
+            )
 
-            phi    = self._heston_cf(u_arr, tau, X0_j, v0_j, mu_j, kap_j, th_j, sv_j, rh_j)
-            approx_std = np.sqrt(float(th_j) * tau)
-            b_j    = float(X0_j) + (float(mu_j) - 0.5 * float(th_j)) * tau - 5.0 * approx_std
+            approx_std = np.sqrt(float(v0_j) * tau)
+            b_j        = (float(X0_j)
+                          + (float(mu_j) - 0.5 * float(v0_j)) * tau
+                          - x_width * approx_std)
+
             phase  = np.exp(-1j * u_arr * b_j)
             fft_in = (w * phi[0] * phase)[np.newaxis, :]
 
-            Y_j    = self._frfft_batch(fft_in, alpha_frfft)[0]
-            pdf_j  = np.maximum((eta / np.pi) * np.real(Y_j), 0.0)
-            x_j    = b_j + np.arange(Nfft) * lam
+            Y_j   = self._frfft_batch(fft_in, alpha_frfft)[0]
+            pdf_j = np.maximum((eta / np.pi) * np.real(Y_j), 0.0)
+            x_j   = b_j + np.arange(Nfft) * lam
 
             ax.plot(x_j, pdf_j, color="crimson", lw=1.8, label="frFFT PDF")
             ax.set_xlim(X_mc.min() - 0.05, X_mc.max() + 0.05)
