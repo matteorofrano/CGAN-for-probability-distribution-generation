@@ -584,7 +584,8 @@ class DataSimulator():
         return result
     
     def get_pdf(self, n_steps_ahead:int, n_bins:int|None = None,
-                 P:np.ndarray|None=None, mc_sims:int = 0, verbose:bool = False):
+                 P:np.ndarray|None=None, mc_sims:int = 0,
+                   verbose:bool = False):
         """
         compute the analytical parameters of the normal distribution from BS paths
         args: 
@@ -644,7 +645,7 @@ class DataSimulator():
             cdf_values = norm.cdf(common_bins, loc=mean[:, None], scale=std[:, None])
             probabilities = np.diff(cdf_values, axis=1)
         else:
-            montecarlo_simulations = self._montecarlo_steps(n_mc_simulations=1000, n_steps=n_steps_ahead, start_values=XT).squeeze()
+            montecarlo_simulations = self._montecarlo_steps(n_mc_simulations=mc_sims, n_steps=n_steps_ahead, start_values=XT).squeeze()
             if n_bins is not None and n_bins>10:
                 probabilities = np.zeros((mean.shape[0], n_bins))
                 for i in range(montecarlo_simulations.shape[0]):

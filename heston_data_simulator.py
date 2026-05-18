@@ -573,6 +573,7 @@ class HestonSimulator(DataSimulator):
         n_bins: int | None,
         mc_sims: int,
         n_steps: int,
+        get_raw_terminal_values: bool = False
     ) -> np.ndarray:
         """
         Monte-Carlo estimate of the conditional Heston PDF.
@@ -607,6 +608,9 @@ class HestonSimulator(DataSimulator):
                 v_mc = np.maximum(v_mc, 0.0)
             terminal[:, s] = X_mc
 
+        if get_raw_terminal_values:
+            return terminal
+        
         # ── Return raw moments if no binning ──────────────────────────────────
         if n_bins == 0:
             self.means = terminal.mean(axis=1)

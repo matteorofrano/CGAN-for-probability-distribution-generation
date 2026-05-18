@@ -68,7 +68,7 @@ class MyDiscriminator(nn.Module):
         self.apply(_xavier_init_weights)
 
     def forward(self, x, c):        
-        x, c = x.view(x.size(0), -1), c.view(c.size(0), -1).float()
+        x, c = x.view(x.size(0), -1), c.view(c.size(0), -1)
         v = torch.cat((x, c), 1) # v: [input, condition] concatenated vector
         y_ = self.layers(v)
         return y_
@@ -212,7 +212,7 @@ class MyGenerator(nn.Module):
         self.apply(_xavier_init_weights)
 
     def forward(self, c, z):
-        c, z = c.view(c.size(0), -1), z.view(z.size(0), -1).float()
+        c, z = c.view(c.size(0), -1), z.view(z.size(0), -1)
         v = torch.cat((c, z), 1) # v: [trajectory, noise] concatenated vector
         y_ = self.layers(v)
         return y_    
