@@ -399,6 +399,259 @@
       \field{pages}{175\bibrangedash 199}
       \range{pages}{25}
     \endentry
+    \entry{srforgan:srforgan}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=a1b163e4420a009c1d6b0076ce43dfd7}{%
+           family={Pacchiardi},
+           familyi={P\bibinitperiod},
+           given={Lorenzo},
+           giveni={L\bibinitperiod}}}%
+        {{hash=812e39cd0945724779725b741ee7c8cb}{%
+           family={Adewoyin},
+           familyi={A\bibinitperiod},
+           given={Rilwan\bibnamedelima A},
+           giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=1bfe3443b0b08e9a166b07fa7572baec}{%
+           family={Dueben},
+           familyi={D\bibinitperiod},
+           given={Peter},
+           giveni={P\bibinitperiod}}}%
+        {{hash=af8c2045f576cb84ce423817fc4bd740}{%
+           family={Dutta},
+           familyi={D\bibinitperiod},
+           given={Ritabrata},
+           giveni={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{fullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{fullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{bibnamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authorbibnamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authornamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authorfullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{authorfullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Machine Learning Research}
+      \field{number}{45}
+      \field{title}{Probabilistic forecasting with generative networks via scoring rule minimization}
+      \field{volume}{25}
+      \field{year}{2024}
+      \field{pages}{1\bibrangedash 64}
+      \range{pages}{64}
+    \endentry
+    \entry{heston:heston_paper}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=da886e16f39671df2e1cc9208589b67d}{%
+           family={Heston},
+           familyi={H\bibinitperiod},
+           given={Steven\bibnamedelima L},
+           giveni={S\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Oxford University Press}%
+      }
+      \strng{namehash}{da886e16f39671df2e1cc9208589b67d}
+      \strng{fullhash}{da886e16f39671df2e1cc9208589b67d}
+      \strng{fullhashraw}{da886e16f39671df2e1cc9208589b67d}
+      \strng{bibnamehash}{da886e16f39671df2e1cc9208589b67d}
+      \strng{authorbibnamehash}{da886e16f39671df2e1cc9208589b67d}
+      \strng{authornamehash}{da886e16f39671df2e1cc9208589b67d}
+      \strng{authorfullhash}{da886e16f39671df2e1cc9208589b67d}
+      \strng{authorfullhashraw}{da886e16f39671df2e1cc9208589b67d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{The review of financial studies}
+      \field{number}{2}
+      \field{title}{A closed-form solution for options with stochastic volatility with applications to bond and currency options}
+      \field{volume}{6}
+      \field{year}{1993}
+      \field{pages}{327\bibrangedash 343}
+      \range{pages}{17}
+    \endentry
+    \entry{heston:cir_process}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{3}{}{%
+        {{hash=0d88b4a591c5402d328fe670bc33bf1b}{%
+           family={Cox},
+           familyi={C\bibinitperiod},
+           given={John\bibnamedelima C},
+           giveni={J\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=9227f07775bc204a78df34a7d19ab248}{%
+           family={Ingersoll},
+           familyi={I\bibinitperiod},
+           given={Jonathan\bibnamedelima E},
+           giveni={J\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=98b2227c5a8dba76158ffb9a20138b89}{%
+           family={Ross},
+           familyi={R\bibinitperiod},
+           given={Stephen\bibnamedelima A},
+           giveni={S\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {World Scientific}%
+      }
+      \strng{namehash}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \strng{fullhash}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \strng{fullhashraw}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \strng{bibnamehash}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \strng{authorbibnamehash}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \strng{authornamehash}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \strng{authorfullhash}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \strng{authorfullhashraw}{f08b707e553aa2fcaf04c65fd6bfc22f}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Econometrica}
+      \field{number}{2}
+      \field{title}{A theory of the term structure of interest rates}
+      \field{volume}{53}
+      \field{year}{1985}
+      \field{pages}{385\bibrangedash 407}
+      \range{pages}{23}
+    \endentry
+    \entry{heston:euler_maruyama}{book}{}{}
+      \name{author}{2}{}{%
+        {{hash=a4fb5859192206ba44cf72178b85abb6}{%
+           family={Platen},
+           familyi={P\bibinitperiod},
+           given={Eckhard},
+           giveni={E\bibinitperiod}}}%
+        {{hash=1226ace3753a4ee51a4aaf334c7d1bc6}{%
+           family={Bruti-Liberati},
+           familyi={B\bibinithyphendelim L\bibinitperiod},
+           given={Nicola},
+           giveni={N\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer Science \& Business Media}%
+      }
+      \strng{namehash}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \strng{fullhash}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \strng{fullhashraw}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \strng{bibnamehash}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \strng{authorbibnamehash}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \strng{authornamehash}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \strng{authorfullhash}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \strng{authorfullhashraw}{fd3c1907a71e4c3ed7ed6643e849924b}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Numerical solution of stochastic differential equations with jumps in finance}
+      \field{volume}{64}
+      \field{year}{2010}
+    \endentry
+    \entry{heston:milstein}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=060db303139b50d8bdd6f970fa749df8}{%
+           family={Mil’shtejn},
+           familyi={M\bibinitperiod},
+           given={GN},
+           giveni={G\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {SIAM}%
+      }
+      \strng{namehash}{060db303139b50d8bdd6f970fa749df8}
+      \strng{fullhash}{060db303139b50d8bdd6f970fa749df8}
+      \strng{fullhashraw}{060db303139b50d8bdd6f970fa749df8}
+      \strng{bibnamehash}{060db303139b50d8bdd6f970fa749df8}
+      \strng{authorbibnamehash}{060db303139b50d8bdd6f970fa749df8}
+      \strng{authornamehash}{060db303139b50d8bdd6f970fa749df8}
+      \strng{authorfullhash}{060db303139b50d8bdd6f970fa749df8}
+      \strng{authorfullhashraw}{060db303139b50d8bdd6f970fa749df8}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Theory of Probability \& Its Applications}
+      \field{number}{3}
+      \field{title}{Approximate integration of stochastic differential equations}
+      \field{volume}{19}
+      \field{year}{1975}
+      \field{pages}{557\bibrangedash 562}
+      \range{pages}{6}
+    \endentry
+    \entry{heston:little_trap}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=f45fe7e87093eb7ec9971d6f10c5c61f}{%
+           family={Albrecher},
+           familyi={A\bibinitperiod},
+           given={Hansjörg},
+           giveni={H\bibinitperiod}}}%
+        {{hash=bf30cc5f43921c4f91540b119e0c3fdf}{%
+           family={Mayer},
+           familyi={M\bibinitperiod},
+           given={Philipp},
+           giveni={P\bibinitperiod}}}%
+        {{hash=d4c1a086254c12a197617d6021d1f00f}{%
+           family={Schoutens},
+           familyi={S\bibinitperiod},
+           given={Wim},
+           giveni={W\bibinitperiod}}}%
+        {{hash=cf5d611a4e01af1f71ffc5052d6d04d6}{%
+           family={Tistaert},
+           familyi={T\bibinitperiod},
+           given={Jurgen},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{0a4c0219638032fc80ff28dd29b5816a}
+      \strng{fullhash}{cad0e59640929d3dd6b8f0247e7ee62a}
+      \strng{fullhashraw}{cad0e59640929d3dd6b8f0247e7ee62a}
+      \strng{bibnamehash}{0a4c0219638032fc80ff28dd29b5816a}
+      \strng{authorbibnamehash}{0a4c0219638032fc80ff28dd29b5816a}
+      \strng{authornamehash}{0a4c0219638032fc80ff28dd29b5816a}
+      \strng{authorfullhash}{cad0e59640929d3dd6b8f0247e7ee62a}
+      \strng{authorfullhashraw}{cad0e59640929d3dd6b8f0247e7ee62a}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Wilmott}
+      \field{number}{1}
+      \field{title}{The little Heston trap}
+      \field{year}{2007}
+      \field{pages}{83\bibrangedash 92}
+      \range{pages}{10}
+    \endentry
+    \entry{heston:gil_pelaez}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=017eaf8ce97e6aa98659ab4b645e257e}{%
+           family={Gil-Pelaez},
+           familyi={G\bibinithyphendelim P\bibinitperiod},
+           given={Julio},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Oxford University Press}%
+      }
+      \strng{namehash}{017eaf8ce97e6aa98659ab4b645e257e}
+      \strng{fullhash}{017eaf8ce97e6aa98659ab4b645e257e}
+      \strng{fullhashraw}{017eaf8ce97e6aa98659ab4b645e257e}
+      \strng{bibnamehash}{017eaf8ce97e6aa98659ab4b645e257e}
+      \strng{authorbibnamehash}{017eaf8ce97e6aa98659ab4b645e257e}
+      \strng{authornamehash}{017eaf8ce97e6aa98659ab4b645e257e}
+      \strng{authorfullhash}{017eaf8ce97e6aa98659ab4b645e257e}
+      \strng{authorfullhashraw}{017eaf8ce97e6aa98659ab4b645e257e}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Biometrika}
+      \field{number}{3-4}
+      \field{title}{Note on the inversion theorem}
+      \field{volume}{38}
+      \field{year}{1951}
+      \field{pages}{481\bibrangedash 482}
+      \range{pages}{2}
+    \endentry
   \enddatalist
 \endrefsection
 \endinput

@@ -259,14 +259,16 @@ class MyCGAN():
         
 
 
-    def generate(self, data: TensorDataset, get_pdf:bool = False, bins: np.ndarray|None = None):
+    def generate(self, data: TensorDataset, get_pdf:bool = False,
+                  bins: np.ndarray|None = None, n_samples:int = 1000):
         """
         Generate predictions using the trained Generator
         
         Args:
             data: TensorDataset containing true values and conditions (pdf, trajectory)
             get_pdf: Boolean -> define if multiple generation using different noise vector is needed to compute the probability distribution of the outcome
-
+            bins: np.ndarray|None -> used to build the pdf grid
+            n_samples: int -> number of samples used to compute the pdf 
         Returns:
             predictions: Generated probability distributions
             conditions: Corresponding trajectory conditions
@@ -302,7 +304,7 @@ class MyCGAN():
                 # Generate samples
                 if get_pdf:
                     sample_values = []
-                    for _ in range(1000):
+                    for _ in range(n_samples):
                         z = torch.randn((current_batch_size, self.z_dim)).to(self.DEVICE)
                         generated = self.G(c, z)
                         sample_values.append(generated.cpu())
@@ -320,9 +322,9 @@ class MyCGAN():
         conditions = torch.cat(conditions_list, dim=0).numpy()
         # IF GENERATED SAMPLES ARE AVAILABLE THEN BUILD THE PDF 
         if simulation_list:
-            simulations = torch.cat(simulation_list, dim=0).numpy()  # (n_total, 1000)
+            simulations = torch.cat(simulation_list, dim=0).numpy()  # (n_total, n_samples)
             print(f'shape array {simulations.shape}')
-            means = simulations.mean(axis=1)  # mean over the 1000 samples
+            means = simulations.mean(axis=1)  # mean over the n_samples samples
 
             if bins is not None:
                 predictions = np.zeros((simulations.shape[0], bins.shape[0] - 1))

@@ -199,7 +199,7 @@ V0_RANGE      = (0.6,  0.6)      # initial variance
 KAPPA_RANGE   = (1.0,  1.0)      # mean-reversion speed
 THETA_RANGE   = (0.6,  0.6)      # long-run variance
 SIGMA_V_RANGE = (0.5,  0.5)      # vol-of-vol
-RHO_RANGE     = (0.7,  0.7)      # spot-vol correlation
+RHO_RANGE     = (-0.7,  -0.7)      # spot-vol correlation
  
 # --- Time grid ---
 N_STEPS = 22                     # number of time steps
