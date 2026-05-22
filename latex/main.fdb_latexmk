@@ -1,60 +1,19 @@
 # Fdb version 4
-<<<<<<< HEAD
-<<<<<<< HEAD
-["biber main"] 1774303710.46219 "main.bcf" "main.bbl" "main" 1774303718.33805 0
-  "bibliografia.bib" 1769722694 2580 d13ff4d6d08acf425448f739f4609406 ""
-  "main.bcf" 1774303717 108663 1584fd7f623978fa66a1715c39908cfd "pdflatex"
-=======
-["biber main"] 1778190619.2039 "main.bcf" "main.bbl" "main" 1778246933.91158 0
-  "bibliografia.bib" 1778100539 3792 d5ad8d89437a867746269f8c32a0be7a ""
-  "main.bcf" 1778246933 109246 7effcd952e15ecd631d63754b03e7c5d "pdflatex"
->>>>>>> develop
-=======
-["biber main"] 0 "main.bcf" "main.bbl" "main" 1778859807.60997 -1
-  "bibliografia.bib" 1778790288 5470 184546c8c81131aecaff151fb4ced459 ""
-  "main.bcf" 1778859807 109765 43b3668da8c4ee2a2e47ae5703bff70b "pdflatex"
->>>>>>> develop
+["biber main"] 1779476590.28242 "main.bcf" "main.bbl" "main" 1779476607.8461 0
+  "bibliografia.bib" 1778881617 5470 184546c8c81131aecaff151fb4ced459 ""
+  "main.bcf" 1779476607 109765 43b3668da8c4ee2a2e47ae5703bff70b "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-<<<<<<< HEAD
-<<<<<<< HEAD
-["pdflatex"] 1774303713.62007 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1774303718.33943 0
-  "Background/Background.aux" 1774303717 9002 1ea538e9f99388f978ab9fd18f4823a4 "pdflatex"
-  "Background/Background.tex" 1774303699 13256 4b956342442b3b331b66792359a1f69e ""
-=======
-["pdflatex"] 1778246929.25029 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1778246933.91236 0
-  "Background/Background.aux" 1778246932 9521 8b51220cbc01726a17dec35ecb045dd3 "pdflatex"
-  "Background/Background.tex" 1778228610 16244 02ca281b0f971730c77585a98228df03 ""
->>>>>>> develop
-=======
-["pdflatex"] 1778859802.39724 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1778859807.61114 0
-  "Background/Background.aux" 1778859805 9521 88c09b181a11d0d7175464a70bac1023 "pdflatex"
+["pdflatex"] 1779476602.36019 "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" "main.pdf" "main" 1779476607.8471 0
+  "Background/Background.aux" 1779476605 9521 88c09b181a11d0d7175464a70bac1023 "pdflatex"
   "Background/Background.tex" 1778444594 16244 02ca281b0f971730c77585a98228df03 ""
->>>>>>> develop
   "Background/images/CWGAN_error_dist.png" 1769722694 166924 40cf9dc56cd9acf8176aec1cd83f22a1 ""
   "Background/images/bins_global_distribution_cgan.png" 1768401792 36296 4a142bcc602618b77186e7763f6ae333 ""
   "Background/images/bins_global_distribution_cwgan.png" 1769722694 28620 4a26ac409f179bf918b572e0348a6333 ""
   "Background/images/bins_samples_sigma.png" 1774303699 54300 1f3db660586646f6e925fbcbc15bed1b ""
   "Background/images/cwgan_samples_sigma.png" 1774303699 54136 dfa9cc6d79427dd816c47e1bc9e5d7c2 ""
-<<<<<<< HEAD
-<<<<<<< HEAD
-  "Background/images/error_bins_global.png" 1768401792 181230 170f98bc09a5700b4ffda5be57522c8a ""
-  "Background/images/error_mean_std.png" 1768401792 30379 beef32749176217a7424874f072cb1e6 ""
-  "Background/images/mean_std_cgan.png" 1768401792 25362 66c058737b069957a095b81350c2f361 ""
-  "Background/images/samples_forgan.png" 1774303699 51759 aeb3299099dcfe4833f63849c7ed2c2c ""
-  "Background/images/samples_forgan_simple.png" 1774303699 43389 d3d5b35d8de4d38e7f9722f99956504f ""
-=======
-  "Background/images/debug_forgan.png" 1776024317 118486 168d2c5df96811d2307d84e61b4055d4 ""
-  "Background/images/debug_forwgan.png" 1776024291 120303 c49e0747d41616abf0843151001b327d ""
-  "Background/images/error_bins_global.png" 1768401792 181230 170f98bc09a5700b4ffda5be57522c8a ""
-  "Background/images/error_mean_std.png" 1768401792 30379 beef32749176217a7424874f072cb1e6 ""
-  "Background/images/mean_std_cgan.png" 1768401792 25362 66c058737b069957a095b81350c2f361 ""
-  "Background/images/samples_forgan.png" 1778015695 86749 ed0742daed8a6cd516e546e96d1b1ac3 ""
-  "Background/images/samples_forgan_simple.png" 1778015744 75787 b606650862a204e208cef03804999ba7 ""
->>>>>>> develop
-=======
   "Background/images/debug_forgan.png" 1778444594 118486 168d2c5df96811d2307d84e61b4055d4 ""
   "Background/images/debug_forwgan.png" 1778444594 120303 c49e0747d41616abf0843151001b327d ""
   "Background/images/error_bins_global.png" 1768401792 181230 170f98bc09a5700b4ffda5be57522c8a ""
@@ -62,7 +21,6 @@
   "Background/images/mean_std_cgan.png" 1768401792 25362 66c058737b069957a095b81350c2f361 ""
   "Background/images/samples_forgan.png" 1778444594 86749 ed0742daed8a6cd516e546e96d1b1ac3 ""
   "Background/images/samples_forgan_simple.png" 1778444594 75787 b606650862a204e208cef03804999ba7 ""
->>>>>>> develop
   "C:/Users/matte/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1763227686 163467 115bf7c03ef5429b41e730e9b3b13e66 ""
   "C:/Users/matte/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1756761838 13257342 3cdf40aebdc7687414c82debb3f5997f ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ec-tlf-pc.enc" 1736607166 3136 bbe665bd0bb471a2da1e8fd326cff9fa ""
@@ -326,66 +284,31 @@
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xpatch/xpatch.sty" 1585221260 8510 7803f78066c4f9d008405191a4b43073 ""
   "C:/Users/matte/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
-<<<<<<< HEAD
-<<<<<<< HEAD
-  "ForGAN/forgan.aux" 1774303717 6776 95a6544f481bcde6642ab393d76ff596 "pdflatex"
-  "ForGAN/forgan.tex" 1774303699 8807 11f8c593fa8403eabff2b84351d507e9 ""
-  "Introduction/Intro.aux" 1774303716 8026 77593429124ceb8524ac7087a2682b51 "pdflatex"
-  "Introduction/Intro.tex" 1774303699 29713 ea1de694c9e0549a17a4020d8b31db5f ""
-  "Introduction/images/forgan.png" 1774303699 34085 233691d976a9b819a53fc7441178562a ""
-  "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" 1774303699 2992 62146e6e5c3855527ee05dcf1677dc5c ""
-  "frontespizio.aux" 1774303715 4528 b78c73a55bc166ff3542f10634f484ce "pdflatex"
-  "frontespizio.jpg" 1736278509 79037 56bddb2fb226982fba5b80ae40565e5d ""
-  "frontespizio.tex" 1769722694 935 11738e194f811ef4d926da667757f23e ""
-  "main.aux" 1774303717 1952 dfb06ccf2069dee3cc30ee3368d8df5b "pdflatex"
-  "main.bbl" 1774303713 12327 a758d2e8556ce2a46402f640853c39e6 "biber main"
-  "main.out" 1774303717 3484 5292243ede296002d6a08f41ab644162 "pdflatex"
-  "main.run.xml" 1774303717 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
-  "main.tex" 1774303699 2992 62146e6e5c3855527ee05dcf1677dc5c ""
-  "main.toc" 1774303717 1788 11a2f2b66b904cd2e2264bfeb03306e5 "pdflatex"
-=======
-  "ForGAN/forgan.aux" 1778246932 9164 a31b6bc24f4a21d77ec6dfe0ffe7bf30 "pdflatex"
-  "ForGAN/forgan.tex" 1778243687 17523 8b66c9550fd28513b2b46e85025b5d52 ""
-  "Introduction/Intro.aux" 1778246931 8200 50398a65e656207d5454b12e0760bf33 "pdflatex"
-  "Introduction/Intro.tex" 1778189320 35232 83bd1e535820153a6c00abd984874f2f ""
-=======
-  "ForGAN/forgan.aux" 1778859806 9164 44f9a0cdedefebf1369dd01fb3243842 "pdflatex"
+  "ForGAN/forgan.aux" 1779476606 9164 44f9a0cdedefebf1369dd01fb3243842 "pdflatex"
   "ForGAN/forgan.tex" 1778444594 17523 8b66c9550fd28513b2b46e85025b5d52 ""
-  "Heston/heston.aux" 1778859807 15674 8c2743f124e6fc14fc3c0027615195b4 "pdflatex"
-  "Heston/heston.tex" 1778859801 52930 694e4e5cb251bdc588a13ff3b82ba49a ""
-  "Heston/images/fft_experiment.png" 1778838181 130773 bd5c4d4ea5e320197d5560f0136335ce ""
-  "Heston/images/fft_plots.png" 1778838258 116157 aab4760e6c3746fe2be20565c8ccfd57 ""
-  "Introduction/Intro.aux" 1778859804 8204 d8aac549548dbcf5feb3327251b466f5 "pdflatex"
-  "Introduction/Intro.tex" 1778835240 35234 177788bd6f64ef2c673fc49f9383f59c ""
->>>>>>> develop
+  "Heston/heston.aux" 1779476607 15674 8c2743f124e6fc14fc3c0027615195b4 "pdflatex"
+  "Heston/heston.tex" 1779476588 52930 694e4e5cb251bdc588a13ff3b82ba49a ""
+  "Heston/images/fft_experiment.png" 1778881617 130773 bd5c4d4ea5e320197d5560f0136335ce ""
+  "Heston/images/fft_plots.png" 1779476588 116157 aab4760e6c3746fe2be20565c8ccfd57 ""
+  "Introduction/Intro.aux" 1779476604 8204 d8aac549548dbcf5feb3327251b466f5 "pdflatex"
+  "Introduction/Intro.tex" 1778881617 35234 177788bd6f64ef2c673fc49f9383f59c ""
   "Introduction/images/forgan.png" 1774303699 34085 233691d976a9b819a53fc7441178562a ""
   "SRForGAN/images/Hybrid_ForGAN_samples.png" 1778444594 86186 bfe721aa0ce64ce1f73e07254a2c56ff ""
   "SRForGAN/images/Hybrid_ForWGAN_samples.png" 1778444594 87311 e0794faedd3384265d09b02b263ad39b ""
   "SRForGAN/images/SRForGAN_samples.png" 1778444594 88859 7ddedd9bba4d2bde7ad671669d96b0d0 ""
   "SRForGAN/images/srforgan_train_schema.png" 1778444594 65631 5d8a4d073bc03dc2491330158b3d7efc ""
-  "SRForGAN/srforgan.aux" 1778859806 10429 7167062dc8dbd62a463d4fae635ebd82 "pdflatex"
+  "SRForGAN/srforgan.aux" 1779476606 10429 7167062dc8dbd62a463d4fae635ebd82 "pdflatex"
   "SRForGAN/srforgan.tex" 1778444594 29131 e808b14427290f32e613a1b79087eab5 ""
-  "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" 1778444956 3544 4c7a0d21ef7d5ea0d66bf56b14d8a367 ""
-  "frontespizio.aux" 1778859804 4528 b78c73a55bc166ff3542f10634f484ce "pdflatex"
+  "c:/Users/matte/LEARNING/MAGISTRALE/QUANTITATIVE FINANCE/TESI/cGAN_code/latex/main.tex" 1778881617 3544 4c7a0d21ef7d5ea0d66bf56b14d8a367 ""
+  "frontespizio.aux" 1779476604 4528 b78c73a55bc166ff3542f10634f484ce "pdflatex"
   "frontespizio.jpg" 1736278509 79037 56bddb2fb226982fba5b80ae40565e5d ""
-<<<<<<< HEAD
-  "frontespizio.tex" 1769722694 935 11738e194f811ef4d926da667757f23e ""
-  "main.aux" 1778246933 2913 d288609963ee0fb37962dfb200123e89 "pdflatex"
-  "main.bbl" 1778190621 18621 cb17a4df70d33fd22898077515bd154e "biber main"
-  "main.out" 1778246933 4903 806930284bf684bb531dbabe398fa845 "pdflatex"
-  "main.run.xml" 1778246933 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
-  "main.tex" 1778102575 2985 0869a863b9a4a849d171a18f4d33a40f ""
-  "main.toc" 1778246933 2502 bd53becb09fcd0708e268d647fb161f9 "pdflatex"
->>>>>>> develop
-=======
-  "frontespizio.tex" 1778855974 991 1566cd8a6524952ad934a6a17c3eb1a0 ""
-  "main.aux" 1778859807 3991 5119ccbe44c788a36a598a818d8c98b5 "pdflatex"
-  "main.bbl" 1778792106 27590 d35dab1510376a1e976bef8f94413af2 "biber main"
-  "main.out" 1778859807 7427 6034994072b46a233332b0be7fb3e872 "pdflatex"
-  "main.run.xml" 1778859807 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
-  "main.tex" 1778444956 3544 4c7a0d21ef7d5ea0d66bf56b14d8a367 ""
-  "main.toc" 1778859807 3710 a318a94dcb05a6d96bcc9f2be528965b "pdflatex"
->>>>>>> develop
+  "frontespizio.tex" 1779476588 991 1566cd8a6524952ad934a6a17c3eb1a0 ""
+  "main.aux" 1779476607 3991 5119ccbe44c788a36a598a818d8c98b5 "pdflatex"
+  "main.bbl" 1779476597 27590 d35dab1510376a1e976bef8f94413af2 "biber main"
+  "main.out" 1779476607 7427 6034994072b46a233332b0be7fb3e872 "pdflatex"
+  "main.run.xml" 1779476607 2343 eec7f537cf158aa3f7559065856cb22c "pdflatex"
+  "main.tex" 1778881617 3544 4c7a0d21ef7d5ea0d66bf56b14d8a367 ""
+  "main.toc" 1779476607 3710 a318a94dcb05a6d96bcc9f2be528965b "pdflatex"
   (generated)
   "Background/Background.aux"
   "ForGAN/forgan.aux"
