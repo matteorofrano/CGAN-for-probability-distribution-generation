@@ -221,3 +221,6 @@ __marimo__/
 
 # Data files
 data/results/*.csv
+
+# github prompts
+.github
