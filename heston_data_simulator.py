@@ -786,7 +786,7 @@ class HestonSimulator(DataSimulator):
             ax.set_xlim(X_mc.min() - 0.05, X_mc.max() + 0.05)
             ax.set_title(
                 f"Traj {j_idx}  "
-                f"(κ={self.kappa[j_idx]:.2f}, θ={self.theta[j_idx]:.3f}, "
+                f"(κ={self.kappa[j_idx]:.2f}, v0={self.v_T[j_idx]:.3f}, sv={self.sigma_v[j_idx]:.2f},  θ={self.theta[j_idx]:.3f}, "
                 f"ρ={self.rho[j_idx]:.2f})",
                 fontsize=9,
             )

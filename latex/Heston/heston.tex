@@ -531,11 +531,16 @@ The conditional PDF of future log-prices is obtained by evaluating the closed-fo
 stable Little Trap formulation and then applying the Gil-Pelaez inversion formula (\ref{eq:gilpelaez_discrete}) with Simpson quadrature weights.
 The resulting discrete sum is evaluated efficiently across all $N_\text{fft}$ spatial grid points simultaneously by expressing it as a fractional DFT and computing
 it via Bluestein's chirp convolution algorithm, which reduces the cost from $\mathcal{O}(N_\text{fft}^2)$ to $\mathcal{O}(N_\text{fft}\log N_\text{fft})$ 
-while completely decoupling the frequency resolution $\eta$ from the spatial resolution $\lambda$.
+while completely decoupling the frequency resolution $\eta$ from the spatial resolution $\lambda$.\\
+The Monte Carlo estimator is validated against the frFFT method over $10000$ sample trajectories obtaining a $100\%$ of acceptance rate of the Kolmogorov-Smirnov test at a $5\%$ significance level.
+Below are presented four samples for visual inspection of the two methods, showing a very good agreement between them.
 
-
-
-
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Heston/images/mc_heston_pdf.png}
+    \caption{Comparison of the Heston PDF obtained via the frFFT method (red line) and the Monte Carlo estimator (blue histogram) for four sample trajectories. }
+    \label{fig:heston_mc_plots}
+\end{figure}
 
 
 
@@ -606,15 +611,15 @@ Gil-Pelaez inversion numerically well-conditioned: the integrand decays
 super-exponentially as $|u| \to \infty$, so the truncated quadrature sum
 converges rapidly.
 
-\subsection{Experimental Design}
-\label{subsec:experiment_design}
+\subsection{Validation Design}
+\label{subsec:validation_design}
 
 The experiment is structured in three sequential validation steps, each
 targeting a different layer of the computational pipeline.\\
 
 
-A set of $J = 1000$ independent trajectories is simulated using the
-\texttt{DataSimulator} class described in \ref{alg:y condition}, with $N = 50$ time steps over a horizon of
+A set of $J = 10000$ independent trajectories is simulated using the
+\texttt{DataSimulator} class described in \ref{alg:y condition}, with $N = 252$ time steps over a horizon of
 $T = 1$ year, giving a time-step size of $dt = T/N = 0.02$ years.  The
 per-trajectory drift and volatility parameters are drawn uniformly:
 $\mu \sim \mathcal{U}(0,\, 0.1)$ and $\sigma \sim \mathcal{U}(0.1,\, 1.2)$,
@@ -622,7 +627,7 @@ while the initial log-price satisfies $X_0 \sim \mathcal{U}(0,\, 1)$.  With
 a one-step-ahead forecast horizon $\tau = dt = 0.02$ years.\\
 
 The inversion is performed with $N_{\mathrm{FFT}} = 4096$ frequency nodes
-and a frequency-domain step $\eta = 0.25$.  Following algorithm \ref{alg:frFFT}. The fractional parameter is set to
+and a frequency-domain step $\eta = 0.25$.  Following algorithm \ref{alg:frFTT}. The fractional parameter is set to
 $\alpha = 2/N_{\mathrm{FFT}} \approx 4.88 \times 10^{-4}$, which yields an
 $x$-domain spacing of
 \begin{equation}
@@ -687,7 +692,7 @@ the probability density function as
 \end{equation}
 where $w_j$ are Simpson quadrature weights.  The sum over $j$ is evaluated
 simultaneously at all $k = 0, \ldots, N_{\mathrm{FFT}} - 1$ grid points
-using the batched fractional FFT described in algorithm \ref{alg:frFFT},
+using the batched fractional FFT described in algorithm \ref{alg:frFTT},
 which implements Bluestein's identity.  Concretely, defining the frequency-domain
 input
 \begin{equation}
@@ -816,9 +821,9 @@ points and are interpreted as zero.}
 \toprule
 $k$ & KS & JS distance & TV & Hellinger \\
 \midrule
-0 & 0.000000 & \texttt{nan} & 0.000000 & 0.000000 \\
+0 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
 1 & 0.000000 & 0.000000     & 0.000000 & 0.000000 \\
-2 & 0.000000 & \texttt{nan} & 0.000000 & 0.000000 \\
+2 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
 3 & 0.000000 & 0.000000     & 0.000000 & 0.000000 \\
 \midrule
 mean & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
@@ -861,7 +866,7 @@ at every active grid point in the support for four randomly sampled trajectories
 
 The figure reveals several important features.  First, the magnitude of the
 residuals is around $1^{-15}$, which lies within one to
-two orders of magnitude of the IEEE 754 double-precision machine epsilon
+two orders of magnitude of the double-precision machine epsilon
 $\varepsilon_{\mathrm{mach}} = 2^{-52} \approx 2.22 \times 10^{-16}$. In other words,
 the frFFT recovers the Gaussian density \emph{to the last representable bit}.
 
@@ -958,12 +963,12 @@ The code implements the following workflow:
 
 \subsection{Steps for experiment reproducibility}
 The first stage constructs a large synthetic dataset based on the Heston stochastic-volatility model. 
-The code simulates \texttt{ 10,000,000} trajectories, each of length \texttt{22 + 1}. To avoid memory overflow, the trajectories are generated in chunks of size $100,000$.
+The code simulates \texttt{ 10,000,000} trajectories, each of length \texttt{252 + 1}. To avoid memory overflow, the trajectories are generated in chunks of size $100,000$.
 
 Each chunk is produced by the Heston simulator described in previous section \ref{eq:milstein_full_trajectory} and appended to a binary file.
 A companion JSON file stores:
 \begin{itemize}
-    \item the record length, equal to \texttt{N\_STEPS = 22 + 1},
+    \item the record length, equal to \texttt{N\_STEPS = 252 + 1},
     \item the number of stored trajectories \texttt{J = 100,000}.
 \end{itemize}
 
@@ -1039,7 +1044,7 @@ The split is randomized with a fixed seed to preserve reproducibility.\\
 
 The implemented SRForGAN model \ref{alg:srforgan_train} is initialized using the following configuration:
 \begin{itemize}
-    \item latent noise dimension \texttt{Z\_NOISE\_DIM = 32},
+    \item latent noise dimension \texttt{Z\_NOISE\_DIM = 64},
     \item scoring rule \texttt{energy} \ref{alg:energy_score},
     \item early stopping patience $ 10$ epochs,
     \item batch size  $128$,
@@ -1059,9 +1064,9 @@ The hidden dimension of the LSTM layer is set to 64.\\
 \begin{tabular}{lll}
 \hline
 \textbf{Parameter}         & \textbf{Generator}                  & \textbf{Critic (Discriminator)} \\ \hline
-Input Dimension            & 32 (Latent) + 22 (Cond.)           & --                              \\
-LSTM Layers                & 64                                 & --                              \\
-Feedforward Layers         & 64                                 & --                              \\
+Input Dimension            & 64 (Latent) + 252 (Cond.)           & --                              \\
+LSTM Layers                & 128                                 & --                              \\
+Feedforward Layers         & 128+252                                 & --                              \\
 Output Dimension           & 1                                  & --                              \\
 Activation Function        & Leaky ReLU                         & --                              \\
 Normalization              & None                               & --                              \\
