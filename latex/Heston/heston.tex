@@ -96,7 +96,7 @@ The complete full-truncation Milstein step for the variance is therefore
 
 \begin{equation}
     v_{n+1} = \max\!\Bigl(v_n + \kappa(\theta - \hat{v}_n)\Delta t + \sigma_v\sqrt{\hat{v}_n}\,\Delta W_n^v + \tfrac{1}{4}\sigma_v^2\bigl((\Delta W_n^v)^2 - \Delta t\bigr),\; 0\Bigr).
-    \label{eq:milstein_full}
+    \label{eq:milstein_full_trajectory}
 \end{equation}
 
 This approach is implemented at lines 242--253 of the source, where the \texttt{scheme} flag selects between Milstein (default) and pure Euler--Maruyama (which omits the last correction term).
@@ -531,11 +531,16 @@ The conditional PDF of future log-prices is obtained by evaluating the closed-fo
 stable Little Trap formulation and then applying the Gil-Pelaez inversion formula (\ref{eq:gilpelaez_discrete}) with Simpson quadrature weights.
 The resulting discrete sum is evaluated efficiently across all $N_\text{fft}$ spatial grid points simultaneously by expressing it as a fractional DFT and computing
 it via Bluestein's chirp convolution algorithm, which reduces the cost from $\mathcal{O}(N_\text{fft}^2)$ to $\mathcal{O}(N_\text{fft}\log N_\text{fft})$ 
-while completely decoupling the frequency resolution $\eta$ from the spatial resolution $\lambda$.
+while completely decoupling the frequency resolution $\eta$ from the spatial resolution $\lambda$.\\
+The Monte Carlo estimator is validated against the frFFT method over $10000$ sample trajectories obtaining a $100\%$ of acceptance rate of the Kolmogorov-Smirnov test at a $5\%$ significance level.
+Below are presented four samples for visual inspection of the two methods, showing a very good agreement between them.
 
-
-
-
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Heston/images/mc_heston_pdf.png}
+    \caption{Comparison of the Heston PDF obtained via the frFFT method (red line) and the Monte Carlo estimator (blue histogram) for four sample trajectories. }
+    \label{fig:heston_mc_plots}
+\end{figure}
 
 
 
@@ -606,15 +611,15 @@ Gil-Pelaez inversion numerically well-conditioned: the integrand decays
 super-exponentially as $|u| \to \infty$, so the truncated quadrature sum
 converges rapidly.
 
-\subsection{Experimental Design}
-\label{subsec:experiment_design}
+\subsection{Validation Design}
+\label{subsec:validation_design}
 
 The experiment is structured in three sequential validation steps, each
 targeting a different layer of the computational pipeline.\\
 
 
-A set of $J = 1000$ independent trajectories is simulated using the
-\texttt{DataSimulator} class described in \ref{alg:y condition}, with $N = 50$ time steps over a horizon of
+A set of $J = 10000$ independent trajectories is simulated using the
+\texttt{DataSimulator} class described in \ref{alg:y condition}, with $N = 252$ time steps over a horizon of
 $T = 1$ year, giving a time-step size of $dt = T/N = 0.02$ years.  The
 per-trajectory drift and volatility parameters are drawn uniformly:
 $\mu \sim \mathcal{U}(0,\, 0.1)$ and $\sigma \sim \mathcal{U}(0.1,\, 1.2)$,
@@ -622,7 +627,7 @@ while the initial log-price satisfies $X_0 \sim \mathcal{U}(0,\, 1)$.  With
 a one-step-ahead forecast horizon $\tau = dt = 0.02$ years.\\
 
 The inversion is performed with $N_{\mathrm{FFT}} = 4096$ frequency nodes
-and a frequency-domain step $\eta = 0.25$.  Following algorithm \ref{alg:frFFT}. The fractional parameter is set to
+and a frequency-domain step $\eta = 0.25$.  Following algorithm \ref{alg:frFTT}. The fractional parameter is set to
 $\alpha = 2/N_{\mathrm{FFT}} \approx 4.88 \times 10^{-4}$, which yields an
 $x$-domain spacing of
 \begin{equation}
@@ -687,7 +692,7 @@ the probability density function as
 \end{equation}
 where $w_j$ are Simpson quadrature weights.  The sum over $j$ is evaluated
 simultaneously at all $k = 0, \ldots, N_{\mathrm{FFT}} - 1$ grid points
-using the batched fractional FFT described in algorithm \ref{alg:frFFT},
+using the batched fractional FFT described in algorithm \ref{alg:frFTT},
 which implements Bluestein's identity.  Concretely, defining the frequency-domain
 input
 \begin{equation}
@@ -816,9 +821,9 @@ points and are interpreted as zero.}
 \toprule
 $k$ & KS & JS distance & TV & Hellinger \\
 \midrule
-0 & 0.000000 & \texttt{nan} & 0.000000 & 0.000000 \\
+0 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
 1 & 0.000000 & 0.000000     & 0.000000 & 0.000000 \\
-2 & 0.000000 & \texttt{nan} & 0.000000 & 0.000000 \\
+2 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
 3 & 0.000000 & 0.000000     & 0.000000 & 0.000000 \\
 \midrule
 mean & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
@@ -861,7 +866,7 @@ at every active grid point in the support for four randomly sampled trajectories
 
 The figure reveals several important features.  First, the magnitude of the
 residuals is around $1^{-15}$, which lies within one to
-two orders of magnitude of the IEEE 754 double-precision machine epsilon
+two orders of magnitude of the double-precision machine epsilon
 $\varepsilon_{\mathrm{mach}} = 2^{-52} \approx 2.22 \times 10^{-16}$. In other words,
 the frFFT recovers the Gaussian density \emph{to the last representable bit}.
 
@@ -917,3 +922,191 @@ on the algorithmic error: any additional inversion error encountered in the
 Heston case will arise from the slower decay of the Heston CF and from the
 presence of the stochastic variance term, not from a defect in the frFFT
 machinery itself.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{Scoring Rule ForGAN results}
+
+The experiment has been conducted using the Heston trajectories generated in \ref{sec:heston_simulation} and the frFFT-based PDF estimator described in \ref{sec:frfft_validation}.\\
+The training procedure implemented is designed to run on a high-performance computing (HPC) of the CINECA nodes. In particular, the training script is executed on a node equipped with \textbf{8 CPU cores and 1 GPU}, as available on the Leonardo Booster partition.\\
+The script follows a fully automated pipeline that (i) generates a large synthetic Heston dataset in chunks, (ii) stores it in a binary streaming format, (iii) builds a memory-mapped dataset to avoid loading the full sample set into RAM, (iv) trains the SRForGAN generator on the GPU, and (v) saves the learned weights together with the full training configuration for reproducibility.\\
+
+The code implements the following workflow:
+\begin{enumerate}
+    \item Generate synthetic Heston trajectories in chunks by using equation described in \ref{eq:milstein_full_trajectory}.
+    \item Store each chunk in a flat binary file with a JSON header describing the record size.
+    \item Build a memory-mapped dataset that reads trajectories lazily from disk.
+    \item Split the dataset into training and validation subsets.
+    \item Instantiate the SRForGAN model and select either an LSTM generator.
+    \item Train the model on the GPU using the Energy Score objective as defined in algorithm \ref{alg:srforgan_train}.
+    \item Save the trained weights and configuration in the model directory.
+    \item Test the model on unseen data and evaluate performance metrics.
+\end{enumerate}
+
+\subsection{Steps for experiment reproducibility}
+The first stage constructs a large synthetic dataset based on the Heston stochastic-volatility model. 
+The code simulates \texttt{ 10,000,000} trajectories, each of length \texttt{252 + 1}. To avoid memory overflow, the trajectories are generated in chunks of size $100,000$.
+
+Each chunk is produced by the Heston simulator described in previous section \ref{eq:milstein_full_trajectory} and appended to a binary file.
+A companion JSON file stores:
+\begin{itemize}
+    \item the record length, equal to \texttt{N\_STEPS = 252 + 1},
+    \item the number of stored trajectories \texttt{J = 100,000}.
+\end{itemize}
+
+This structure allows the file to be accessed sequentially or through memory mapping without loading the entire dataset into memory.
+The following parameters have been used to generate Heston trajectories:
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\hline
+Parameter & Value \\
+\hline
+$x_0$      & 0.0 \\
+$\mu$      & 0.0 \\
+$v_0$      & 0.6 \\
+$\kappa$   & 1.0 \\
+$\theta$   & 0.6 \\
+$\sigma_v$ & 0.5 \\
+$\rho$     & -0.7 \\
+\hline
+\end{tabular}
+\caption{Model hyperparameters}
+\end{table}
+Where $x_0$ is the initial value of the log-price process, $\mu$ is the drift, $v_0$ is the initial variance, $\kappa$ is the mean-reversion speed of the variance, $\theta$ is the long-term mean of the variance, $\sigma_v$ is the volatility of the variance process, and $\rho$ is the correlation between the Brownian motions driving the log-price and variance. 
+
+
+\begin{algorithm}[H]
+\caption{Chunked generation of the Heston dataset}
+\label{alg:heston_experiment}
+\begin{algorithmic}[1]
+\REQUIRE parameter ranges, time horizon $T$, number of steps $N$, total number of trajectories $J_{total}$, chunk size $J$
+\STATE create \texttt{data/} and \texttt{models/} directories if needed
+\STATE initialize binary file and JSON header
+\FOR{$i = 1$ to $J_{total}/J$}
+    \STATE simulate $J$ Heston trajectories with fixed seed $42+i$
+    \STATE convert trajectories to 32-bit floating point format
+    \STATE append the raw bytes to the binary file
+    \STATE update the number of stored records in the JSON header
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+A memory-mapped dataset is constructed from the binary file. Each stored record corresponds to a full trajectory
+\[
+[X_0, X_1, \dots, X_N],
+\]
+where the first $N$ values are used as the conditioning window and the last value is used as the prediction target. In other words, the dataset returns:
+\[
+c = [X_0, X_1, \dots, X_{N-1}], \qquad y = X_N.
+\]
+
+
+\begin{algorithm}[H]
+\caption{Lazy access to the memory-mapped dataset}
+\label{alg:memmap_dataset}
+\begin{algorithmic}[1]
+\REQUIRE binary trajectory file, JSON header with record length and number of records
+\STATE read metadata from the JSON header
+\STATE store the file path and defer memmap creation
+\STATE \textbf{function} getitem(index)
+\IF{memmap has not been opened yet}
+    \STATE open the binary file as a NumPy memmap
+\ENDIF
+\STATE read trajectory $[X_0, \dots, X_N]$ at the requested index
+\STATE set condition $c \leftarrow [X_0, \dots, X_{N-1}]$
+\STATE set target $y \leftarrow X_N$
+\STATE \textbf{return} $(y,c)$
+\end{algorithmic}
+\end{algorithm}
+
+
+Once the dataset has been created, it is split into training and validation subsets using $80\%$ of the dataset for training and the remaining $20\%$ for validation.
+The split is randomized with a fixed seed to preserve reproducibility.\\
+
+The implemented SRForGAN model \ref{alg:srforgan_train} is initialized using the following configuration:
+\begin{itemize}
+    \item latent noise dimension \texttt{Z\_NOISE\_DIM = 64},
+    \item scoring rule \texttt{energy} \ref{alg:energy_score},
+    \item early stopping patience $ 10$ epochs,
+    \item batch size  $128$,
+    \item learning rate \texttt{$LR = 10^{-3}$}.
+\end{itemize}
+
+Moreover, given the complexity of the Heston process with respect to the Black-Scholes case, 
+the generator architecture is designed to capture temporal dependencies in the conditioning window
+by using the LSTM variant of the generator. In this variant the generator first extract hidden states from the conditioning window through an LSTM layer and then concatenates the final hidden state with 
+the latent noise vector which will become the input of a feedforward network to produce the output prediction.
+The hidden dimension of the LSTM layer is set to 64.\\
+
+\begin{table}[H]
+\centering
+\caption{Generator Architecture and Hyperparameters Summary}
+\label{tab:srforgan_architecture}
+\begin{tabular}{lll}
+\hline
+\textbf{Parameter}         & \textbf{Generator}                  & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 64 (Latent) + 252 (Cond.)           & --                              \\
+LSTM Layers                & 128                                 & --                              \\
+Feedforward Layers         & 128+252                                 & --                              \\
+Output Dimension           & 1                                  & --                              \\
+Activation Function        & Leaky ReLU                         & --                              \\
+Normalization              & None                               & --                              \\
+Dropout                    & 0.0                                & --                              \\
+\multicolumn{3}{c}{\textbf{Global Training Settings}}                                      \\ \hline
+Batch Size                 & \multicolumn{2}{l}{32}                                            \\
+max\_epochs                & \multicolumn{2}{l}{100}                                          \\
+early\_stopping\_patience & \multicolumn{2}{l}{10}                                           \\
+learning\_rate            & \multicolumn{2}{l}{$10^{-3}$}                           \\         \\
+\hline
+\end{tabular}
+\end{table}
+
+
+
+\subsection{Test results}
+The trained model is evaluated on a test set given by $10000$ trajectories that were not seen during training. 
+The evaluation metrics are computed by comparing the distribution of the generated predictions with the distribution of the true targets in the test set, using the frFFT-based PDF estimator described in \ref{sec:frfft_validation}.\\
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\hline
+Metric & Value \\
+\hline
+KS test acceptance rate & 97.500\% \\
+Jensen--Shannon distance & 0.121850 \\
+Hellinger distance & 0.104270 \\
+Total variation distance & 0.102780 \\
+Earth mover's distance & 0.000707 \\
+\hline
+\end{tabular}
+\caption{Distribution comparison metrics}
+\end{table}
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Heston/images/srforgan_samples.png}
+    \caption{Samples obtained using fixed $x_0$, $\mu$, $v_0$, $\theta$, $\kappa$, $\sigma_v$, $\rho$.}
+    \label{srforgan_heston_sample}
+\end{figure}

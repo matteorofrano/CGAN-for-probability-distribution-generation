@@ -18,7 +18,7 @@
 \newlabel{eq:euler}{{5.7}{47}{Numerical Discretisation of the Heston SDEs}{equation.5.7}{}}
 \newlabel{eq:euler_logprice}{{5.8}{48}{Numerical Discretisation of the Heston SDEs}{equation.5.8}{}}
 \newlabel{eq:milstein_correction}{{5.9}{48}{Numerical Discretisation of the Heston SDEs}{equation.5.9}{}}
-\newlabel{eq:milstein_full}{{5.10}{48}{Numerical Discretisation of the Heston SDEs}{equation.5.10}{}}
+\newlabel{eq:milstein_full_trajectory}{{5.10}{48}{Numerical Discretisation of the Heston SDEs}{equation.5.10}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1.3}The Characteristic Function and the Fourier Inversion Formula}{48}{subsection.5.1.3}\protected@file@percent }
 \newlabel{eq:cf_def}{{5.11}{48}{The Characteristic Function and the Fourier Inversion Formula}{equation.5.11}{}}
 \newlabel{eq:cf_heston}{{5.12}{48}{The Characteristic Function and the Fourier Inversion Formula}{equation.5.12}{}}
@@ -51,39 +51,54 @@
 \@writefile{loa}{\contentsline {algorithm}{\numberline {16}{\ignorespaces Heston PDF via Fractional FFT and Gil-Pelaez Inversion}}{54}{algorithm.16}\protected@file@percent }
 \newlabel{alg:heston_mc_pdf}{{5.1.4}{56}{The PDF Computation Pipeline}{ALC@unique.241}{}}
 \@writefile{loa}{\contentsline {algorithm}{\numberline {17}{\ignorespaces Monte-Carlo Conditional PDF Estimator for the Heston Model}}{56}{algorithm.17}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces Comparison of the Heston PDF obtained via the frFFT method (red line) and the Monte Carlo estimator (blue histogram) for four sample trajectories. }}{57}{figure.5.1}\protected@file@percent }
+\newlabel{fig:heston_mc_plots}{{5.1}{57}{Comparison of the Heston PDF obtained via the frFFT method (red line) and the Monte Carlo estimator (blue histogram) for four sample trajectories}{figure.5.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5.2}Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{57}{section.5.2}\protected@file@percent }
 \newlabel{sec:frfft_validation}{{5.2}{57}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{section.5.2}{}}
-\newlabel{eq:bs_sde}{{5.35}{57}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{equation.5.35}{}}
-\newlabel{eq:bs_normal}{{5.36}{57}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{equation.5.36}{}}
-\newlabel{eq:bs_cf}{{5.37}{57}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{equation.5.37}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Experimental Design}{58}{subsection.5.2.1}\protected@file@percent }
-\newlabel{subsec:experiment_design}{{5.2.1}{58}{Experimental Design}{subsection.5.2.1}{}}
-\newlabel{eq:lambda}{{5.38}{58}{Experimental Design}{equation.5.38}{}}
-\@writefile{toc}{\contentsline {paragraph}{Step A: Analytical moments sanity check.}{58}{section*.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Step A: comparison between directly computed analytical parameters and those returned by \ref {alg:x target} for the first 4 trajectories. All differences are zero to double-precision.}}{58}{table.5.1}\protected@file@percent }
-\newlabel{tab:step_a}{{5.1}{58}{Step A: comparison between directly computed analytical parameters and those returned by \ref {alg:x target} for the first 4 trajectories. All differences are zero to double-precision}{table.5.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Step B: frFFT Inversion.}{58}{section*.3}\protected@file@percent }
+\newlabel{eq:bs_sde}{{5.35}{58}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{equation.5.35}{}}
+\newlabel{eq:bs_normal}{{5.36}{58}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{equation.5.36}{}}
+\newlabel{eq:bs_cf}{{5.37}{58}{Numerical Validation of the Fractional FFT via the Black-Scholes Characteristic Function}{equation.5.37}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}Validation Design}{58}{subsection.5.2.1}\protected@file@percent }
+\newlabel{subsec:validation_design}{{5.2.1}{58}{Validation Design}{subsection.5.2.1}{}}
+\newlabel{eq:lambda}{{5.38}{58}{Validation Design}{equation.5.38}{}}
+\@writefile{toc}{\contentsline {paragraph}{Step A: Analytical moments sanity check.}{59}{section*.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Step A: comparison between directly computed analytical parameters and those returned by \ref {alg:x target} for the first 4 trajectories. All differences are zero to double-precision.}}{59}{table.5.1}\protected@file@percent }
+\newlabel{tab:step_a}{{5.1}{59}{Step A: comparison between directly computed analytical parameters and those returned by \ref {alg:x target} for the first 4 trajectories. All differences are zero to double-precision}{table.5.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Step B: frFFT Inversion.}{59}{section*.3}\protected@file@percent }
 \newlabel{eq:gp_discrete}{{5.39}{59}{Step B: frFFT Inversion}{equation.5.39}{}}
 \newlabel{eq:fft_input}{{5.40}{59}{Step B: frFFT Inversion}{equation.5.40}{}}
 \newlabel{eq:frfft_sum}{{5.41}{59}{Step B: frFFT Inversion}{equation.5.41}{}}
 \newlabel{eq:raw_integral}{{5.42}{59}{Step B: frFFT Inversion}{equation.5.42}{}}
-\newlabel{eq:frfft_moments}{{5.43}{59}{Step B: frFFT Inversion}{equation.5.43}{}}
+\newlabel{eq:frfft_moments}{{5.43}{60}{Step B: frFFT Inversion}{equation.5.43}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {5.2}{\ignorespaces Step B: moment accuracy of the frFFT-recovered density for the first 4 trajectories. The frFFT mean matches the analytical mean to within $\approx 10^{-7}$ and the standard deviation to within $\approx 10^{-7}$.}}{60}{table.5.2}\protected@file@percent }
 \newlabel{tab:step_b}{{5.2}{60}{Step B: moment accuracy of the frFFT-recovered density for the first 4 trajectories. The frFFT mean matches the analytical mean to within $\approx 10^{-7}$ and the standard deviation to within $\approx 10^{-7}$}{table.5.2}{}}
 \newlabel{subsec:step_c}{{5.2.1}{60}{Step C: Distribution Metrics}{section*.4}{}}
 \@writefile{toc}{\contentsline {paragraph}{Step C: Distribution Metrics.}{60}{section*.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5.3}{\ignorespaces Step C: distribution metrics between the frFFT density and the analytical Gaussian for the first 4 trajectories, computed at the $\approx 38$ active fine-grid points per trajectory. All finite metrics are exactly zero; the \texttt  {nan} entries in the JS column are a numerical artefact of zero mass at boundary points and are interpreted as zero.}}{60}{table.5.3}\protected@file@percent }
-\newlabel{tab:step_c}{{5.3}{60}{Step C: distribution metrics between the frFFT density and the analytical Gaussian for the first 4 trajectories, computed at the $\approx 38$ active fine-grid points per trajectory. All finite metrics are exactly zero; the \texttt {nan} entries in the JS column are a numerical artefact of zero mass at boundary points and are interpreted as zero}{table.5.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories. The two curves are visually indistinguishable, confirming the distributional identity established by the zero-distance metrics in Table~\ref {tab:step_c}.}}{61}{figure.5.1}\protected@file@percent }
-\newlabel{fig:frfft_plots}{{5.1}{61}{Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories. The two curves are visually indistinguishable, confirming the distributional identity established by the zero-distance metrics in Table~\ref {tab:step_c}}{figure.5.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5.2}{\ignorespaces Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $1^{-15}$, confirming that the residuals are at the level of double-precision machine epsilon.}}{62}{figure.5.2}\protected@file@percent }
-\newlabel{fig:frfft_residuals}{{5.2}{62}{Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $1^{-15}$, confirming that the residuals are at the level of double-precision machine epsilon}{figure.5.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Summary and Interpretation}{63}{subsection.5.2.2}\protected@file@percent }
-\newlabel{subsec:validation_summary}{{5.2.2}{63}{Summary and Interpretation}{subsection.5.2.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.3}{\ignorespaces Step C: distribution metrics between the frFFT density and the analytical Gaussian for the first 4 trajectories, computed at the $\approx 38$ active fine-grid points per trajectory. All finite metrics are exactly zero; the \texttt  {nan} entries in the JS column are a numerical artefact of zero mass at boundary points and are interpreted as zero.}}{61}{table.5.3}\protected@file@percent }
+\newlabel{tab:step_c}{{5.3}{61}{Step C: distribution metrics between the frFFT density and the analytical Gaussian for the first 4 trajectories, computed at the $\approx 38$ active fine-grid points per trajectory. All finite metrics are exactly zero; the \texttt {nan} entries in the JS column are a numerical artefact of zero mass at boundary points and are interpreted as zero}{table.5.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.2}{\ignorespaces Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories. The two curves are visually indistinguishable, confirming the distributional identity established by the zero-distance metrics in Table~\ref {tab:step_c}.}}{62}{figure.5.2}\protected@file@percent }
+\newlabel{fig:frfft_plots}{{5.2}{62}{Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories. The two curves are visually indistinguishable, confirming the distributional identity established by the zero-distance metrics in Table~\ref {tab:step_c}}{figure.5.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.3}{\ignorespaces Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $1^{-15}$, confirming that the residuals are at the level of double-precision machine epsilon.}}{63}{figure.5.3}\protected@file@percent }
+\newlabel{fig:frfft_residuals}{{5.3}{63}{Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $1^{-15}$, confirming that the residuals are at the level of double-precision machine epsilon}{figure.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Summary and Interpretation}{64}{subsection.5.2.2}\protected@file@percent }
+\newlabel{subsec:validation_summary}{{5.2.2}{64}{Summary and Interpretation}{subsection.5.2.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}Scoring Rule ForGAN results}{64}{section.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.1}Steps for experiment reproducibility}{65}{subsection.5.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.4}{\ignorespaces Model hyperparameters}}{65}{table.5.4}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {18}{\ignorespaces Chunked generation of the Heston dataset}}{66}{algorithm.18}\protected@file@percent }
+\newlabel{alg:heston_experiment}{{18}{66}{Steps for experiment reproducibility}{algorithm.18}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {19}{\ignorespaces Lazy access to the memory-mapped dataset}}{66}{algorithm.19}\protected@file@percent }
+\newlabel{alg:memmap_dataset}{{19}{66}{Steps for experiment reproducibility}{algorithm.19}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.5}{\ignorespaces Generator Architecture and Hyperparameters Summary}}{67}{table.5.5}\protected@file@percent }
+\newlabel{tab:srforgan_architecture}{{5.5}{67}{Generator Architecture and Hyperparameters Summary}{table.5.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.2}Test results}{67}{subsection.5.3.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.6}{\ignorespaces Distribution comparison metrics}}{67}{table.5.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5.4}{\ignorespaces Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $.}}{68}{figure.5.4}\protected@file@percent }
+\newlabel{srforgan_heston_sample}{{5.4}{68}{Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $}{figure.5.4}{}}
 \@setckpt{Heston/heston}{
-\setcounter{page}{64}
+\setcounter{page}{69}
 \setcounter{equation}{43}
-\setcounter{enumi}{4}
+\setcounter{enumi}{8}
 \setcounter{enumii}{0}
 \setcounter{enumiii}{0}
 \setcounter{enumiv}{0}
@@ -91,13 +106,13 @@
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
 \setcounter{chapter}{5}
-\setcounter{section}{2}
+\setcounter{section}{3}
 \setcounter{subsection}{2}
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{2}
-\setcounter{table}{3}
+\setcounter{figure}{4}
+\setcounter{table}{6}
 \setcounter{tabx@nest}{0}
 \setcounter{listtotal}{0}
 \setcounter{listcount}{0}
@@ -220,13 +235,13 @@
 \setcounter{parentequation}{0}
 \setcounter{lstnumber}{1}
 \setcounter{section@level}{2}
-\setcounter{Item}{11}
+\setcounter{Item}{19}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{37}
+\setcounter{bookmark@seq@number}{40}
 \setcounter{r@tfl@t}{0}
-\setcounter{algorithm}{17}
-\setcounter{ALC@unique}{274}
-\setcounter{ALC@line}{33}
+\setcounter{algorithm}{19}
+\setcounter{ALC@unique}{292}
+\setcounter{ALC@line}{10}
 \setcounter{ALC@rem}{0}
 \setcounter{ALC@depth}{0}
 \setcounter{subfigure}{0}
