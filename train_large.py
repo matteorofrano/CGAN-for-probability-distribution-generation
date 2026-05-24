@@ -202,8 +202,10 @@ SIGMA_V_RANGE = (0.5,  0.5)      # vol-of-vol
 RHO_RANGE     = (-0.7,  -0.7)      # spot-vol correlation
  
 # --- Time grid ---
-N_STEPS = 22                     # number of time steps
-T       = round(22 / 252, 3)    # time horizon in years
+CONDITION_STEPS = 252
+FORECAST_HORIZON = 5 # one week
+N_TOTAL = CONDITION_STEPS + FORECAST_HORIZON                    # number of time steps
+T       = N_TOTAL/252    # time horizon in years
  
 # --- Data volume ---
 TOTAL_ROWS = 10_000_000
@@ -220,10 +222,10 @@ HEADER_FILE = os.path.join(DATA_DIR, "heston_10M_header.json")
  
 # --- Model architecture ---
 USE_LSTM         = True          # True → RnnGenerator (LSTM); False → MLP generator
-Z_NOISE_DIM      = 32            # latent noise dimension
+Z_NOISE_DIM      = 64            # latent noise dimension
  
 # LSTM generator settings (used when USE_LSTM=True)
-LSTM_HIDDEN_DIM  = 64            # hidden state size of the LSTM encoder
+LSTM_HIDDEN_DIM  = 128            # hidden state size of the LSTM encoder
 LSTM_N_LAYERS    = 1             # number of stacked LSTM layers
 LSTM_DROPOUT     = 0.1           # inter-layer dropout (only active when N_LAYERS > 1)
  
@@ -268,7 +270,7 @@ CV_EPOCHS  = 100
 # Binary file helpers
 # ============================================================
  
-RECORD_LEN = N_STEPS + 1        # (N+1) float32 values per record: X_0 ... X_N
+RECORD_LEN = CONDITION_STEPS + 1        # CONDITION_STEPS values + 1 target value
 DTYPE      = np.float32
  
  
@@ -353,8 +355,8 @@ class HestonBinaryDataset(Dataset):
     Each stored record is a full trajectory [X_0, ..., X_N] of length N+1.
     __getitem__ splits it into:
  
-        condition : (N_STEPS,)  X_0 ... X_{N-1}  (look-back window)
-        target    : (1,)        X_N               (1-step-ahead log-price)
+        condition : (CONDITION_STEPS,)  X_0 ... X_{CONDITION_STEPS}  (look-back window)
+        target    : (1,)        X_{N_TOTAL}               (h-step-ahead log-price)
  
     returned as  (target, condition) = (y, c)  as expected by
     MySRForGAN.train().
@@ -470,7 +472,9 @@ if _regen:
     print(f"{'='*60}")
     print(f"  Generating {TOTAL_ROWS:,} Heston paths")
     print(f"  {N_CHUNKS} chunks x {CHUNK_SIZE:,} paths each")
-    print(f"  N={N_STEPS} steps, T={T} yr  (dt = 1/252 per step)")
+    print(f"  N_TOTAL={N_TOTAL} steps, T={T} yr  (dt = T/N_TOTAL = 1/252 per step)")
+    print(f"  Stored per record: {RECORD_LEN} floats  "
+          f"(X_0…X_{{{CONDITION_STEPS}}} + X_{{{N_TOTAL}}})")
     print(f"{'='*60}\n")
  
     _init_binary_file(BIN_FILE, HEADER_FILE, RECORD_LEN)
@@ -485,14 +489,21 @@ if _regen:
             sigma_v_range = SIGMA_V_RANGE,
             rho_range     = RHO_RANGE,
             T             = T,
-            N             = N_STEPS,
+            N             = N_TOTAL,
             n_simulations = CHUNK_SIZE,
             seed          = 42 + i,       # reproducible, independent seed per chunk
             scheme        = "milstein",
         )
-        # get_paths() returns full log-price trajectories: (CHUNK_SIZE, N_STEPS+1)
+        # get_paths() returns full log-price trajectories: (CHUNK_SIZE, N_TOTAL+1)
         trajectories = sim.get_paths()
-        _append_chunk_to_binary(BIN_FILE, HEADER_FILE, trajectories)
+        # Slice: keep the look-back window and the target only.
+        # Intermediate steps X_{CONDITION_STEPS} … X_{N_TOTAL-1} are discarded.
+        records = np.concatenate([
+            trajectories[:, :CONDITION_STEPS],       # (CHUNK_SIZE, CONDITION_STEPS)
+            trajectories[:, N_TOTAL : N_TOTAL + 1],  # (CHUNK_SIZE, 1)  ← target
+        ], axis=1)                                   # (CHUNK_SIZE, CONDITION_STEPS+1)
+
+        _append_chunk_to_binary(BIN_FILE, HEADER_FILE, records)
  
         total_so_far = (i + 1) * CHUNK_SIZE
         pct = 100.0 * (i + 1) / N_CHUNKS
@@ -516,9 +527,9 @@ assert int(_hdr["n_records"]) == TOTAL_ROWS, (
  
 print(f"HestonBinaryDataset ready:")
 print(f"  Total records  : {len(full_dataset):,}")
-print(f"  Record length  : {full_dataset._record_len}  (= N_STEPS + 1 = {N_STEPS + 1})")
-print(f"  Condition size : {full_dataset._record_len - 1}  (= N_STEPS = {N_STEPS})")
-print(f"  Target size    : 1  (next log-price X_N)\n")
+print(f"  Record length  : {full_dataset._record_len}  (= CONDITION_STEPS + 1 = {CONDITION_STEPS + 1})")
+print(f"  Condition size : {full_dataset._record_len - 1}  (= Look-back window = {CONDITION_STEPS})")
+print(f"  Target size    : 1  (h-step ahead log-price X_N+h)\n")
  
 n_val   = int(len(full_dataset) * VAL_FRACTION)
 n_train = len(full_dataset) - n_val
@@ -571,7 +582,7 @@ if RUN_TUNING:
             h  = trial.suggest_categorical("lstm_hidden_dim", [32, 64, 128])
             nl = trial.suggest_int("lstm_n_layers", 1, 3)
             m.set_generator(
-                condition_size=N_STEPS, output_dim=1,
+                condition_size=CONDITION_STEPS, output_dim=1,
                 hidden_dim_rnn=h, n_layers=nl, rnn_layer="lstm",
                 dropout=trial.suggest_float("dropout", 0.0, 0.3),
             )
@@ -581,7 +592,7 @@ if RUN_TUNING:
                 ["[64,128,64]", "[128,256,128]", "[128,256,256,128,64]"],
             )
             m.set_generator(
-                condition_size=N_STEPS, output_dim=1,
+                condition_size=CONDITION_STEPS, output_dim=1,
                 hidden_dims=json.loads(hd_str),
                 use_batch_norm=trial.suggest_categorical("use_bn", [True, False]),
             )
@@ -683,7 +694,7 @@ if USE_LSTM:
     # RnnGenerator: LSTM encodes the condition window (N_STEPS univariate steps),
     # dense head maps [z | h_lstm] to the scalar next log-price.
     model.set_generator(
-        condition_size = N_STEPS,
+        condition_size = CONDITION_STEPS,
         output_dim     = 1,
         hidden_dim_rnn = LSTM_HIDDEN_DIM,
         n_layers       = LSTM_N_LAYERS,
@@ -692,20 +703,20 @@ if USE_LSTM:
     )
     print(
         f"Generator: RnnGenerator (LSTM)\n"
-        f"  condition_size={N_STEPS}  hidden_dim={LSTM_HIDDEN_DIM}  "
+        f"  condition_size={CONDITION_STEPS}  hidden_dim={LSTM_HIDDEN_DIM}  "
         f"n_layers={LSTM_N_LAYERS}  z_dim={Z_NOISE_DIM}\n"
     )
 else:
     # MyGenerator: plain MLP -- condition and noise are concatenated
     model.set_generator(
-        condition_size = N_STEPS,
+        condition_size = CONDITION_STEPS,
         output_dim     = 1,
         hidden_dims    = MLP_HIDDEN_DIMS,
         use_batch_norm = True,
     )
     print(
         f"Generator: MyGenerator (MLP)\n"
-        f"  condition_size={N_STEPS}  hidden_dims={MLP_HIDDEN_DIMS}  "
+        f"  condition_size={CONDITION_STEPS}  hidden_dims={MLP_HIDDEN_DIMS}  "
         f"z_dim={Z_NOISE_DIM}\n"
     )
  
@@ -789,7 +800,7 @@ if _completed_all:
         "v0_range": list(V0_RANGE), "kappa_range": list(KAPPA_RANGE),
         "theta_range": list(THETA_RANGE), "sigma_v_range": list(SIGMA_V_RANGE),
         "rho_range": list(RHO_RANGE),
-        "N_steps": N_STEPS, "T": T,
+        "N_steps": CONDITION_STEPS, "T": T,
         "total_rows": TOTAL_ROWS, "chunk_size": CHUNK_SIZE,
         # Architecture
         "use_lstm": USE_LSTM, "z_noise_dim": Z_NOISE_DIM,
