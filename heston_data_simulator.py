@@ -57,6 +57,10 @@ from scipy.stats import norm
 
 from utilities import DataSimulator
 
+from cir_obj   import cir_obj
+from cir_evol  import QT_cir_evol
+from heston_evol import mc_heston
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 class HestonSimulator(DataSimulator):
@@ -578,35 +582,39 @@ class HestonSimulator(DataSimulator):
         """
         Monte-Carlo estimate of the conditional Heston PDF.
 
-        For each of the J trajectories, mc_sims sample paths are run over
-        n_steps Euler-Maruyama steps and the terminal distribution is
-        histogrammed onto self.bins.
+        For each of the J trajectories mc_sims sample paths are evolved over
+        tau = n_steps * dt years using:
+          • QT_cir_evol  — Andersen (2007) Quadratic-Exponential scheme for the
+                           CIR variance, which also returns the integrated
+                           variance ∫v dt.  Never produces negative variance.
+          • mc_heston    — exact log-price update given the variance path
+                           (see heston_evol.py).
 
-        This is slow (O(J · mc_sims · n_steps)) but serves as a reference
-        for validating the frFFT inversion.
+        The loop is now over J parameter sets (not mc_sims), so mc_sims paths
+        per set are vectorised inside QT_cir_evol / mc_heston.
         """
         J       = self.n_simulations
         dt      = self.dt
-        sqrt_dt = np.sqrt(dt)
+        tf = np.array([0.0, tau])  
 
         terminal = np.zeros((J, mc_sims), dtype=np.float64)
 
-        for s in range(mc_sims):
-            X_mc = X0.copy()
-            v_mc = np.maximum(v0.copy(), 0.0)
-            for _ in range(n_steps):
-                Z1   = self.rng.standard_normal(J)
-                Z2   = self.rng.standard_normal(J)
-                dW_X = sqrt_dt * Z1
-                dW_v = sqrt_dt * (self.rho * Z1 + np.sqrt(1.0 - self.rho**2) * Z2)
-                sv   = np.sqrt(np.maximum(v_mc, 0.0))
-                X_mc += (self.mu - 0.5 * v_mc) * dt + sv * dW_X
-                v_mc += (
-                    self.kappa * (self.theta - v_mc) * dt
-                    + self.sigma_v * sv * dW_v
-                )
-                v_mc = np.maximum(v_mc, 0.0)
-            terminal[:, s] = X_mc
+        for j in range(J):
+            cir_j = cir_obj(
+                kappa = float(self.kappa[j]),
+                sigma = float(self.sigma_v[j]),
+                theta = float(self.theta[j]),
+                ro    = float(v0[j]),
+            )
+            # vol shape (2, mc_sims): vol[0]=v0, vol[1]=v_tau
+            # Ivol shape (2, mc_sims): Ivol[1] = ∫_0^tau v dt
+            vol, Ivol = QT_cir_evol(self.rng, cir_j, tf, dt, mc_sims)
+
+            # S shape (2, mc_sims), S[0]=1 (normalised); uses exact formula
+            S = mc_heston(self.rng, vol, Ivol, cir_j, float(self.rho[j]), tf)
+
+            # log-price = X0[j] + log(S_tau) + mu[j]*tau  (mu shift is additive)
+            terminal[j] = X0[j] + np.log(np.maximum(S[-1], 1e-300)) + self.mu[j] * tau
 
         if get_raw_terminal_values:
             return terminal
