@@ -191,19 +191,20 @@ torch.backends.cudnn.benchmark = True
 # ============================================================
 # CONFIGURATION
 # ============================================================
- 
+
+
 # --- Heston parameter ranges (SPX-like) ---
 X0_RANGE      = (0.0,  0.0)      # initial log-price (fixed at 0 = normalised)
 MU_RANGE      = (0.0,  0.0)      # risk-neutral drift
-V0_RANGE      = (0.6,  0.6)      # initial variance
-KAPPA_RANGE   = (1.0,  1.0)      # mean-reversion speed
-THETA_RANGE   = (0.6,  0.6)      # long-run variance
-SIGMA_V_RANGE = (0.5,  0.5)      # vol-of-vol
+V0_RANGE      = (0.5,  0.5)      # initial variance
+KAPPA_RANGE   = (2.0,  2.0)      # mean-reversion speed
+THETA_RANGE   = (0.5,  0.5)      # long-run variance
+SIGMA_V_RANGE = (0.9,  0.9)      # vol-of-vol
 RHO_RANGE     = (-0.7,  -0.7)      # spot-vol correlation
  
 # --- Time grid ---
 CONDITION_STEPS = 252
-FORECAST_HORIZON = 5 # one week
+FORECAST_HORIZON = 10 # two weeks
 N_TOTAL = CONDITION_STEPS + FORECAST_HORIZON                    # number of time steps
 T       = N_TOTAL/252    # time horizon in years
  
