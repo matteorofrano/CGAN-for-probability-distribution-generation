@@ -408,14 +408,14 @@ class HestonSimulator(DataSimulator):
 
     # ── PDF via frFFT ─────────────────────────────────────────────────────────
 
-    def get_pdf(
+    def get_pdf( # type: ignore
         self,
         n_steps_ahead: int,
         n_bins: int | None = None,
         P: np.ndarray | None = None,
+        v: np.ndarray | None = None,
         mc_sims: int = 0,
         verbose: bool = False,
-        # frFFT control knobs
         Nfft: int = 4096,
         eta: float = 0.25,
         alpha_frfft: float | None = None,
@@ -472,7 +472,7 @@ class HestonSimulator(DataSimulator):
 
         # ── Starting conditions ───────────────────────────────────────────────
         X0 = (P if P is not None else self.X_T).copy()
-        v0 = self.v_T.copy()
+        v0 = (v if v is not None else self.v_T).copy()
 
         # ── Monte-Carlo fallback ──────────────────────────────────────────────
         if mc_sims >= 2:
@@ -528,6 +528,10 @@ class HestonSimulator(DataSimulator):
         k_arr  = np.arange(Nfft, dtype=np.float64)
         x_grid = b[:, np.newaxis] + k_arr[np.newaxis, :] * lam       # (J, Nfft)
 
+        self.pdf_fine   = pdf_fine   # (J, Nfft) raw density (not normalised)
+        self.x_grid     = x_grid     # (J, Nfft) corresponding x-values
+        self._frfft_lam = lam        # grid spacing (needed for normalisation)
+
         # ── Return raw moments if no binning requested ────────────────────────
         if n_bins is None or n_bins == 0:
             norm_const  = pdf_fine.sum(axis=1) * lam + 1e-30
@@ -566,14 +570,66 @@ class HestonSimulator(DataSimulator):
 
         self.pdf = probabilities
         return self.pdf
-
+    
+    def get_smooth_curves(self,
+                          bins_list: list,
+                          n_plot: int = 500) -> list:
+        """
+        Return a list of (x_smooth, y_smooth) pairs — one per trajectory —
+        
+        Must be called AFTER ``get_pdf()`` (which stores ``self.pdf_fine``,
+        ``self.x_grid`` and ``self._frfft_lam``).
+ 
+        y_smooth is in **probability mass** units (density × bin_width)
+ 
+        Parameters
+        ----------
+        bins_list : list of np.ndarray
+            Per-trajectory bin edges returned as the third element of
+            ``compare_simulated_pdfs()``.  Each entry may have a different
+            width, so bin_width is recomputed inside the loop.
+        n_plot : int
+            Number of interpolation points for the smooth curve (default 500).
+        """
+        from scipy.interpolate import interp1d
+ 
+        if self.pdf_fine is None or self.x_grid is None:
+            raise RuntimeError("Call get_pdf() before get_smooth_curves().")
+ 
+        lam    = self._frfft_lam
+        curves = []
+ 
+        for k in range(len(bins_list)):
+            bin_width = float(bins_list[k][1] - bins_list[k][0])  # per-trajectory
+            xk = self.x_grid[k]
+            
+            # Restrict to meaningful support
+            x_lo = bins_list[k][0]
+            x_hi = bins_list[k][-1]
+            mask      = (xk >= x_lo) & (xk <= x_hi)
+            if mask.sum() < 4:                          # too few pts → skip
+                curves.append((xk, fk * bin_width))
+                continue
+ 
+            xk_s = xk[mask]
+            fk_s  = self.pdf_fine[k][mask]
+            norm_c = fk_s.sum() * lam + 1e-30
+            fk_s  = fk_s / norm_c  
+            x_plot = np.linspace(xk_s[0], xk_s[-1], n_plot)
+            y_plot = np.maximum(
+                interp1d(xk_s, fk_s, kind="cubic")(x_plot), 0.0
+            )
+            # Convert density → probability mass per bin
+            curves.append((x_plot, y_plot * bin_width))
+ 
+        return curves
+    
     # ── Monte-Carlo PDF (reference / fallback) ────────────────────────────────
 
     def _mc_pdf(
         self,
         X0: np.ndarray,
         v0: np.ndarray,
-        tau: float,
         n_bins: int | None,
         mc_sims: int,
         n_steps: int,
@@ -595,6 +651,7 @@ class HestonSimulator(DataSimulator):
         """
         J       = self.n_simulations
         dt      = self.dt
+        tau = n_steps*dt
         tf = np.array([0.0, tau])  
 
         terminal = np.zeros((J, mc_sims), dtype=np.float64)

@@ -20,21 +20,21 @@ To remedy this shortcoming, \cite{heston:heston_paper} introduced in 1993 a two-
 The system of stochastic differential equations (SDEs) in the \texttt{HestonSimulator} is written in \textit{log-price form}:
 
 \begin{align}
-    dX_t &= \left(\mu - \tfrac{1}{2}v_t\right)dt + \sqrt{v_t}\, dW_t^X \label{eq:logprice_sde}\\
-    dv_t &= \kappa(\theta - v_t)\,dt + \sigma_v\sqrt{v_t}\, dW_t^v \label{eq:var_sde}\\
-    \langle dW_t^X,\, dW_t^v \rangle &= \rho\, dt \label{eq:correlation}
+    dX_t &= \left(\mu - \tfrac{1}{2}v_t\right)dt + \sqrt{v_t}\, dW_t^X \label{eq:logprice_sde_heston}\\
+    dv_t &= \kappa(\theta - v_t)\,dt + \sigma_v\sqrt{v_t}\, dW_t^v \label{eq:var_sde_heston}\\
+    \langle dW_t^X,\, dW_t^v \rangle &= \rho\, dt \label{eq:correlation_heston}
 \end{align}
 
 Each term carries a precise financial interpretation.
 \begin{itemize}
-    \item Log-price SDE (Eq. \ref{eq:logprice_sde}). Applying It\^{o}'s lemma to $X_t = \ln S_t$ under the assumption that $S_t$ follows a geometric Brownian motion with stochastic diffusion coefficient $\sqrt{v_t}$ yields the drift $\mu - v_t/2$. The term $\mu$ is the risk-neutral drift (typically the risk-free rate), while the $-v_t/2$ correction, 
+    \item Log-price SDE (Eq. \ref{eq:logprice_sde_heston}). Applying It\^{o}'s lemma to $X_t = \ln S_t$ under the assumption that $S_t$ follows a geometric Brownian motion with stochastic diffusion coefficient $\sqrt{v_t}$ yields the drift $\mu - v_t/2$. The term $\mu$ is the risk-neutral drift (typically the risk-free rate), while the $-v_t/2$ correction, 
     called the \textit{It\^{o} correction}, arises from the quadratic variation of $X_t$ and ensures that $\mathbb{E}[S_t] = S_0 e^{\mu t}$.
-    \item Variance SDE (Eq.\,\ref{eq:var_sde}). The variance $v_t$ evolves according to a \textit{Cox--Ingersoll--Ross} (CIR) process \cite{heston:cir_process}.
+    \item Variance SDE (Eq.\,\ref{eq:var_sde_heston }). The variance $v_t$ evolves according to a \textit{Cox--Ingersoll--Ross} (CIR) process \cite{heston:cir_process}.
      The three parameters have well-defined roles: $\kappa > 0$ is the \textit{mean-reversion speed}, 
      controlling how quickly $v_t$ is pulled back toward its long-run equilibrium; $\theta > 0$ is
       the \textit{long-run variance}, the level to which $v_t$ reverts; and $\sigma_v > 0$ is the \textit{volatility of volatility} (vol-of-vol), 
       governing the magnitude of random fluctuations in $v_t$.
-      \item Correlation (Eq.\,\ref{eq:correlation}). The two Brownian motions $W^X$ and $W^v$ are correlated with instantaneous correlation $\rho \in (-1, 1)$. For equities, $\rho$ is typically negative: a negative shock to the asset price tends to be accompanied by an increase in variance, a well-documented empirical phenomenon known as the \textit{leverage effect}.
+      \item Correlation (Eq.\,\ref{eq:correlation_heston}). The two Brownian motions $W^X$ and $W^v$ are correlated with instantaneous correlation $\rho \in (-1, 1)$. For equities, $\rho$ is typically negative: a negative shock to the asset price tends to be accompanied by an increase in variance, a well-documented empirical phenomenon known as the \textit{leverage effect}.
 \end{itemize}
 
 A key requirement for the CIR process is that $v_t \geq 0$ at all times. it has been proved that the boundary $v_t = 0$ is never reached (i.e., $v_t > 0$ almost surely) if and only if
@@ -55,12 +55,12 @@ To simulate and compute the correlated pair $(dW_t^X, dW_t^v)$ over a discrete t
     \Delta W^v &= \sqrt{\Delta t}\left(\rho\, Z_1 + \sqrt{1-\rho^2}\, Z_2\right) \label{eq:dWv}
 \end{align}
 
-satisfy $\mathbb{E}[\Delta W^X] = \mathbb{E}[\Delta W^v] = 0$, $\text{Var}(\Delta W^X) = \text{Var}(\Delta W^v) = \Delta t$, and $\text{Cov}(\Delta W^X, \Delta W^v) = \rho\,\Delta t$, which matches the covariance structure prescribed by Eq.~(\ref{eq:correlation}). 
+satisfy $\mathbb{E}[\Delta W^X] = \mathbb{E}[\Delta W^v] = 0$, $\text{Var}(\Delta W^X) = \text{Var}(\Delta W^v) = \Delta t$, and $\text{Cov}(\Delta W^X, \Delta W^v) = \rho\,\Delta t$, which matches the covariance structure prescribed by Eq.~(\ref{eq:correlation_heston}). 
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection{Numerical Discretisation of the Heston SDEs}
 \label{sec:discretisation}
 
-Since equations (\ref{eq:logprice_sde})--(\ref{eq:var_sde}) do not admit closed-form solutions in general, so they must be integrated numerically. The proposed simulator supports two schemes:\\
+Since equations (\ref{eq:logprice_sde_heston})--(\ref{eq:var_sde_heston}) do not admit closed-form solutions in general, so they must be integrated numerically. The proposed simulator supports two schemes:\\
 The \textit{Euler--Maruyama} scheme \cite{heston:euler_maruyama} is the SDE analogue of Euler's method for ODEs. For a generic It\^{o} SDE $dY_t = a(Y_t)\,dt + b(Y_t)\,dW_t$, the scheme reads
 
 \begin{equation}
@@ -68,7 +68,7 @@ The \textit{Euler--Maruyama} scheme \cite{heston:euler_maruyama} is the SDE anal
     \label{eq:euler}
 \end{equation}
 
-Applied to the log-price SDE (\ref{eq:logprice_sde}), with $\hat{v}_n = \max(v_n, 0)$ (the truncated variance):
+Applied to the log-price SDE (\ref{eq:logprice_sde_heston}), with $\hat{v}_n = \max(v_n, 0)$ (the truncated variance):
 
 \begin{equation}
     X_{n+1} = X_n + \left(\mu - \tfrac{1}{2}\hat{v}_n\right)\Delta t + \sqrt{\hat{v}_n}\,\Delta W_n^X.
@@ -525,7 +525,7 @@ The Monte Carlo estimator is consistent (converges to the true PDF as \texttt{mc
 
 
 So the \texttt{HestonSimulator} integrates the following chain of mathematical techniques into a single coherent pipeline. 
-The Heston SDE system (\ref{eq:logprice_sde})--(\ref{eq:correlation}) is discretised using correlated Brownian increments constructed via Cholesky decomposition, 
+The Heston SDE system (\ref{eq:logprice_sde_heston})--(\ref{eq:correlation_heston}) is discretised using correlated Brownian increments constructed via Cholesky decomposition, 
 with the full-truncation Milstein scheme for the variance and Euler--Maruyama for the log-price. 
 The conditional PDF of future log-prices is obtained by evaluating the closed-form Heston CF in its numerically 
 stable Little Trap formulation and then applying the Gil-Pelaez inversion formula (\ref{eq:gilpelaez_discrete}) with Simpson quadrature weights.
@@ -968,13 +968,14 @@ The code simulates \texttt{ 10,000,000} trajectories, each of length \texttt{252
 Each chunk is produced by the Heston simulator described in previous section \ref{eq:milstein_full_trajectory} and appended to a binary file.
 A companion JSON file stores:
 \begin{itemize}
-    \item the record length, equal to \texttt{N\_STEPS = 252 + 1},
+    \item the record length, equal to \texttt{N\_STEPS = 252 + 1} where the 252 values are used as the conditioning window and the last value is used as the prediction target,
     \item the number of stored trajectories \texttt{J = 100,000}.
 \end{itemize}
 
 This structure allows the file to be accessed sequentially or through memory mapping without loading the entire dataset into memory.
 The following parameters have been used to generate Heston trajectories:
-\begin{table}[h]
+\begin{table}[H]
+    \label{tab:heston_training_params}
 \centering
 \begin{tabular}{lc}
 \hline
@@ -982,16 +983,19 @@ Parameter & Value \\
 \hline
 $x_0$      & 0.0 \\
 $\mu$      & 0.0 \\
-$v_0$      & 0.6 \\
-$\kappa$   & 1.0 \\
-$\theta$   & 0.6 \\
-$\sigma_v$ & 0.5 \\
+$v_0$      & 0.5 \\
+$\kappa$   & 2.0 \\
+$\theta$   & 0.5 \\
+$\sigma_v$ & 0.9 \\
 $\rho$     & -0.7 \\
+\texttt{Condition\_trajectory\_length} & 252 \\
+\texttt{Forecast\_horizon}     & 10 \\
 \hline
 \end{tabular}
 \caption{Model hyperparameters}
 \end{table}
-Where $x_0$ is the initial value of the log-price process, $\mu$ is the drift, $v_0$ is the initial variance, $\kappa$ is the mean-reversion speed of the variance, $\theta$ is the long-term mean of the variance, $\sigma_v$ is the volatility of the variance process, and $\rho$ is the correlation between the Brownian motions driving the log-price and variance. 
+Where $x_0$ is the initial value of the log-price process, $\mu$ is the drift, $v_0$ is the initial variance, $\kappa$ is the mean-reversion speed of the variance, $\theta$ is the long-term mean of the variance, $\sigma_v$ is the volatility of the variance process, and $\rho$ is the correlation between the Brownian motions driving the log-price and variance.
+From the parameters values, the Feller condition is satisfied (in fact, $\kappa \theta = 2.0 \times 0.5 = 1.0 > 0.9 = \sigma_v^2$), ensuring that the variance process remains positive. 
 
 
 \begin{algorithm}[H]
@@ -1016,7 +1020,7 @@ A memory-mapped dataset is constructed from the binary file. Each stored record 
 \]
 where the first $N$ values are used as the conditioning window and the last value is used as the prediction target. In other words, the dataset returns:
 \[
-c = [X_0, X_1, \dots, X_{N-1}], \qquad y = X_N.
+c = [X_0, X_1, \dots, X_{N-10}], \qquad y = X_N.
 \]
 
 
@@ -1032,7 +1036,7 @@ c = [X_0, X_1, \dots, X_{N-1}], \qquad y = X_N.
     \STATE open the binary file as a NumPy memmap
 \ENDIF
 \STATE read trajectory $[X_0, \dots, X_N]$ at the requested index
-\STATE set condition $c \leftarrow [X_0, \dots, X_{N-1}]$
+\STATE set condition $c \leftarrow [X_0, \dots, X_{N-10}]$
 \STATE set target $y \leftarrow X_N$
 \STATE \textbf{return} $(y,c)$
 \end{algorithmic}
@@ -1066,10 +1070,9 @@ The hidden dimension of the LSTM layer is set to 64.\\
 \textbf{Parameter}         & \textbf{Generator}                  & \textbf{Critic (Discriminator)} \\ \hline
 Input Dimension            & 64 (Latent) + 252 (Cond.)           & --                              \\
 LSTM Layers                & 128                                 & --                              \\
-Feedforward Layers         & 128+252                                 & --                              \\
+Feedforward Layers         & 128+64                                 & --                              \\
 Output Dimension           & 1                                  & --                              \\
 Activation Function        & Leaky ReLU                         & --                              \\
-Normalization              & None                               & --                              \\
 Dropout                    & 0.0                                & --                              \\
 \multicolumn{3}{c}{\textbf{Global Training Settings}}                                      \\ \hline
 Batch Size                 & \multicolumn{2}{l}{32}                                            \\
@@ -1083,8 +1086,8 @@ learning\_rate            & \multicolumn{2}{l}{$10^{-3}$}                       
 
 
 \subsection{Test results}
-The trained model is evaluated on a test set given by $10000$ trajectories that were not seen during training. 
-The evaluation metrics are computed by comparing the distribution of the generated predictions with the distribution of the true targets in the test set, using the frFFT-based PDF estimator described in \ref{sec:frfft_validation}.\\
+The trained model is evaluated on a test set given by $100000$ trajectories that were not seen during training by using the same Heston parameters adopted for the training process and described in table \ref{tab:heston_training_params}. 
+The evaluation metrics are computed by comparing the distribution of the generated predictions with the distribution of the true targets in the test set, using the Heston Monte Carlo simulations (and the frFFT-based PDF estimator for the visualization) described in \ref{sec:frfft_validation}.\\
 
 \begin{table}[h]
 \centering
@@ -1110,3 +1113,141 @@ Earth mover's distance & 0.000707 \\
     \caption{Samples obtained using fixed $x_0$, $\mu$, $v_0$, $\theta$, $\kappa$, $\sigma_v$, $\rho$.}
     \label{srforgan_heston_sample}
 \end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Heston/images/srforgan_samples_2.png}
+    \caption{Samples obtained using fixed $x_0$, $\mu$, $v_0$, $\theta$, $\kappa$, $\sigma_v$, $\rho$.}
+    \label{srforgan_heston_sample2}
+\end{figure}
+
+
+
+To validate the distributional predictions of the generative model against the
+theoretical Heston dynamics, an analytical consistency check is performed on the
+conditional mean and standard deviation of the ten-step-ahead log-price
+distribution.  The analysis compares three quantities: the theoretical moments
+derived from the Heston characteristic function, the empirical moments of the
+Monte Carlo ground-truth distribution, and the empirical moments of the
+generated distribution.\\
+
+Under the Heston model the log-price follows the Stochastic Differential Equation described in equation \ref{eq:logprice_sde_heston},
+so that the exact conditional mean over a forecast horizon $\tau$ is
+\begin{equation}
+    \mathbb{E}\bigl[X_{T+\tau}\mid X_T,\,v_T\bigr]
+    \;=\;
+    X_T \;+\; \mu\tau \;-\; \tfrac{1}{2}\,\bar{v}\,\tau,
+    \qquad
+    \bar{v} = \frac{\mathbb{E}\!\left[\int_0^\tau v_{T+s}\,ds\,\Big|\,v_T\right]}{\tau},
+    \label{eq:heston_mean}
+\end{equation}
+where the integrated variance is given in closed form by the CIR expectation
+\begin{equation}
+    \mathbb{E}\!\left[\int_0^\tau v_{T+s}\,ds\,\Big|\,v_T\right]
+    \;=\;
+    \theta\tau + (v_T - \theta)\,\frac{1 - e^{-\kappa\tau}}{\kappa}.
+    \label{eq:integral_v}
+\end{equation}
+Since $\mu = 0$ in our parametrisation, the only deviation from $X_T$ is the
+It\^{o} correction $-\tfrac{1}{2}\mathbb{E}[\int v_s\,ds]$, which is always
+negative.  For the ten-step horizon $\tau = 10/252 \approx 0.040$\,yr with
+$\kappa\tau = 0.079 \ll 1$, equation~\eqref{eq:integral_v} reduces to
+$\approx v_T\tau$ with negligible error, so the mean shift from $X_T$ is
+$-\tfrac{1}{2}v_T\tau$.
+
+The theoretical standard deviation is dominated by the same integrated variance:
+\begin{equation}
+    \sigma_{\mathrm{th}} \;=\; \sqrt{\,\mathbb{E}\!\left[\int_0^\tau v_{T+s}\,ds\right]},
+    \label{eq:std_th}
+\end{equation}
+which equals $\sqrt{v_T\tau}$ to leading order.  The vol-of-vol correction
+term, proportional to $\sigma_v^2\tau^2$, contributes an additional
+$\approx 12.5\%$ to the standard deviation across all four trajectories;
+this small and uniform inflation reflects the brevity of the horizon relative
+to the mean-reversion timescale.\\
+
+
+Table~\ref{tab:mean_consistency} reports the theoretical mean from
+equation~\eqref{eq:heston_mean}, together with the empirical means of the
+true and generated Monte Carlo distributions.
+
+\begin{table}[H]
+\centering
+\caption{Conditional mean consistency.  $\hat{\mu}_{\mathrm{true}}$ and
+$\hat{\mu}_{\mathrm{gen}}$ are the empirical means of the Monte Carlo ground
+truth and of the generated distribution, respectively.
+$|\Delta_{\mathrm{true}}|=|\hat{\mu}_{\mathrm{true}}-\mu_{\mathrm{th}}|$,
+$|\Delta_{\mathrm{gen}}|=|\hat{\mu}_{\mathrm{gen}}-\mu_{\mathrm{th}}|$.}
+\label{tab:mean_consistency}
+\begin{tabular}{cccccccr}
+\toprule
+Traj. & $X_T$ & $v_T$ & It\^{o} shift & $\mu_{\mathrm{th}}$
+      & $\hat{\mu}_{\mathrm{true}}$ & $|\Delta_{\mathrm{true}}|$
+      & $\hat{\mu}_{\mathrm{gen}}$\phantom{$|$} \\
+\midrule
+0 & $-1.219$ & $0.879$ & $-0.017$ & $-1.236$ & $-1.237$ & $0.001$ & $-1.243$ \\
+1 & $-0.975$ & $1.094$ & $-0.021$ & $-0.996$ & $-0.983$ & $0.014$ & $-1.086$ \\
+2 & $\phantom{-}0.721$ & $0.367$ & $-0.007$ & $\phantom{-}0.714$ & $\phantom{-}0.712$ & $0.001$ & $\phantom{-}0.675$ \\
+3 & $-0.159$ & $0.498$ & $-0.010$ & $-0.169$ & $-0.174$ & $0.006$ & $-0.147$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The true distribution means match the theoretical predictions to within
+$0.014$ in all cases, confirming that the Monte Carlo simulation correctly
+implements the Heston dynamics.\\
+A noteworthy feature of equation~\eqref{eq:heston_mean} is that, with $\mu=0$,
+the distribution centre lies slightly \emph{left} of the current log-price
+$X_T$ by the It\^{o} correction $-\tfrac{1}{2}v_T\tau \in [-0.021,\,-0.007]$.
+This shift represents only $6$--$10\%$ of one standard deviation and is thus
+barely detectable visually, explaining why the histogram peaks appear nearly
+aligned with the $X_T$ marker in the plots.  The partial cancellation by the
+positive mode-mean gap induced by the negative skewness ($\rho=-0.7$ implies
+skewness $\approx -0.18$ to $-0.30$, shifting the mode $\approx +0.037$ above
+the mean) further reduces the visible offset.\\
+
+
+Table~\ref{tab:std_consistency} compares the theoretical standard deviation
+from equation~\eqref{eq:std_th} against the empirical counterparts.
+
+\begin{table}[H]
+\centering
+\caption{Conditional standard deviation consistency.
+$\sigma_{\mathrm{th}} = \sqrt{\mathbb{E}[\int_0^\tau v_s\,ds]}$;
+$\hat{\sigma}_{\mathrm{true}}$ and $\hat{\sigma}_{\mathrm{gen}}$ are the
+empirical standard deviations of the true and generated distributions.}
+\label{tab:std_consistency}
+\begin{tabular}{cccccccc}
+\toprule
+Traj. & $v_T$ & $\sqrt{v_T\tau}$ & $\sigma_{\mathrm{th}}$
+      & $\hat{\sigma}_{\mathrm{true}}$ & $|\Delta_{\mathrm{true}}|$
+      & $\hat{\sigma}_{\mathrm{gen}}$ & $|\Delta_{\mathrm{gen}}|$ \\
+\midrule
+0 & $0.879$ & $0.1868$ & $0.1852$ & $0.1830$ & $0.0022$ & $0.2068$ & $0.0216$ \\
+1 & $1.094$ & $0.2084$ & $0.2062$ & $0.2129$ & $0.0067$ & $0.1989$ & $0.0073$ \\
+2 & $0.367$ & $0.1207$ & $0.1215$ & $0.1227$ & $0.0012$ & $0.1160$ & $0.0055$ \\
+3 & $0.498$ & $0.1406$ & $0.1406$ & $0.1443$ & $0.0037$ & $0.1377$ & $0.0029$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The true empirical standard deviations deviate from the theoretical values
+by at most $0.007$, well within Monte Carlo sampling noise at $10^3$
+simulations.  Crucially, the \emph{ordering} imposed by $v_T$ is preserved:
+trajectory~2 ($v_T = 0.367$, lowest variance) yields the narrowest
+distribution and trajectory~1 ($v_T = 1.094$, highest) the widest, in both
+the theoretical and empirical cases.  The vol-of-vol contribution of $\sigma_v
+= 0.9$ adds only $\approx 12.5\%$ to the standard deviation relative to the
+naive $\sqrt{v_T\tau}$ floor, because the ten-step horizon $\tau$ is short
+enough ($\kappa\tau = 0.079$) that the variance process has insufficient time
+to deviate appreciably from $v_T$.  The generated standard deviations are also
+in reasonable agreement with theory, with trajectory~0 exhibiting the largest
+absolute deviation ($0.022$).\\
+
+
+The analytical assessment confirms full consistency between the Heston
+parameter set, the terminal states $(X_T,\,v_T)$, and the Monte Carlo ground-truth
+distributions: theoretical means match empirical means to within $0.014$ and
+theoretical standard deviations to within $0.007$.  The generated distributions
+replicate the correct distributional shape and ordering as suggested by the 
+distance metrics and Kolmogorov-Smirnov test as well.

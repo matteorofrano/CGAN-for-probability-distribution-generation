@@ -331,10 +331,12 @@ def plot_bin_dist(trues: np.ndarray | list,
                    preds: np.ndarray | list,
                    bins_values: np.ndarray | list,
                    X_T: List[float] | None = None,
+                   v_T: List[float] | None = None,
                    means: np.ndarray | list | None = None,
                    stds: np.ndarray | list | None = None,
                    ncols: int | None = None,   
-                   zoom: bool = False):
+                   zoom: bool = False,
+                   smooth_curves: list | None = None):
 
     n = len(trues)
 
@@ -380,11 +382,18 @@ def plot_bin_dist(trues: np.ndarray | list,
 
         ax = axes[i]
         width = bin_centers_row[1] - bin_centers_row[0]  # bin width
-        ax.bar(bin_centers_row, true, width=width, alpha=0.5, label="True histogram")
-        ax.bar(bin_centers_row, pred, width=width, alpha=0.5, label="Generated histogram")
+        ax.bar(bin_centers_row, true, width=width, alpha=1.0, label="True distribution", zorder=1)
+        ax.bar(bin_centers_row, pred, width=width, alpha=0.9, label="Generated distribution", zorder=2)
+        #ax.bar(bin_centers_row, pred, width=width, facecolor = 'none', edgecolor="tab:orange", linewidth=2, label="Generated distribution", zorder=2)
+        
 
+        if smooth_curves is not None:
+            x_c, y_c = smooth_curves[i]
+            ax.plot(x_c, y_c, color='black', linewidth=2,
+                    linestyle='--', label=f"Heston PDF")
+            
         # Overlay theoretical normal distribution if mean and std are provided
-        if means is not None and stds is not None:
+        elif means is not None and stds is not None:
             mu = means[i]
             sigma = stds[i]
             # Scale the PDF to match the probability mass (PDF * bin_width = probability per bin)
@@ -397,8 +406,13 @@ def plot_bin_dist(trues: np.ndarray | list,
                 x=X_T[i],
                 linestyle=":",
                 linewidth=2,
-                label=f"X_T={round(X_T[i], 3)}"
-            )
+                color = 'r',
+                alpha=1.0,
+                zorder = 3,
+                label=f"X_T={round(X_T[i], 3)}")
+
+        if v_T is not None:
+            ax.plot([], [], ' ', label=f"v_T={v_T[i]:.3f}")
 
         ax.set_title(f"Histogram {i}")
         ax.set_xlabel("Bin values")

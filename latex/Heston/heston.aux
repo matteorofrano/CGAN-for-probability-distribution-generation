@@ -7,9 +7,9 @@
 \@writefile{toc}{\contentsline {section}{\numberline {5.1}The Heston Stochastic Volatility Model}{46}{section.5.1}\protected@file@percent }
 \newlabel{sec:heston_model}{{5.1}{46}{The Heston Stochastic Volatility Model}{section.5.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1.1}The Heston System of SDEs}{46}{subsection.5.1.1}\protected@file@percent }
-\newlabel{eq:logprice_sde}{{5.1}{46}{The Heston System of SDEs}{equation.5.1}{}}
-\newlabel{eq:var_sde}{{5.2}{46}{The Heston System of SDEs}{equation.5.2}{}}
-\newlabel{eq:correlation}{{5.3}{46}{The Heston System of SDEs}{equation.5.3}{}}
+\newlabel{eq:logprice_sde_heston}{{5.1}{46}{The Heston System of SDEs}{equation.5.1}{}}
+\newlabel{eq:var_sde_heston}{{5.2}{46}{The Heston System of SDEs}{equation.5.2}{}}
+\newlabel{eq:correlation_heston}{{5.3}{46}{The Heston System of SDEs}{equation.5.3}{}}
 \newlabel{eq:feller}{{5.4}{47}{The Heston System of SDEs}{equation.5.4}{}}
 \newlabel{eq:dWX}{{5.5}{47}{The Heston System of SDEs}{equation.5.5}{}}
 \newlabel{eq:dWv}{{5.6}{47}{The Heston System of SDEs}{equation.5.6}{}}
@@ -84,6 +84,7 @@
 \newlabel{subsec:validation_summary}{{5.2.2}{64}{Summary and Interpretation}{subsection.5.2.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5.3}Scoring Rule ForGAN results}{64}{section.5.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.3.1}Steps for experiment reproducibility}{65}{subsection.5.3.1}\protected@file@percent }
+\newlabel{tab:heston_training_params}{{5.3.1}{65}{Steps for experiment reproducibility}{subsection.5.3.1}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {5.4}{\ignorespaces Model hyperparameters}}{65}{table.5.4}\protected@file@percent }
 \@writefile{loa}{\contentsline {algorithm}{\numberline {18}{\ignorespaces Chunked generation of the Heston dataset}}{66}{algorithm.18}\protected@file@percent }
 \newlabel{alg:heston_experiment}{{18}{66}{Steps for experiment reproducibility}{algorithm.18}{}}
@@ -95,9 +96,18 @@
 \@writefile{lot}{\contentsline {table}{\numberline {5.6}{\ignorespaces Distribution comparison metrics}}{67}{table.5.6}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {5.4}{\ignorespaces Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $.}}{68}{figure.5.4}\protected@file@percent }
 \newlabel{srforgan_heston_sample}{{5.4}{68}{Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $}{figure.5.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.5}{\ignorespaces Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $.}}{69}{figure.5.5}\protected@file@percent }
+\newlabel{srforgan_heston_sample2}{{5.5}{69}{Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $}{figure.5.5}{}}
+\newlabel{eq:heston_mean}{{5.44}{69}{Test results}{equation.5.44}{}}
+\newlabel{eq:integral_v}{{5.45}{69}{Test results}{equation.5.45}{}}
+\newlabel{eq:std_th}{{5.46}{70}{Test results}{equation.5.46}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.7}{\ignorespaces Conditional mean consistency. $\hat  {\mu }_{\mathrm  {true}}$ and $\hat  {\mu }_{\mathrm  {gen}}$ are the empirical means of the Monte Carlo ground truth and of the generated distribution, respectively. $|\Delta _{\mathrm  {true}}|=|\hat  {\mu }_{\mathrm  {true}}-\mu _{\mathrm  {th}}|$, $|\Delta _{\mathrm  {gen}}|=|\hat  {\mu }_{\mathrm  {gen}}-\mu _{\mathrm  {th}}|$.}}{70}{table.5.7}\protected@file@percent }
+\newlabel{tab:mean_consistency}{{5.7}{70}{Conditional mean consistency. $\hat {\mu }_{\mathrm {true}}$ and $\hat {\mu }_{\mathrm {gen}}$ are the empirical means of the Monte Carlo ground truth and of the generated distribution, respectively. $|\Delta _{\mathrm {true}}|=|\hat {\mu }_{\mathrm {true}}-\mu _{\mathrm {th}}|$, $|\Delta _{\mathrm {gen}}|=|\hat {\mu }_{\mathrm {gen}}-\mu _{\mathrm {th}}|$}{table.5.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.8}{\ignorespaces Conditional standard deviation consistency. $\sigma _{\mathrm  {th}} = \sqrt  {\mathbb  {E}[\DOTSI \intop \ilimits@ _0^\tau v_s\,ds]}$; $\hat  {\sigma }_{\mathrm  {true}}$ and $\hat  {\sigma }_{\mathrm  {gen}}$ are the empirical standard deviations of the true and generated distributions.}}{70}{table.5.8}\protected@file@percent }
+\newlabel{tab:std_consistency}{{5.8}{70}{Conditional standard deviation consistency. $\sigma _{\mathrm {th}} = \sqrt {\mathbb {E}[\int _0^\tau v_s\,ds]}$; $\hat {\sigma }_{\mathrm {true}}$ and $\hat {\sigma }_{\mathrm {gen}}$ are the empirical standard deviations of the true and generated distributions}{table.5.8}{}}
 \@setckpt{Heston/heston}{
-\setcounter{page}{69}
-\setcounter{equation}{43}
+\setcounter{page}{72}
+\setcounter{equation}{46}
 \setcounter{enumi}{8}
 \setcounter{enumii}{0}
 \setcounter{enumiii}{0}
@@ -111,8 +121,8 @@
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{4}
-\setcounter{table}{6}
+\setcounter{figure}{5}
+\setcounter{table}{8}
 \setcounter{tabx@nest}{0}
 \setcounter{listtotal}{0}
 \setcounter{listcount}{0}
