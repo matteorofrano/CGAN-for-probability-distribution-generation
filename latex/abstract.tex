@@ -1,0 +1,17 @@
+\chapter*{Abstract}
+
+Financial forecasting has traditionally focused on point predictions, despite the fact that many financial applications, including derivative pricing, portfolio optimization, and risk management, require an accurate characterization of the entire future probability distribution rather than a single expected value. Recent advances in deep generative models have demonstrated that Generative Adversarial Networks (GANs) are capable of learning complex probability distributions directly from data, making them a promising framework for probabilistic forecasting of financial time series.
+
+This thesis investigates the application of conditional generative adversarial networks for generating
+the future probability distribution of stochastic financial processes. Starting from simulated trajectories generated under Black-Scholes and Heston models, 
+several adversarial architectures are developed and compared,
+including Conditional GANs (CGANs), Conditional Wasserstein GANs with Gradient Penalty (CWGAN-GP), and recurrent forecasting architectures based on ForGAN.
+In addition, a novel Scoring Rule ForGAN (SRForGAN) framework is proposed, where proper probabilistic scoring rules are used to improve distributional calibration while preserving the ability of GANs to generate realistic samples.
+
+The proposed models are evaluated using both analytical probability distributions and Monte Carlo simulations.
+Their predictive performance is assessed through several probability distance measures, including Jensen-Shannon divergence, Hellinger distance, Total Variation distance, Wasserstein distance, and the Kolmogorov-Smirnov goodness-of-fit test.
+Furthermore, a Heston stochastic volatility simulator is implemented to extend the experimental framework beyond the assumptions of constant volatility and to evaluate the proposed methodology under more realistic market dynamics.
+
+The experimental results show that Wasserstein-based adversarial training substantially improves the stability of the learning process and the quality of the generated distributions compared to standard GAN formulations.
+The proposed scoring-rule-based architecture further enhances probabilistic calibration and produces distributions that more closely match the theoretical reference distributions, 
+demonstrating the potential of adversarial generative models as flexible tools for probabilistic forecasting in financial domains.

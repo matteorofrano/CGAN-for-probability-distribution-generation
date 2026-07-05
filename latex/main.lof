@@ -1,0 +1,30 @@
+\babel@toc {english}{}\relax 
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Standard GAN architecture}}{8}{figure.1.1}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces ForGAN architecture}}{19}{figure.2.1}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Distance between real and generated parameters of the distribution over epochs.}}{23}{figure.3.1}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Error distribution between real and generated parameters.}}{23}{figure.3.2}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Distance between real and generated probability density function using global bins.}}{25}{figure.3.3}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Error distribution between real and generated bins probabilities using global bins.}}{26}{figure.3.4}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.03, 0.07, 0.1, 0.3, 0.5, 0.7]$.}}{27}{figure.3.5}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Distance between real and generated probability density function of the standard normal distribution over epochs.}}{28}{figure.3.6}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Error distribution between real and generated bins probabilities using global bins.}}{29}{figure.3.7}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.005, 0.01, 0.05, 0.1, 0.3, 0.6]$.}}{29}{figure.3.8}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = 0.5$.}}{33}{figure.4.1}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = 0.5$.}}{34}{figure.4.2}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{36}{figure.4.3}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Samples obtained using fixed $X_0$ and $\mu $ while varying $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{38}{figure.4.4}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces SRForGAN training schema. The generator takes a noise vector and a conditioning variable to produce a forecast distribution, which is then scored against the true observation using the Energy Score. The critic is not used in this architecture, as the adversarial loss is replaced by the scoring rule objective.}}{42}{figure.5.1}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{48}{figure.5.2}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{49}{figure.5.3}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{51}{figure.5.4}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Comparison of the Heston PDF obtained via the frFFT method (red line) and the Monte Carlo estimator (blue histogram) for four sample trajectories. }}{63}{figure.6.1}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories. The two curves are visually indistinguishable, confirming the distributional identity established by the zero-distance metrics in Table~\ref {tab:step_c}.}}{68}{figure.6.2}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $1^{-15}$, confirming that the residuals are at the level of double-precision machine epsilon.}}{69}{figure.6.3}%
+\contentsline {figure}{\numberline {6.4}{\ignorespaces Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $.}}{74}{figure.6.4}%
+\contentsline {figure}{\numberline {6.5}{\ignorespaces Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $.}}{75}{figure.6.5}%

@@ -1,17 +1,13 @@
-\chapter{Introduction}
+\chapter{Data and Models}
 
-The objective of this thesis is to design and implement a Conditional Generative Adversarial Network (CGAN) which is able to generate 
-the future probability distribution of the price of an asset given its past trajectory.\\
-In particular, the Generator receives as input a noise vector and a sequence of past prices observations where the price dynamics is modeled
-as a Geometric Brownian Motion. The output of the Generator is a vector representing the discretized probability density function of the future price of the asset at a given time horizon.\\
 
 \section{Training Data}
 In order to effectively train the CGAN models, two kinds of data are required for the training phase:
 \begin{itemize}
     \item Condition input data $C$: it is a $J \times N$ matrix, where $J$ is the number of trajectories and $N$ is the number of time steps of each trajectory.
-     This data represents the past $J$ trajectories of the asset prices, where each trajectory is associated with a specific volatility parameter $\sigma_j$ and eventually a specific starting point $X_0^j$, and is used to condition both the Generator and the Discriminator.
+     This data represents the past $J$ trajectories of the asset prices, where each trajectory is associated with a specific volatility parameter $\sigma_j$ and eventually a specific starting point $X_0^j$, and it is used to condition both the Generator and the Discriminator.
     \item Target output data $X$: it is a $J \times B$ matrix, where $J$ represents the number of trajectories and $B$ represents the number of elements used to describe the output of the models. It has different representations based on which model is being used. For example, given a classical CGAN model,
-    the output is a probability density function. 
+    the output is a probability distribution discretized into bins. 
     This data represents the true theoretical future probability distributions of the asset prices associated to their respective past trajectories for a given time horizon. 
     It is used to train the Discriminator to distinguish between real and fake data.\\
     However, if the ForGAN architecture is adopted, the output data is given by a $J \times 1$ vector where each element is the $n$-th step ahead value of the trajectory, so the output is a single value and not a probability distribution.
@@ -20,7 +16,7 @@ In order to effectively train the CGAN models, two kinds of data are required fo
 
 \subsection{Condition input data}
 For each trajectory $j = 1, ..., J$ we define 
-the SDE of the log-price $X_t^j$ as:
+the SDE of the log-price $X_t^j$ to be modelled using the Black-Scholes framework where the only source of uncertainty is given by the Brownian motion $W_t$:
 \begin{equation}
     \label{log-price SDE}
     \begin{aligned}
@@ -31,7 +27,7 @@ the SDE of the log-price $X_t^j$ as:
 
 Where $S_0^j$ is the raw price at time $0$ of trajectory $j$, $\sigma_j$ is the volatility of trajectory $j$ and $W_t$ is a standard Brownian motion.\\
 $X_0^j$ and $\sigma_j$ are randomly sampled for each trajectory such that 
-$X_0^j \in [-1, 1]$ and $\sigma_j \in (0.0, 0.5]$.\\
+$X_0^j \in [-1, 1]$ and $\sigma_j \in (0.0, 1.2]$.\\
 
 In this context our condition $c_j$ for a general data observation $j$ is given by
 a vector containing the trajectory $c_j=[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$.
@@ -54,7 +50,7 @@ The procedure to build the condition data matrix $C$ is summarized in Algorithm 
 \STATE Initialize an empty data matrix $C$ of shape $J\times N$.
 \STATE Set iteration counter $j \leftarrow 0$.
 \REPEAT
-    \STATE Randomly sample $X_0^j \in [-1.0, 1.0]$ and $\sigma_j \in (0.0, 0.5]$.
+    \STATE Randomly sample $X_0^j \in [-1.0, 1.0]$ and $\sigma_j \in (0.0, 1.2]$.
     \STATE Evolve $X_t^j$ based on the discretized SDE for $0, dt, ..., Ndt$ steps.
     \STATE Store the trajectory $[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$ in the $j$-th row of $Y$.
     \STATE Increment counter $j \leftarrow j + 1$.
@@ -94,7 +90,7 @@ Two different approaches are considered to represent this distribution:
     \STATE Compute $\mu_X = X_{Ndt} - \frac{1}{2}\sigma^2 \Delta t$ and $\sigma_X = \sigma \sqrt{\Delta t}$.
     \STATE Compute the data matrices $X_{lower} = \mu_X - 4\sigma_X$ and $X_{upper} = \mu_X + 4\sigma_X$.
     \STATE Compute the global minimum $X_{min} = \min(X_{lower})$ and maximum $X_{max} = \max(X_{upper})$.
-    \STATE Create $101$ evenly spaced bins edges between $X_{min}$ and $X_{max}$. This representation is shared by each sample, and it is stored into a vector $b$ of dimension $101$.
+    \STATE Create $99$ evenly spaced bins edges between $X_{min}$ and $X_{max}$. This representation is shared by each sample, and it is stored into a vector $b$ of dimension $101$.
     \STATE Initialize an empty data matrix $X$ of shape $J\times 100$.
     \STATE Set iteration counter $j \leftarrow 0$.
     \REPEAT
@@ -114,6 +110,7 @@ the output data matrix $X$ is a $J \times 1$ vector where each element is the $n
 so the output is a single value and not a probability distribution. 
 In this case, the target output data matrix $X$ is computed by evolving each trajectory for $\tau$ steps using the discretized SDE 
 described in  \ref{eq: discretized_SDE} and storing the resulting value in the $j$-th row of $X$.\\
+After the training phase, the ForGAN is able to generate the future distribution by repeatedly sampling the next value of the trajectory.
 
 
 \section{Models and architectures overview}
@@ -164,7 +161,7 @@ A further critical challenge involves the vanishing gradient problem,
 which emerges when the discriminator becomes overly proficient,
 causing the generator's gradients to approach zero and consequently impeding its learning process.
 
-\begin{algorithm}
+\begin{algorithm}[H]
 \caption{Standard Conditional GAN (CGAN) Training}
 \label{alg: cgan}
 \begin{algorithmic}[1]

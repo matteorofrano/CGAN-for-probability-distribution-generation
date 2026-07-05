@@ -1198,16 +1198,10 @@ $0.014$ in all cases, confirming that the Monte Carlo simulation correctly
 implements the Heston dynamics.\\
 A noteworthy feature of equation~\eqref{eq:heston_mean} is that, with $\mu=0$,
 the distribution centre lies slightly \emph{left} of the current log-price
-$X_T$ by the It\^{o} correction $-\tfrac{1}{2}v_T\tau \in [-0.021,\,-0.007]$.
-This shift represents only $6$--$10\%$ of one standard deviation and is thus
-barely detectable visually, explaining why the histogram peaks appear nearly
-aligned with the $X_T$ marker in the plots.  The partial cancellation by the
-positive mode-mean gap induced by the negative skewness ($\rho=-0.7$ implies
-skewness $\approx -0.18$ to $-0.30$, shifting the mode $\approx +0.037$ above
-the mean) further reduces the visible offset.\\
+$X_T$ by the It\^{o} correction $-\tfrac{1}{2}v_T\tau \in [-0.021,\,-0.007]$.\\
 
 
-Table~\ref{tab:std_consistency} compares the theoretical standard deviation
+Table \ref{tab:std_consistency} compares the theoretical standard deviation
 from equation~\eqref{eq:std_th} against the empirical counterparts.
 
 \begin{table}[H]
@@ -1236,11 +1230,7 @@ by at most $0.007$, well within Monte Carlo sampling noise at $10^3$
 simulations.  Crucially, the \emph{ordering} imposed by $v_T$ is preserved:
 trajectory~2 ($v_T = 0.367$, lowest variance) yields the narrowest
 distribution and trajectory~1 ($v_T = 1.094$, highest) the widest, in both
-the theoretical and empirical cases.  The vol-of-vol contribution of $\sigma_v
-= 0.9$ adds only $\approx 12.5\%$ to the standard deviation relative to the
-naive $\sqrt{v_T\tau}$ floor, because the ten-step horizon $\tau$ is short
-enough ($\kappa\tau = 0.079$) that the variance process has insufficient time
-to deviate appreciably from $v_T$.  The generated standard deviations are also
+the theoretical and empirical cases.  The generated standard deviations are also
 in reasonable agreement with theory, with trajectory~0 exhibiting the largest
 absolute deviation ($0.022$).\\
 

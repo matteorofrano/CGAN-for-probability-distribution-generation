@@ -1,50 +1,50 @@
 \relax 
 \providecommand\hyper@newdestlabel[2]{}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Beyond adversarial loss function}{34}{chapter.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Beyond adversarial loss function}{40}{chapter.5}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {4.1}SRForGAN Architecture}{35}{section.4.1}\protected@file@percent }
-\newlabel{eq:energy_score}{{4.1}{35}{SRForGAN Architecture}{equation.4.1}{}}
-\newlabel{eq:kernel_score}{{4.1}{35}{SRForGAN Architecture}{equation.4.1}{}}
-\newlabel{eq:crps}{{4.2}{35}{SRForGAN Architecture}{equation.4.2}{}}
-\newlabel{eq:energy_score_estimator}{{4.3}{36}{SRForGAN Architecture}{equation.4.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces SRForGAN training schema. The generator takes a noise vector and a conditioning variable to produce a forecast distribution, which is then scored against the true observation using the Energy Score. The critic is not used in this architecture, as the adversarial loss is replaced by the scoring rule objective.}}{36}{figure.4.1}\protected@file@percent }
-\newlabel{img:srforgan_train_schema}{{4.1}{36}{SRForGAN training schema. The generator takes a noise vector and a conditioning variable to produce a forecast distribution, which is then scored against the true observation using the Energy Score. The critic is not used in this architecture, as the adversarial loss is replaced by the scoring rule objective}{figure.4.1}{}}
-\newlabel{eq:hybrid_wasserstein_loss}{{4.4}{36}{SRForGAN Architecture}{equation.4.4}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {11}{\ignorespaces Unbiased Energy Score Estimate $\hat  {S}_E$}}{37}{algorithm.11}\protected@file@percent }
-\newlabel{alg:energy_score}{{11}{37}{SRForGAN Architecture}{algorithm.11}{}}
-\newlabel{eq:kernel_score_estimator}{{4.5}{37}{SRForGAN Architecture}{equation.4.5}{}}
-\newlabel{eq:energy_kernel_score_estimator}{{4.6}{37}{SRForGAN Architecture}{equation.4.6}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {12}{\ignorespaces \textsc  {SRForGAN} Training via Energy Score Minimisation}}{38}{algorithm.12}\protected@file@percent }
-\newlabel{alg:srforgan_train}{{12}{38}{SRForGAN Architecture}{algorithm.12}{}}
-\newlabel{eq:cgan_hybrid}{{4.7}{38}{SRForGAN Architecture}{equation.4.7}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {13}{\ignorespaces {\color  {cganblue}\texttt  {ForGAN}} --- hybrid generator update (called when $\mathrm  {step} \bmod  n_{\mathrm  {critic}} = 0$)}}{39}{algorithm.13}\protected@file@percent }
-\newlabel{eq:cwgan_hybrid}{{4.8}{39}{SRForGAN Architecture}{equation.4.8}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {14}{\ignorespaces {\color  {wganred}\texttt  {ForWGAN}} --- hybrid generator update}}{40}{algorithm.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.2}SRForGAN and Hybrid Forgan results}{40}{section.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}SRForGAN results}{41}{subsection.4.2.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Generator Architecture and Hyperparameters Summary}}{41}{table.4.1}\protected@file@percent }
-\newlabel{tab:srforgan_architecture}{{4.1}{41}{Generator Architecture and Hyperparameters Summary}{table.4.1}{}}
-\newlabel{tab:srforgan_results}{{4.2.1}{41}{SRForGAN results}{table.4.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Evaluation metrics rounded to four decimal places}}{41}{table.4.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{42}{figure.4.2}\protected@file@percent }
-\newlabel{srforgan_sample}{{4.2}{42}{Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$}{figure.4.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.2}Hybrid ForGAN results}{42}{subsection.4.2.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.3}{\ignorespaces ForGAN Architecture and Hyperparameters Summary}}{42}{table.4.3}\protected@file@percent }
-\newlabel{tab:forgan_hybrid_architecture}{{4.3}{42}{ForGAN Architecture and Hyperparameters Summary}{table.4.3}{}}
-\newlabel{tab:hybrid_forgan_results}{{4.2.2}{43}{Hybrid ForGAN results}{table.4.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.4}{\ignorespaces Evaluation metrics rounded to four decimal places}}{43}{table.4.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4.3}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{43}{figure.4.3}\protected@file@percent }
-\newlabel{hybrid_forgan_sample}{{4.3}{43}{Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$}{figure.4.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.3}Hybrid ForWGAN results}{44}{subsection.4.2.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4.5}{\ignorespaces ForWGAN Architecture and Hyperparameters Summary}}{44}{table.4.5}\protected@file@percent }
-\newlabel{tab:forwgan_hybrid_architecture}{{4.5}{44}{ForWGAN Architecture and Hyperparameters Summary}{table.4.5}{}}
-\newlabel{tab:hybrid_forwgan_results}{{4.2.3}{44}{Hybrid ForWGAN results}{table.4.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.6}{\ignorespaces Evaluation metrics rounded to four decimal places}}{44}{table.4.6}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4.4}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{45}{figure.4.4}\protected@file@percent }
-\newlabel{hybrid_forwgan_sample}{{4.4}{45}{Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$}{figure.4.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}SRForGAN Architecture}{41}{section.5.1}\protected@file@percent }
+\newlabel{eq:energy_score}{{5.1}{41}{SRForGAN Architecture}{equation.5.1}{}}
+\newlabel{eq:kernel_score}{{5.1}{41}{SRForGAN Architecture}{equation.5.1}{}}
+\newlabel{eq:crps}{{5.2}{41}{SRForGAN Architecture}{equation.5.2}{}}
+\newlabel{eq:energy_score_estimator}{{5.3}{42}{SRForGAN Architecture}{equation.5.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces SRForGAN training schema. The generator takes a noise vector and a conditioning variable to produce a forecast distribution, which is then scored against the true observation using the Energy Score. The critic is not used in this architecture, as the adversarial loss is replaced by the scoring rule objective.}}{42}{figure.5.1}\protected@file@percent }
+\newlabel{img:srforgan_train_schema}{{5.1}{42}{SRForGAN training schema. The generator takes a noise vector and a conditioning variable to produce a forecast distribution, which is then scored against the true observation using the Energy Score. The critic is not used in this architecture, as the adversarial loss is replaced by the scoring rule objective}{figure.5.1}{}}
+\newlabel{eq:hybrid_wasserstein_loss}{{5.4}{42}{SRForGAN Architecture}{equation.5.4}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {11}{\ignorespaces Unbiased Energy Score Estimate $\hat  {S}_E$}}{43}{algorithm.11}\protected@file@percent }
+\newlabel{alg:energy_score}{{11}{43}{SRForGAN Architecture}{algorithm.11}{}}
+\newlabel{eq:kernel_score_estimator}{{5.5}{43}{SRForGAN Architecture}{equation.5.5}{}}
+\newlabel{eq:energy_kernel_score_estimator}{{5.6}{43}{SRForGAN Architecture}{equation.5.6}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {12}{\ignorespaces \textsc  {SRForGAN} Training via Energy Score Minimisation}}{44}{algorithm.12}\protected@file@percent }
+\newlabel{alg:srforgan_train}{{12}{44}{SRForGAN Architecture}{algorithm.12}{}}
+\newlabel{eq:cgan_hybrid}{{5.7}{44}{SRForGAN Architecture}{equation.5.7}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {13}{\ignorespaces {\color  {cganblue}\texttt  {ForGAN}} --- hybrid generator update (called when $\mathrm  {step} \bmod  n_{\mathrm  {critic}} = 0$)}}{45}{algorithm.13}\protected@file@percent }
+\newlabel{eq:cwgan_hybrid}{{5.8}{45}{SRForGAN Architecture}{equation.5.8}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {14}{\ignorespaces {\color  {wganred}\texttt  {ForWGAN}} --- hybrid generator update}}{46}{algorithm.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}SRForGAN and Hybrid Forgan results}{46}{section.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}SRForGAN results}{47}{subsection.5.2.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Generator Architecture and Hyperparameters Summary}}{47}{table.5.1}\protected@file@percent }
+\newlabel{tab:srforgan_architecture}{{5.1}{47}{Generator Architecture and Hyperparameters Summary}{table.5.1}{}}
+\newlabel{tab:srforgan_results}{{5.2.1}{47}{SRForGAN results}{table.5.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.2}{\ignorespaces Evaluation metrics rounded to four decimal places}}{47}{table.5.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5.2}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{48}{figure.5.2}\protected@file@percent }
+\newlabel{srforgan_sample}{{5.2}{48}{Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$}{figure.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}Hybrid ForGAN results}{48}{subsection.5.2.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.3}{\ignorespaces ForGAN Architecture and Hyperparameters Summary}}{48}{table.5.3}\protected@file@percent }
+\newlabel{tab:forgan_hybrid_architecture}{{5.3}{48}{ForGAN Architecture and Hyperparameters Summary}{table.5.3}{}}
+\newlabel{tab:hybrid_forgan_results}{{5.2.2}{49}{Hybrid ForGAN results}{table.5.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.4}{\ignorespaces Evaluation metrics rounded to four decimal places}}{49}{table.5.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5.3}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{49}{figure.5.3}\protected@file@percent }
+\newlabel{hybrid_forgan_sample}{{5.3}{49}{Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$}{figure.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Hybrid ForWGAN results}{50}{subsection.5.2.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.5}{\ignorespaces ForWGAN Architecture and Hyperparameters Summary}}{50}{table.5.5}\protected@file@percent }
+\newlabel{tab:forwgan_hybrid_architecture}{{5.5}{50}{ForWGAN Architecture and Hyperparameters Summary}{table.5.5}{}}
+\newlabel{tab:hybrid_forwgan_results}{{5.2.3}{50}{Hybrid ForWGAN results}{table.5.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.6}{\ignorespaces Evaluation metrics rounded to four decimal places}}{50}{table.5.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5.4}{\ignorespaces Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$.}}{51}{figure.5.4}\protected@file@percent }
+\newlabel{hybrid_forwgan_sample}{{5.4}{51}{Samples obtained using fixed $X_0$, $\mu $ and $\sigma = [0.3, 0.5, 0.7, 0.9]$}{figure.5.4}{}}
 \@setckpt{SRForGAN/srforgan}{
-\setcounter{page}{46}
+\setcounter{page}{52}
 \setcounter{equation}{8}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
@@ -53,7 +53,7 @@
 \setcounter{footnote}{0}
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
-\setcounter{chapter}{4}
+\setcounter{chapter}{5}
 \setcounter{section}{2}
 \setcounter{subsection}{3}
 \setcounter{subsubsection}{0}
@@ -185,7 +185,7 @@
 \setcounter{section@level}{2}
 \setcounter{Item}{0}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{28}
+\setcounter{bookmark@seq@number}{29}
 \setcounter{r@tfl@t}{0}
 \setcounter{algorithm}{14}
 \setcounter{ALC@unique}{181}

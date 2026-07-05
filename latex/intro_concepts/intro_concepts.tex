@@ -1,0 +1,69 @@
+\chapter{Introduction}
+
+
+The prediction of financial processes is
+one of the central challenges in quantitative finance.
+Traditional forecasting methods generally focus on estimating a single future value,
+such as the expected return or the most likely price at a given forecasting horizon.
+While point forecasts are useful in many contexts,
+they provide only limited information regarding the uncertainty
+associated with future market movements.
+In practice, many financial applications, including derivative pricing, portfolio allocation, Value-at-Risk estimation and stress testing,
+depend not only on the expected future price but on the complete probability distribution of future outcomes.\\
+
+For this reason, probabilistic forecasting has attracted increasing attention in both financial econometrics and machine learning.
+Rather than predicting a single value, 
+probabilistic models estimate the entire conditional distribution of future prices given the available historical information.
+Such models provide richer information about the likelihood of extreme events, asymmetry, tail risk, and forecast uncertainty,
+thereby supporting more informed decision-making under uncertainty.\\
+
+The rapid development of deep learning has introduced a new family of probabilistic models capable of approximating highly complex data distributions.
+Among these, Generative Adversarial Networks (GANs) have emerged as one of the most successful generative modeling techniques.
+Originally developed for image synthesis, GANs learn an implicit probability distribution through the adversarial interaction between two neural networks:
+a generator, responsible for producing synthetic samples, and a discriminator (or critic),
+responsible for distinguishing generated samples from real observations.
+Unlike traditional likelihood-based methods, GANs do not require an explicit specification of the underlying probability density,
+making them particularly attractive for modeling complex stochastic processes.\\
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{intro_concepts/images/gan_architecture.png}
+    \caption{Standard GAN architecture}
+    \label{GAN_architecture}
+\end{figure}
+
+
+Recent research has extended GANs to time-series forecasting through conditional architectures,
+where the generator produces future observations conditioned on historical data.\\
+
+The objective of this thesis is to investigate the use of generative models for probabilistic forecasting of financial processes and, 
+in particular, to design a Conditional Generative Adversarial Network (CGAN) which is able to generate 
+the future probability distribution of the price of an asset given its past trajectory, enabling a wide range of financial applications that cannot be addressed through point forecasts alone.
+Specifically, distributional forecasts provide the probabilistic information required for derivative pricing, market risk measurement, stress testing, and portfolio optimization.\\
+
+In quantitative risk management, the predicted distribution of future asset prices can be directly employed to estimate risk measures such as Value-at-Risk (VaR) and Expected Shortfall (ES), allowing financial institutions to quantify the probability and magnitude of adverse market movements without relying on restrictive distributional assumptions.
+Similarly, probabilistic forecasts provide a natural framework for scenario generation and stress testing, enabling the simulation of realistic future market conditions for regulatory compliance and internal capital assessment.
+Another important application concerns derivative pricing, in fact, under the risk-neutral valuation framework, 
+the price of a financial derivative is given by the expected discounted value of its future payoff under the probability distribution of the underlying asset. 
+Consequently, an accurate estimate of the conditional distribution of future asset prices provides the information required to price European and, more generally, path-dependent derivatives through Monte Carlo simulation. 
+Unlike traditional approaches that require the explicit specification and calibration of a stochastic model, a data-driven probabilistic forecasting model has the potential to learn complex conditional distributions directly from historical observations, 
+providing a flexible alternative when the underlying market dynamics deviate from standard analytical assumptions.\\
+
+The work begins with Conditional GAN architectures that directly generate future probability distributions conditioned on historical asset trajectories.
+Alternative formulations based on the Wasserstein distance are then explored to improve training stability and mitigate well-known issues such as mode collapse and vanishing gradients. 
+Subsequently, recurrent forecasting architectures based on the ForGAN framework are investigated, where probability distributions are recovered through repeated stochastic sampling of future values.
+Finally, a novel Scoring Rule ForGAN architecture is proposed, which exploits proper probabilistic scoring rules to improve calibration and distributional accuracy.\\
+
+The proposed methodologies are evaluated using synthetic datasets generated from stochastic financial models. 
+Initially, experiments are conducted assuming assets' dynamics can be modelled by Black and Scholes model, where analytical probability distributions are available and provide an exact benchmark for model evaluation.
+To assess the robustness of the proposed approach under more realistic market dynamics, the experimental framework is subsequently extended by implementing a Heston stochastic volatility simulator, 
+allowing the models to be tested on processes exhibiting time-varying volatility.\\
+
+Model performance is assessed through several statistical measures that compare the generated and theoretical probability distributions, including Jensen-Shannon divergence, Hellinger distance, Total Variation distance, Wasserstein distance, and the Kolmogorov-Smirnov goodness-of-fit test.
+These metrics provide complementary perspectives on distributional accuracy, calibration, and the ability of the proposed models to reproduce the statistical properties of financial processes.
+
+The remainder of this thesis is organized as follows: chapter 2 introduces the Conditional GAN and Conditional Wasserstein GAN architectures and presents the corresponding experimental results; 
+chapter 3 investigates the ForGAN framework and its Wasserstein variant for probabilistic forecasting; 
+chapter 4 proposes the Scoring Rule ForGAN architecture and analyzes its performance relative to previous models;
+chapter 5 introduces the Heston stochastic volatility simulator and evaluates the proposed methodology under a more realistic financial setting. 
+Finally, the concluding chapter summarizes the main findings, discusses the limitations of the proposed approach, and outlines directions for future research.
