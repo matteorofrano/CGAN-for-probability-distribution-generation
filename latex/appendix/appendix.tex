@@ -1,0 +1,171 @@
+\begin{appendices}
+
+
+\chapter{Joint distributions as transport plans}
+
+
+The key idea is that a \textbf{joint distribution} does more than describe two random variables simultaneously---it specifies \textbf{how probability mass from one distribution is matched to probability mass in another}. That matching is exactly what is meant by a \textbf{transport plan} in optimal transport.\\
+
+Suppose you have
+
+\begin{itemize}
+    \item a real data distribution $\mu$ on $\mathcal{X}$,
+    \item a generated distribution $\nu$ on $\mathcal{Y}$.
+\end{itemize}
+
+By themselves, these distributions tell you only \textbf{where the mass is located}. They do \textbf{not} tell you which part of the mass in $\mu$ should be transported to which part of the mass in $\nu$.
+
+A \textbf{joint distribution}
+
+\[
+\pi(x,y)
+\]
+
+defined on the product space
+
+\[
+\mathcal{X}\times\mathcal{Y}
+\]
+
+provides exactly this missing information.\\
+
+
+A transport plan specifies the amount of mass moved from every point $x$ to every point $y$.
+
+More precisely,
+
+\[
+\pi(A\times B)
+\]
+
+represents the amount of probability mass originally in the subset $A\subseteq\mathcal{X}$ that is transported to the subset $B\subseteq\mathcal{Y}$.
+
+Equivalently, if $\pi$ has a density, then
+
+\[
+\pi(x,y)\,dx\,dy
+\]
+
+is the infinitesimal amount of mass transported from a neighborhood around $x$ to a neighborhood around $y$.
+
+Thus every pair $(x,y)$ corresponds to one possible transportation route, and the joint distribution tells us how much mass uses each route.\\
+
+A transport plan cannot create or destroy mass.
+
+Therefore,
+
+\[
+\int_{\mathcal Y}\pi(x,y)\,dy=\mu(x)
+\]
+
+states that all mass leaving $x$ equals the amount of mass originally located at $x$.
+
+Similarly,
+
+\[
+\int_{\mathcal X}\pi(x,y)\,dx=\nu(y)
+\]
+
+states that all mass arriving at $y$ equals the amount of mass required at $y$.
+
+These are exactly the marginal constraints
+
+\[
+\pi\in\Pi(\mu,\nu).
+\]
+
+They enforce \textbf{mass conservation}.
+
+\section*{A simple discrete example}
+
+Suppose
+
+\[
+\mu=(0.6,\,0.4)
+\]
+
+and
+
+\[
+\nu=(0.5,\,0.5).
+\]
+
+One admissible joint distribution is
+
+\[
+\pi=
+\begin{pmatrix}
+0.5 & 0.1\\
+0 & 0.4
+\end{pmatrix}.
+\]
+
+Its row sums are
+
+\[
+(0.6,\;0.4)=\mu,
+\]
+
+and its column sums are
+
+\[
+(0.5,\;0.5)=\nu.
+\]
+
+This matrix has a natural transportation interpretation:
+
+\begin{itemize}
+    \item transport $0.5$ units of mass from $x_1$ to $y_1$,
+    \item transport $0.1$ units from $x_1$ to $y_2$,
+    \item transport $0.4$ units from $x_2$ to $y_2$.
+\end{itemize}
+
+Nothing else is transported.
+
+Notice that the matrix is simultaneously
+
+\begin{itemize}
+    \item a joint probability distribution,
+    \item a feasible transport plan.
+\end{itemize}
+
+The two viewpoints are mathematically identical.
+
+\section*{Connection to the Kantorovich formulation}
+
+The Kantorovich problem minimizes the total transportation cost
+
+\[
+\inf_{\pi\in\Pi(\mu,\nu)}
+\int_{\mathcal X\times\mathcal Y}
+c(x,y)\,d\pi(x,y).
+\]
+
+Here,
+
+\begin{itemize}
+    \item $c(x,y)$ is the cost of transporting one unit of mass from $x$ to $y$,
+    \item $d\pi(x,y)$ is the amount of mass transported along that route.
+\end{itemize}
+
+Therefore,
+
+\[
+c(x,y)\,d\pi(x,y)
+\]
+
+is the infinitesimal transportation cost, and integrating over all pairs $(x,y)$ gives the total work required to transform $\mu$ into $\nu$.
+
+\section*{Connection to WGANs}
+
+In WGANs, the real distribution $P_r$ and the generated distribution $P_g$ are generally known only through samples. The transport plan $\pi$ is \textbf{not computed explicitly}. Instead, the Kantorovich duality shows that the same optimal transport cost can be obtained by optimizing over 1-Lipschitz functions (the critic), avoiding the need to solve directly for $\pi$.
+
+Nevertheless, conceptually, the transport plan remains the object that specifies \textbf{how probability mass from the real distribution is matched to probability mass in the generated distribution}. The critic can be viewed as evaluating the cost of this optimal matching without ever constructing the joint distribution itself.
+
+
+
+
+
+
+
+\end{appendices}

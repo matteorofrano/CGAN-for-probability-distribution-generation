@@ -1,42 +1,161 @@
-\chapter{ForGAN architecture}
+\chapter{Experiments with Black-Scholes dynamics}
+
+The Black--Scholes framework rests on: (i) a frictionless, arbitrage-free market with continuous trading and no transaction costs; (ii) a risky asset $S_t$ with \emph{constant} instantaneous drift $\mu$ and volatility $\sigma>0$; (iii) a constant risk-free rate $r$; (iv) log-normally distributed asset prices, driven by a single standard Brownian motion $W_t$ under the physical measure $\mathbb{P}$; and (v) no dividends, jumps, or stochastic volatility.
+
+Under $\mathbb{P}$, the asset price follows a geometric Brownian motion (GBM):
+\begin{equation}
+dS_t = \mu S_t\, dt + \sigma S_t\, dW_t, \qquad S_0 > 0.
+\end{equation}
+Under the risk-neutral measure $\mathbb{Q}$, obtained via Girsanov's theorem with market price of risk $\lambda = (\mu-r)/\sigma$, the drift is replaced by $r$:
+\begin{equation}
+dS_t = r S_t\, dt + \sigma S_t\, dW_t^{\mathbb{Q}}.
+\end{equation}
+
+
+Applying It\^o's lemma to $\ln S_t$ yields the exact solution
+\begin{equation}
+S_t = S_0 \exp\left[\left(r - \tfrac{1}{2}\sigma^2\right)t + \sigma W_t^{\mathbb{Q}}\right],
+\end{equation}
+so that $\ln S_t \mid S_0 \sim \mathcal{N}\!\left(\ln S_0 + (r-\tfrac12\sigma^2)t,\; \sigma^2 t\right)$: log-returns are Gaussian and i.i.d.\ over disjoint intervals, and $S_t$ is log-normal.
+
+
+Sample paths are continuous (no jumps), Markovian, and self-similar in the sense $S_{t+\Delta}/S_t \stackrel{d}{=} S_\Delta/S_0$ with instantaneous variance constant.
+
+
+\section{Data and Training procedure}
+
+For each trajectory $j = 1, ..., J$ we define 
+the SDE of the log-price $X_t^j$ to be modelled using the Black-Scholes framework where the only source of uncertainty is given by the Brownian motion $W_t$:
+\begin{equation}
+    \label{log-price SDE}
+    \begin{aligned}
+       &dX_t^j = -\frac{1}{2}\sigma_j^2 dt + \sigma_j dW_t\\
+         &\text{with } X_0^j = \log(S_0^j)
+    \end{aligned}
+    \end{equation} 
+
+Where $S_0^j$ is the raw price at time $0$ of trajectory $j$, $\sigma_j$ is the volatility of trajectory $j$ and $W_t$ is a standard Brownian motion.
+In this setting we are emulating the scenario of working under the risk-neutral measure $\mathbb{Q}$ with zero interest rate and zero dividend yield.\\
+$X_0^j$ and $\sigma_j$ are randomly sampled for each trajectory such that 
+$X_0^j \in [-1, 1]$ and $\sigma_j \in (0.0, 1.2]$.\\
+
+In this context our condition $c_j$ for a general data observation $j$ is given by
+a vector containing the trajectory $c_j=[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$.
+
+ The SDE is discretized over a uniform time space $N dt = T$ obtaining the following form
+ adopted for the simulation of the trajectories:
+ \begin{equation}
+    \label{eq: discretized_SDE}
+    X_{t+dt}^j = X_t^j -\frac{1}{2}\sigma_j^2 dt + \sigma_j \sqrt{dt} Z_t
+ \end{equation}
+ Where $Z_t \sim \mathcal{N}(0,1)$.\\
+The procedure to build the condition data matrix $C$ is summarized in Algorithm \ref{alg:y condition}.
+
+\begin{algorithm}[H]
+\caption{Algorithm for the condition data matrix $C$ creation}
+\label{alg:y condition}
+\begin{algorithmic}[1]
+
+\STATE Define the number of simulation $J$.
+\STATE Initialize an empty data matrix $C$ of shape $J\times N$.
+\STATE Set iteration counter $j \leftarrow 0$.
+\REPEAT
+    \STATE Randomly sample $\sigma_j \in (0.1, 1.2)$ with $X_0^j = 0.0$.
+    \STATE Evolve $X_t^j$ based on the discretized SDE for $0, dt, ..., Ndt$ steps.
+    \STATE Store the trajectory $[X_0^j, X_{dt}^j, X_{2dt}^j, ..., X_{Ndt}^j]$ in the $j$-th row of $C$.
+    \STATE Increment counter $j \leftarrow j + 1$.
+\UNTIL{$j = J$}
+\RETURN $C$
+\end{algorithmic}
+\end{algorithm}
+
+
+Since the ForGAN architecture is adopted, which is trained to generate the next value of the trajectory,
+the output data $X$ is a $J \times 1$ vector where each element is the $n$-th step ahead value of the trajectory, 
+so the output is a single value and not a probability distribution during training time. 
+In this case, the target output data matrix $X$ is computed by evolving each trajectory for the $\tau$-th step using the discretized SDE 
+described in  \ref{eq: discretized_SDE} and storing the resulting value in the $j$-th position of $X$.\\
+
+Now that the training data are defined the ForGAN model can be trained by using both the classical BCE loss, using algorithm \ref{alg: cgan}
+and the Wasserstein loss with gradient penalty using algorithm \ref{alg:cwgan_gp}.
+ 
+
+
+
+
+After the training phase, the ForGAN is able to generate the future distribution by repeatedly sampling the next value of the trajectory by using different noise realizations, as described in \ref{alg: forgan-inference}.\\
+At the end of the condition trajectory, so at time $T=N dt$, we have the following information: the final log-price $X_{Ndt}^j$ of each trajectory $j$ and the corresponding volatility $\sigma_j$.
+The goal of the Conditional GAN is to learn the distribution of final values of the stochastic process at next time horizon $T + \tau$. 
+A theoretical closed form can be used as ground truth. It is given by a normal distribution:
+\begin{equation}
+    \begin{aligned}
+    X_{Ndt + \tau}^j & \quad \sim \quad \mathcal{N}(X_{Ndt}^j - \frac{1}{2}\sigma_j^2 \Delta t, \sigma_j \sqrt{\Delta t})\\
+    \text{where } &\Delta t = dt \times \tau \text{ with $\tau$ the number of days ahead. }
+    \end{aligned}
+\end{equation}
+
 
 In order to provide a comparison between the proposed ForGAN architectures and 
-the analytical solution of the GBM processes, the target distribution of the next value $c_{T + \tau}$ is computed in a slightly different way
-with respect to the analytical solution adopted in \ref{alg:x target} by using monte carlo simulations.\\
-After the simulations are performed, the resulting terminal values are used to build the empirical distribution of the next value $c_{T + \tau}$ by using the Freedman-Diaconis rule to compute the optimal number of bins for the histogram \cite{forgan:freedman_bins}.\\
+the theoretical solution of the GBM processes, the target distribution $x$ of the next value $c_{T + \tau}$ of the process is computed by using the Monte Carlo algorithm described in \ref{alg:mc_terminal_dist}.
+This is required to properly evaluate the model's performance because since the ForGAN model provides the distribution of the next value by repeated sampling, the vector of those samplings needs to be converted into a probability distribution. 
+So, it is required a uniform way to compute the bins values used to build the empirical distribution.\\
+In fact, after the Monte Carlo simulations are performed, the resulting terminal values are used to build the empirical distribution of the next value $c_{T + \tau}$ by using $\sqrt{n_{mc\_simulations}}$ as rule of thumb to compute the optimal number of bins for the histogram. 
+The same bins are then used to compute the empirical distribution of the generated samples from the ForGAN model.\\
+Alternatively, the Freedman-Diaconis rule can be used \cite{forgan:freedman_bins} to compute the optimal bin width for complex target distributions.
 The Freedman-Diaconis rule provides a robust statistical method for determining optimal histogram bin width by minimizing the integrated mean squared error. 
 Unlike methods sensitive to outliers, it utilizes the interquartile range (IQR) to account for data variability. 
 The bin width $h$ is calculated as:$h = 2 \cdot \frac{\text{IQR}(x)}{\sqrt[3]{n}}$ where $n$ represents the number of observations.
 By prioritizing the spread of the central 50\% of the distribution, 
 the algorithm ensures that the resulting binning structure accurately reflects the underlying density of the empirical data without over-smoothing or producing noise-induced artifacts.\\
 
-The algorithm is as follows:
+The algorithm to compute the theoretical distribution $p(x|c)$ given Monte Carlo simulations and the ForGAN's generated distribution are as follows:
 \begin{algorithm}[H]
-\caption{Monte Carlo Generation of Terminal Distributions}
+\caption{Monte Carlo generation of terminal distributions}
 \label{alg:mc_terminal_dist}
 \begin{algorithmic}[1]
-\REQUIRE Number of trajectories $J$, steps ahead $N$, and MC simulations $S$.
-\REQUIRE Final values from which to compute the distribution $\mathbf{X}_T \in \mathbb{R}^J$, drift $\boldsymbol{\mu} \in \mathbb{R}^J$, volatility $\boldsymbol{\sigma} \in \mathbb{R}^J$, and time increment $ dt$.
-\STATE \COMMENT{Generate random standard normal shocks for all paths and steps}
-\STATE $\mathbf{Z} \leftarrow \text{Tensor}(J, K, I)$ where $Z_{j, k, i} \sim \mathcal{N}(0,1)$
+\REQUIRE Number of trajectories $J$, steps ahead $N$, and MC simulations $K$, final values from which to compute the distribution $\mathbf{C}_T \in \mathbb{R}^J$, drift $\boldsymbol{\mu} \in \mathbb{R}^J$, volatility $\boldsymbol{\sigma} \in \mathbb{R}^J$, and time increment $ dt$.
+\STATE \COMMENT{Generate random standard normal shocks for all trajectory $j$ and simulation $k$}
+\STATE $\mathbf{Z} \leftarrow \text{Tensor}(J, K)$ where $Z_{j, k} \sim \mathcal{N}(0,1)$
+\STATE $\Delta t = dt * N$
 \FOR{each trajectory $j \in \{1, \dots, J\}$}
     \STATE \COMMENT{Calculate the deterministic drift component per step}
     \STATE $\mathbf{d_j} \leftarrow (\boldsymbol{\mu_j} - 0.5 \boldsymbol{\sigma_j}^2) \Delta t$ 
-    \STATE \COMMENT{Compute stochastic shocks for simulation $k$, and step $i$}
-    \STATE $\mathbf{S}_{k, i}^j \leftarrow \sigma_j \cdot Z_{j, k, i} \cdot \sqrt{\Delta t}$
-    \STATE \COMMENT{Calculate increments for each simulation step}
-    \STATE $\boldsymbol{\delta}_{k, i}^j \leftarrow d_j + S_{k, i}^j$ 
-    \STATE \COMMENT{Integrate paths using cumulative summation}
+    \STATE \COMMENT{Compute stochastic shocks for simulation $k$}
+    \STATE $\mathbf{S}_{k}^j \leftarrow \sigma_j \cdot Z_{j, k} \cdot \sqrt{\Delta t}$
+    \STATE \COMMENT{Calculate increments for each simulation $k$}
+    \STATE $\boldsymbol{\delta}_{k}^j \leftarrow d_j + S_{k}^j$ 
     \FOR{each simulation $k \in \{1, \dots, K\}$}
-        \STATE $X_{k, I}^j \leftarrow X_{T,i} + \sum_{i=1}^{I} \delta_{k, i}^j$
+        \STATE $X_{k}^j \leftarrow C_{T,j} + \delta_{k}^j$
     \ENDFOR
 \ENDFOR
-\STATE $\mathbf{P} \leftarrow \text{Matrix}(J, K)$ where $P_{j,k} = X_{k, I}^j$ \COMMENT{Extract terminal values}
-\STATE Compute $\mathbf{D} \leftarrow \quad$ histogram of $\mathbf{P}$ to estimate the empirical distribution for each trajectory $j$ using \cite{forgan:freedman_bins}.
-\RETURN $\mathbf{D}$ \COMMENT{The empirical probability distributions for each trajectory}
+\STATE $\mathbf{X} \leftarrow \text{Matrix}(J, K)$
+\STATE Compute $\mathbf{D} \leftarrow \quad$ the normalized histogram of $\mathbf{X}$ to estimate the empirical distribution for each trajectory $j$ using $n_{bins} = \sqrt{K}$ or alternatively the method in \cite{forgan:freedman_bins}.
+\RETURN $\mathbf{D}$, $\mathbf{bins}$ \COMMENT{The empirical probability distributions for each trajectory}
 \end{algorithmic}
 \end{algorithm}
 
+
+
+
+
+
+\begin{algorithm}[H]
+\caption{ForGAN distribution inference}
+\label{alg: forgan-inference}
+\begin{algorithmic}[1]
+\REQUIRE Trained generator parameters $\theta_G$, conditioning history $c_j$, number of samples $V$
+\STATE Initialize an empty list $\mathcal{S} \leftarrow \emptyset$ to store generated samples.
+\FOR{$i = 1$ \TO $V$}
+    \STATE Sample latent noise $z^{(i)} \sim p_z$ \COMMENT{Independent noise draw, same $c_t$}
+    \STATE $\hat{x}_{t+h}^{(i)} \leftarrow G(z^{(i)}, c_j)$ \COMMENT{Generate candidate forecast}
+    \STATE $\mathcal{S} \leftarrow \mathcal{S} \cup \{\hat{x}_{t+h}^{(i)}\}$
+\ENDFOR
+\RETURN $\mathcal{S}$ \COMMENT{ list of generated samples for empirical distribution of trajectory $j$}
+\end{algorithmic}
+\end{algorithm}
+
+After having obtained $D$ from \ref{alg:mc_terminal_dist} and having computed the ForGAN inferred distribution by normalizing the histogram of $\mathcal{S}$ obtained from \ref{alg: forgan-inference} by using the same $bins$ from \ref{alg:mc_terminal_dist},
+the two distributions can be compared by using all the metrics described in \ref{sec:performance_metrics} like Jensen-Shannon divergence, Wasserstein distance, Total Variation distance and statistical tests like the Kolmogorov-Smirnov test.
 
 
 \subsection{ForGAN simplified task}
@@ -141,26 +260,6 @@ EMD Distance & 0.0036 \\
 
 The training algorithm and data flow used for training the ForGAN model shows just some changes related to the output and the way the probability distribution is generated.
 In fact, in this case the output data of the training set is a single value $c_{T + \tau}$ instead of a probability vector as in the previous CGAN and CWGAN-GP models.\\
-\begin{algorithm}[H]
-    \caption{Training process for ForGAN model}
-    \label{alg:forGAN train}
-    \begin{algorithmic}[1]
-
-    \STATE Compute trajectories matrix $C_T$ and next value $c_{T + \tau}$ and its probability distribution $X$ using algorithm \ref{alg:y condition} and \ref{alg:mc_terminal_dist}.
-    \FOR{$i$ in $max\_epoch = 100$}
-        \STATE Compute discriminator loss over true data samples $\mathcal{L}_{\text{BCE}}^{true}(1,D(c_{T + \tau},c_T))
-            = - \left[ 1 \log(D(c_{T + \tau},c_T))\right]$ and then over generated data samples
-            $\mathcal{L}_{\text{BCE}}^{fake}(0,D(G(z,c_T),c_T)) = - \left[  1\log(1 - D(G(z,c_T),c_T)) \right]$
-        \STATE The Discriminator loss is then computed as $\mathcal{L}_D = \mathcal{L}_{\text{BCE}}^{true} + \mathcal{L}_{\text{BCE}}^{fake}$
-        \STATE Update discriminator weights by backpropagating the loss $\mathcal{L}_D$ as described in \ref{alg: cgan}.
-        \STATE Compute generator loss over generated data samples.
-            $\mathcal{L}_{\text{BCE}}^{gen}(1,D(G(z,c_T),c_T)) = - \left[ 1 \log(D(G(z,c_T),c_T))\right]$   
-        \STATE Update generator weights by backpropagating the loss $\mathcal{L}_G = \mathcal{L}_{\text{BCE}}^{gen}$.
-    \ENDFOR
-    \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
-    \end{algorithmic}
-\end{algorithm}
-
 
 
 The experiment has been conducted by using the following architecture and hyperparameters:
@@ -220,23 +319,7 @@ struggles to effectively capture the variance of the target distribution when th
 
 \subsection{ForWGAN results}
 Also in this case the training algorithm and data flow used for training the ForWGAN model have been adapted to the new output setup.
-\begin{algorithm}[H]
-    \caption{Training process for CWGAN-GP model}
-    \label{alg:ForWGAN train}
-    \begin{algorithmic}[1]
 
-    \STATE Compute trajectories matrix $C_T$ and next value $c_{T + \tau}$ and its probability distribution $X$ using algorithm \ref{alg:y condition} and \ref{alg:mc_terminal_dist}.
-    \FOR{$i$ in $max\_epoch = 100$}
-        \STATE Compute the critic real value output for true data samples $D(c_{T + \tau},c_T)$ and then for generated data samples $D(G(z,c_T),c_T)$.
-        \STATE Compute the gradient penalty term $GP$ as described in \ref{alg:gradient_penalty}.
-        \STATE Compute critic loss $\mathcal{L}_D$ defined in \ref{eq:wgan_critic_loss} with the addition of the gradient penalty term.
-        \STATE Update critic weights by backpropagating the loss $\mathcal{L}_D$ as described in \ref{alg:cwgan_gp}.
-        \STATE Compute generator loss $\mathcal{L}_G$ defined in \ref{eq:wgan_generator_loss}.
-        \STATE Update generator weights by backpropagating the loss $\mathcal{L}_G$.
-    \ENDFOR
-    \STATE To compute the probability distribution of next value sample 1000 $z$ vectors with fixed $c_T$ and run the Generator. Then build the histogram of the generated samples and compare with $X$
-    \end{algorithmic}
-\end{algorithm}
 
 The experiment has been conducted by using the following architecture and hyperparameters:
 \begin{table}[H]

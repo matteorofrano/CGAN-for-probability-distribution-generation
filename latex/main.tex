@@ -117,6 +117,10 @@
 \newcommand{\abs}[1]{\left|#1\right|}
 \newcommand{\norm}[1]{\left\|#1\right\|}
 \newcommand{\iunit}{\mathrm{i}}   % imaginary unit
+\usepackage{xcolor} % Required for text colors
+
+% Option B: Gray, italicized, right-aligned with a triangle (Classic Academic Style)
+ \renewcommand{\algorithmiccomment}[1]{\textcolor{gray}{$\triangleright$ \textit{#1}}}
 
 
 
@@ -130,10 +134,12 @@
 
 \include{intro_concepts/intro_concepts}
 \include{Introduction/Intro}
-\include{Background/Background}
+%\include{Background/Background}
 \include{ForGAN/forgan}
 \include{SRForGAN/srforgan}
 \include{Heston/heston}
+%conclusion
+\include{appendix/appendix}
 
 
 

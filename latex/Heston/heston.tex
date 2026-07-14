@@ -955,7 +955,7 @@ The code implements the following workflow:
     \item Store each chunk in a flat binary file with a JSON header describing the record size.
     \item Build a memory-mapped dataset that reads trajectories lazily from disk.
     \item Split the dataset into training and validation subsets.
-    \item Instantiate the SRForGAN model and select either an LSTM generator.
+    \item Instantiate the SRForGAN model and select an LSTM generator.
     \item Train the model on the GPU using the Energy Score objective as defined in algorithm \ref{alg:srforgan_train}.
     \item Save the trained weights and configuration in the model directory.
     \item Test the model on unseen data and evaluate performance metrics.
@@ -963,13 +963,13 @@ The code implements the following workflow:
 
 \subsection{Steps for experiment reproducibility}
 The first stage constructs a large synthetic dataset based on the Heston stochastic-volatility model. 
-The code simulates \texttt{ 10,000,000} trajectories, each of length \texttt{252 + 1}. To avoid memory overflow, the trajectories are generated in chunks of size $100,000$.
+The code simulates \text{10,000,000} trajectories, each of length \text{252 + 1}. To avoid memory overflow, the trajectories are generated in chunks of size $100,000$.
 
 Each chunk is produced by the Heston simulator described in previous section \ref{eq:milstein_full_trajectory} and appended to a binary file.
 A companion JSON file stores:
 \begin{itemize}
     \item the record length, equal to \texttt{N\_STEPS = 252 + 1} where the 252 values are used as the conditioning window and the last value is used as the prediction target,
-    \item the number of stored trajectories \texttt{J = 100,000}.
+    \item the number of stored trajectories \text{J = 100,000}.
 \end{itemize}
 
 This structure allows the file to be accessed sequentially or through memory mapping without loading the entire dataset into memory.
@@ -1095,7 +1095,7 @@ The evaluation metrics are computed by comparing the distribution of the generat
 \hline
 Metric & Value \\
 \hline
-KS test acceptance rate & 97.500\% \\
+KS test acceptance rate & 87.500\% \\
 Jensen--Shannon distance & 0.121850 \\
 Hellinger distance & 0.104270 \\
 Total variation distance & 0.102780 \\
