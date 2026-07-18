@@ -854,6 +854,109 @@
       \field{pages}{2917\bibrangedash 2936}
       \range{pages}{20}
     \endentry
+    \entry{background:mean_regression}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=eda2d58a1b493691fe187a3fe6b03c41}{%
+           family={Kneib},
+           familyi={K\bibinitperiod},
+           given={Thomas},
+           giveni={T\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {SAGE Publications Sage India: New Delhi, India}%
+      }
+      \strng{namehash}{eda2d58a1b493691fe187a3fe6b03c41}
+      \strng{fullhash}{eda2d58a1b493691fe187a3fe6b03c41}
+      \strng{fullhashraw}{eda2d58a1b493691fe187a3fe6b03c41}
+      \strng{bibnamehash}{eda2d58a1b493691fe187a3fe6b03c41}
+      \strng{authorbibnamehash}{eda2d58a1b493691fe187a3fe6b03c41}
+      \strng{authornamehash}{eda2d58a1b493691fe187a3fe6b03c41}
+      \strng{authorfullhash}{eda2d58a1b493691fe187a3fe6b03c41}
+      \strng{authorfullhashraw}{eda2d58a1b493691fe187a3fe6b03c41}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Statistical Modelling}
+      \field{number}{4}
+      \field{title}{Beyond mean regression}
+      \field{volume}{13}
+      \field{year}{2013}
+      \field{pages}{275\bibrangedash 303}
+      \range{pages}{29}
+    \endentry
+    \entry{background:quantile_regression2}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=fa3b766d0cbffb284ed8c09a487dcc08}{%
+           family={Dette},
+           familyi={D\bibinitperiod},
+           given={Holger},
+           giveni={H\bibinitperiod}}}%
+        {{hash=5e02f70060dca5ea0c9a0eba14a75052}{%
+           family={Volgushev},
+           familyi={V\bibinitperiod},
+           given={Stanislav},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Oxford University Press}%
+      }
+      \strng{namehash}{bd53f834f316782faf2b5cdaccfdf28b}
+      \strng{fullhash}{bd53f834f316782faf2b5cdaccfdf28b}
+      \strng{fullhashraw}{bd53f834f316782faf2b5cdaccfdf28b}
+      \strng{bibnamehash}{bd53f834f316782faf2b5cdaccfdf28b}
+      \strng{authorbibnamehash}{bd53f834f316782faf2b5cdaccfdf28b}
+      \strng{authornamehash}{bd53f834f316782faf2b5cdaccfdf28b}
+      \strng{authorfullhash}{bd53f834f316782faf2b5cdaccfdf28b}
+      \strng{authorfullhashraw}{bd53f834f316782faf2b5cdaccfdf28b}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of the Royal Statistical Society Series B: Statistical Methodology}
+      \field{number}{3}
+      \field{title}{Non-crossing non-parametric estimates of quantile curves}
+      \field{volume}{70}
+      \field{year}{2008}
+      \field{pages}{609\bibrangedash 627}
+      \range{pages}{19}
+    \endentry
+    \entry{background:quantile_regression3}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=6f7a1c78b16614c06d18968e1d53771d}{%
+           family={Schnabel},
+           familyi={S\bibinitperiod},
+           given={Sabine\bibnamedelima K},
+           giveni={S\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=b60300e17d89fff6fa0208f670d67a5a}{%
+           family={Eilers},
+           familyi={E\bibinitperiod},
+           given={Paul\bibnamedelima HC},
+           giveni={P\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{a031c61993dd32c164a7835eb8103f2e}
+      \strng{fullhash}{a031c61993dd32c164a7835eb8103f2e}
+      \strng{fullhashraw}{a031c61993dd32c164a7835eb8103f2e}
+      \strng{bibnamehash}{a031c61993dd32c164a7835eb8103f2e}
+      \strng{authorbibnamehash}{a031c61993dd32c164a7835eb8103f2e}
+      \strng{authornamehash}{a031c61993dd32c164a7835eb8103f2e}
+      \strng{authorfullhash}{a031c61993dd32c164a7835eb8103f2e}
+      \strng{authorfullhashraw}{a031c61993dd32c164a7835eb8103f2e}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{AStA Advances in Statistical Analysis}
+      \field{number}{1}
+      \field{title}{Simultaneous estimation of quantile curves using quantile sheets}
+      \field{volume}{97}
+      \field{year}{2013}
+      \field{pages}{77\bibrangedash 87}
+      \range{pages}{11}
+    \endentry
     \entry{background:mode_collapse}{article}{}{}
       \name{author}{2}{}{%
         {{hash=43d063bf83199bb302b8a69641bd2b19}{%
@@ -878,8 +981,8 @@
       \strng{authornamehash}{c3a75c350adfe6030a9a24ab810f065f}
       \strng{authorfullhash}{c3a75c350adfe6030a9a24ab810f065f}
       \strng{authorfullhashraw}{c3a75c350adfe6030a9a24ab810f065f}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Machine Learning}
@@ -889,73 +992,6 @@
       \field{year}{2025}
       \field{pages}{141}
       \range{pages}{1}
-    \endentry
-    \entry{background:ks_test}{article}{}{}
-      \name{author}{1}{}{%
-        {{hash=61cfab2004dce53675c07da633f01ad1}{%
-           family={Massey\bibnamedelima Jr},
-           familyi={M\bibinitperiod\bibinitdelim J\bibinitperiod},
-           given={Frank\bibnamedelima J},
-           giveni={F\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
-      }
-      \list{publisher}{1}{%
-        {Taylor \& Francis}%
-      }
-      \strng{namehash}{61cfab2004dce53675c07da633f01ad1}
-      \strng{fullhash}{61cfab2004dce53675c07da633f01ad1}
-      \strng{fullhashraw}{61cfab2004dce53675c07da633f01ad1}
-      \strng{bibnamehash}{61cfab2004dce53675c07da633f01ad1}
-      \strng{authorbibnamehash}{61cfab2004dce53675c07da633f01ad1}
-      \strng{authornamehash}{61cfab2004dce53675c07da633f01ad1}
-      \strng{authorfullhash}{61cfab2004dce53675c07da633f01ad1}
-      \strng{authorfullhashraw}{61cfab2004dce53675c07da633f01ad1}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{Journal of the American statistical Association}
-      \field{number}{253}
-      \field{title}{The Kolmogorov-Smirnov test for goodness of fit}
-      \field{volume}{46}
-      \field{year}{1951}
-      \field{pages}{68\bibrangedash 78}
-      \range{pages}{11}
-    \endentry
-    \entry{forgan:freedman_bins}{article}{}{}
-      \name{author}{2}{}{%
-        {{hash=7396ccf082b609137d9256e7354f6228}{%
-           family={Freedman},
-           familyi={F\bibinitperiod},
-           given={David},
-           giveni={D\bibinitperiod}}}%
-        {{hash=f5a7dd4f4a0c79d2eaaf29d6dda0f4b3}{%
-           family={Diaconis},
-           familyi={D\bibinitperiod},
-           given={Persi},
-           giveni={P\bibinitperiod}}}%
-      }
-      \list{publisher}{1}{%
-        {Springer-Verlag Berlin/Heidelberg}%
-      }
-      \strng{namehash}{438a4728b573646f5f489f4e938936a3}
-      \strng{fullhash}{438a4728b573646f5f489f4e938936a3}
-      \strng{fullhashraw}{438a4728b573646f5f489f4e938936a3}
-      \strng{bibnamehash}{438a4728b573646f5f489f4e938936a3}
-      \strng{authorbibnamehash}{438a4728b573646f5f489f4e938936a3}
-      \strng{authornamehash}{438a4728b573646f5f489f4e938936a3}
-      \strng{authorfullhash}{438a4728b573646f5f489f4e938936a3}
-      \strng{authorfullhashraw}{438a4728b573646f5f489f4e938936a3}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{Zeitschrift für Wahrscheinlichkeitstheorie und verwandte Gebiete}
-      \field{number}{4}
-      \field{title}{On the histogram as a density estimator: L 2 theory}
-      \field{volume}{57}
-      \field{year}{1981}
-      \field{pages}{453\bibrangedash 476}
-      \range{pages}{24}
     \endentry
     \entry{srforgan:srforgan}{article}{}{}
       \name{author}{4}{}{%
@@ -999,6 +1035,73 @@
       \field{year}{2024}
       \field{pages}{1\bibrangedash 64}
       \range{pages}{64}
+    \endentry
+    \entry{background:ks_test}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=61cfab2004dce53675c07da633f01ad1}{%
+           family={Massey\bibnamedelima Jr},
+           familyi={M\bibinitperiod\bibinitdelim J\bibinitperiod},
+           given={Frank\bibnamedelima J},
+           giveni={F\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Taylor \& Francis}%
+      }
+      \strng{namehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{fullhash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{fullhashraw}{61cfab2004dce53675c07da633f01ad1}
+      \strng{bibnamehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authorbibnamehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authornamehash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authorfullhash}{61cfab2004dce53675c07da633f01ad1}
+      \strng{authorfullhashraw}{61cfab2004dce53675c07da633f01ad1}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of the American statistical Association}
+      \field{number}{253}
+      \field{title}{The Kolmogorov-Smirnov test for goodness of fit}
+      \field{volume}{46}
+      \field{year}{1951}
+      \field{pages}{68\bibrangedash 78}
+      \range{pages}{11}
+    \endentry
+    \entry{forgan:freedman_bins}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=7396ccf082b609137d9256e7354f6228}{%
+           family={Freedman},
+           familyi={F\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+        {{hash=f5a7dd4f4a0c79d2eaaf29d6dda0f4b3}{%
+           family={Diaconis},
+           familyi={D\bibinitperiod},
+           given={Persi},
+           giveni={P\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer-Verlag Berlin/Heidelberg}%
+      }
+      \strng{namehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{fullhash}{438a4728b573646f5f489f4e938936a3}
+      \strng{fullhashraw}{438a4728b573646f5f489f4e938936a3}
+      \strng{bibnamehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authorbibnamehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authornamehash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authorfullhash}{438a4728b573646f5f489f4e938936a3}
+      \strng{authorfullhashraw}{438a4728b573646f5f489f4e938936a3}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Zeitschrift für Wahrscheinlichkeitstheorie und verwandte Gebiete}
+      \field{number}{4}
+      \field{title}{On the histogram as a density estimator: L 2 theory}
+      \field{volume}{57}
+      \field{year}{1981}
+      \field{pages}{453\bibrangedash 476}
+      \range{pages}{24}
     \endentry
     \entry{heston:heston_paper}{article}{}{}
       \name{author}{1}{}{%
@@ -1098,8 +1201,8 @@
       \strng{authornamehash}{fd3c1907a71e4c3ed7ed6643e849924b}
       \strng{authorfullhash}{fd3c1907a71e4c3ed7ed6643e849924b}
       \strng{authorfullhashraw}{fd3c1907a71e4c3ed7ed6643e849924b}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{title}{Numerical solution of stochastic differential equations with jumps in finance}
@@ -1125,8 +1228,8 @@
       \strng{authornamehash}{060db303139b50d8bdd6f970fa749df8}
       \strng{authorfullhash}{060db303139b50d8bdd6f970fa749df8}
       \strng{authorfullhashraw}{060db303139b50d8bdd6f970fa749df8}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Theory of Probability \& Its Applications}
@@ -1168,8 +1271,8 @@
       \strng{authornamehash}{0a4c0219638032fc80ff28dd29b5816a}
       \strng{authorfullhash}{cad0e59640929d3dd6b8f0247e7ee62a}
       \strng{authorfullhashraw}{cad0e59640929d3dd6b8f0247e7ee62a}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Wilmott}
@@ -1198,8 +1301,8 @@
       \strng{authornamehash}{017eaf8ce97e6aa98659ab4b645e257e}
       \strng{authorfullhash}{017eaf8ce97e6aa98659ab4b645e257e}
       \strng{authorfullhashraw}{017eaf8ce97e6aa98659ab4b645e257e}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Biometrika}

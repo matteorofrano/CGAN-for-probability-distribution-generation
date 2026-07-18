@@ -1,7 +1,8 @@
-\chapter{The Heston Stochastic Volatility Data Simulator}
+\chapter{Experiments with Heston model dynamics}
 \label{chap:heston}
 
-This chapter provides experimental results  of the SRForgan applied to Heston model trajectories. Moreover, a technical exposition of how the trajectories and probability distribution functions is provided. In particular the \texttt{HestonSimulator} class, a data-generation object that produces trajectories of financial log-prices under the Heston (1993) stochastic volatility model and computes the conditional probability density function (PDF) of future log-prices using the Fractional Fast Fourier Transform (frFFT).
+This chapter provides experimental results  of the SRForgan applied to Heston model trajectories. 
+In particular the \texttt{HestonSimulator}, a data-generation object that produces trajectories of financial log-prices under the Heston stochastic volatility model and computes the conditional probability density function of future log-prices using the Fractional Fast Fourier Transform (frFFT).
 Every mathematical concept required to understand the implementation is introduced from first principles.
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -9,27 +10,27 @@ Every mathematical concept required to understand the implementation is introduc
 \label{sec:heston_model}
 
 The classical Black--Scholes model assumes that the instantaneous volatility of an asset price is a deterministic constant $\sigma$.
-This assumption leads to a log-normal distribution for the terminal asset price, which is analytically tractable but empirically inadequate sincefinancial markets exhibit a so-called
+This assumption leads to a log-normal distribution for the terminal asset price, which is analytically tractable but empirically inadequate since financial markets exhibit a so-called
 \textit{volatility smile}, whereby options at different strikes imply different values of $\sigma$ 
 when inverted through the Black--Scholes formula. 
 This observation alone establishes that volatility cannot be constant.
 
 \subsection{The Heston System of SDEs}
 
-To remedy this shortcoming, \cite{heston:heston_paper} introduced in 1993 a two-factor model in which both the log-price $X_t = \ln S_t$ and the instantaneous variance $v_t$ are stochastic.
+To remedy this shortcoming, Heston \cite{heston:heston_paper} introduced in 1993 a two-factor model in which both the log-price $X_t = \ln S_t$ and the instantaneous variance $v_t$ are stochastic.
 The system of stochastic differential equations (SDEs) in the \texttt{HestonSimulator} is written in \textit{log-price form}:
 
 \begin{align}
-    dX_t &= \left(\mu - \tfrac{1}{2}v_t\right)dt + \sqrt{v_t}\, dW_t^X \label{eq:logprice_sde_heston}\\
-    dv_t &= \kappa(\theta - v_t)\,dt + \sigma_v\sqrt{v_t}\, dW_t^v \label{eq:var_sde_heston}\\
-    \langle dW_t^X,\, dW_t^v \rangle &= \rho\, dt \label{eq:correlation_heston}
+    &dX_t = \left(\mu - \tfrac{1}{2}v_t\right)dt + \sqrt{v_t}\, dW_t^X \label{eq:logprice_sde_heston}\\
+    &dv_t = \kappa(\theta - v_t)\,dt + \sigma_v\sqrt{v_t}\, dW_t^v \label{eq:var_sde_heston}\\
+    &\langle dW_t^X,\, dW_t^v \rangle = \rho\, dt \label{eq:correlation_heston}
 \end{align}
 
 Each term carries a precise financial interpretation.
 \begin{itemize}
     \item Log-price SDE (Eq. \ref{eq:logprice_sde_heston}). Applying It\^{o}'s lemma to $X_t = \ln S_t$ under the assumption that $S_t$ follows a geometric Brownian motion with stochastic diffusion coefficient $\sqrt{v_t}$ yields the drift $\mu - v_t/2$. The term $\mu$ is the risk-neutral drift (typically the risk-free rate), while the $-v_t/2$ correction, 
     called the \textit{It\^{o} correction}, arises from the quadratic variation of $X_t$ and ensures that $\mathbb{E}[S_t] = S_0 e^{\mu t}$.
-    \item Variance SDE (Eq.\,\ref{eq:var_sde_heston }). The variance $v_t$ evolves according to a \textit{Cox--Ingersoll--Ross} (CIR) process \cite{heston:cir_process}.
+    \item Variance SDE (Eq.\,\ref{eq:var_sde_heston}). The variance $v_t$ evolves according to a \textit{Cox--Ingersoll--Ross} (CIR) process \cite{heston:cir_process}.
      The three parameters have well-defined roles: $\kappa > 0$ is the \textit{mean-reversion speed}, 
      controlling how quickly $v_t$ is pulled back toward its long-run equilibrium; $\theta > 0$ is
       the \textit{long-run variance}, the level to which $v_t$ reverts; and $\sigma_v > 0$ is the \textit{volatility of volatility} (vol-of-vol), 
@@ -44,7 +45,7 @@ A key requirement for the CIR process is that $v_t \geq 0$ at all times. it has 
     \label{eq:feller}
 \end{equation}
 
-When condition (\ref{eq:feller}) is violated, the process touches zero with positive probability. In the simulator, this boundary is handled numerically by the \textit{full-truncation} scheme described in Section~\ref{sec:discretisation}.\\
+When condition the Feller condition (\ref{eq:feller}) is violated, the process touches zero with positive probability. In the simulator, this boundary is handled numerically by the \textit{full-truncation} scheme described in Section~\ref{sec:discretisation}.\\
 
 % ─────────────────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ satisfy $\mathbb{E}[\Delta W^X] = \mathbb{E}[\Delta W^v] = 0$, $\text{Var}(\Delt
 \subsection{Numerical Discretisation of the Heston SDEs}
 \label{sec:discretisation}
 
-Since equations (\ref{eq:logprice_sde_heston})--(\ref{eq:var_sde_heston}) do not admit closed-form solutions in general, so they must be integrated numerically. The proposed simulator supports two schemes:\\
+Since equations (\ref{eq:logprice_sde_heston})--(\ref{eq:var_sde_heston}) do not admit closed-form solutions in general, they must be integrated numerically. The proposed simulator supports two schemes:\\
 The \textit{Euler--Maruyama} scheme \cite{heston:euler_maruyama} is the SDE analogue of Euler's method for ODEs. For a generic It\^{o} SDE $dY_t = a(Y_t)\,dt + b(Y_t)\,dW_t$, the scheme reads
 
 \begin{equation}
@@ -99,7 +100,6 @@ The complete full-truncation Milstein step for the variance is therefore
     \label{eq:milstein_full_trajectory}
 \end{equation}
 
-This approach is implemented at lines 242--253 of the source, where the \texttt{scheme} flag selects between Milstein (default) and pure Euler--Maruyama (which omits the last correction term).
 
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection{The Characteristic Function and the Fourier Inversion Formula}
@@ -202,11 +202,14 @@ Bluestein observed that the product $jk$ can be written as
 which transforms Eq.~(\ref{eq:frdft}) into
 
 \begin{equation}
-    y_k = e^{-i\pi\alpha k^2}\sum_{j=0}^{N-1}\!\left[x_j e^{-i\pi\alpha j^2}\right]\cdot e^{i\pi\alpha(j-k)^2}.
+    y_k = \underbrace{e^{-i\pi\alpha k^2}}_{c_k^*}\sum_j \underbrace{\bigl[x_j\, e^{-i\pi\alpha j^2}\bigr]}_{a_j = x_j c_j^*} \cdot \underbrace{e^{i\pi\alpha(j-k)^2}}_{h_{j-k}}= c_k^* \sum_j a_j\, h_{j-k}
     \label{eq:bluestein_conv}
 \end{equation}
 
 The sum over $j$ in Eq.~(\ref{eq:bluestein_conv}) is a \textit{linear convolution} of the sequence $a_j = x_j e^{-i\pi\alpha j^2}$ with the symmetric \textit{chirp kernel} $h_m = e^{i\pi\alpha m^2}$, evaluated at lags $m = j - k$. Linear convolution of length-$N$ sequences can be computed in $\mathcal{O}(N\log N)$ via the convolution theorem:
+Note the FFT of $h$ is computed once so every $J$ trajectories
+share one chirp and one kernel FFT, only the data-dependent part of the FFT 
+operation differs per row.
 
 \begin{equation}
     \text{Linear convolution: }\; a \star h = \mathcal{F}^{-1}\!\left[\mathcal{F}[a]\cdot\mathcal{F}[h]\right],
@@ -223,80 +226,54 @@ where the transforms are taken on a zero-padded array of length $M \geq 2N - 1$ 
     \item Multiply the first $N$ outputs: $y_k = e^{-i\pi\alpha k^2} Y_k$, $k = 0, \ldots, N-1$.
 \end{enumerate}
 
-
-
 \begin{algorithm}[H]
     \label{alg:frFTT}
 \caption{Batched Fractional FFT via Bluestein's Convolution Identity}
 \begin{algorithmic}[1]
-\REQUIRE Input batch $\mathbf{X} \in \mathbb{C}^{B \times N}$,
-         fractional parameter $\alpha = \eta\lambda/(2\pi)$
-\ENSURE  Output batch $\mathbf{Y} \in \mathbb{C}^{B \times N}$ where
-         $Y_{b,k} = \sum_{j=0}^{N-1} X_{b,j}\,e^{-i2\pi\alpha jk}$
+\REQUIRE Batch $\mathbf{X}\in\mathbb{C}^{J\times N}$ (row $j$ = trajectory $j$'s frequency samples),
+         fractional parameter $\alpha=\eta\lambda/(2\pi)$
+\ENSURE  $\mathbf{Y}\in\mathbb{C}^{J\times N}$ with
+         $Y_{j,k}=\sum_{n=0}^{N-1}X_{j,n}\,e^{-i2\pi\alpha nk}$,\; $k=0,\ldots,N-1,\; j=1,\ldots,J$
 
-\LINECOMMENT{%
-  Bluestein rewrites the bilinear exponent as a sum of three quadratic ones:
-  $jk = \tfrac{1}{2}\bigl[j^2 + k^2 - (k-j)^2\bigr]$, so
-  $e^{-i2\pi\alpha jk} = e^{-i\pi\alpha j^2}\,e^{-i\pi\alpha k^2}\,
-                          e^{\,i\pi\alpha(k-j)^2}$.
-  The target sum therefore factorises as a convolution:
-  $Y_{b,k} = e^{-i\pi\alpha k^2}\!\sum_{j=0}^{N-1}
-    \underbrace{X_{b,j}\,e^{-i\pi\alpha j^2}}_{a_{b,j}}\;
-    \underbrace{e^{\,i\pi\alpha(k-j)^2}}_{h_{k-j}}$
-}
+\LINECOMMENT{Identity: $nk=\tfrac12[n^2+k^2-(n-k)^2]$, so
+  $e^{-i2\pi\alpha nk}=c_n^{*}c_k^{*}\,h_{n-k}$ with chirp $c_n=e^{i\pi\alpha n^2}$, $h_m=c_m$}
 
-\LINECOMMENT{Step 1 --- absorb the $j$-dependent phase into the input}
-\FOR{$j = 1$ \textbf{to} $J$}
-    \STATE $a_{j,b} \leftarrow X_{j, b}\,e^{-i\pi\alpha b^2}$,\quad
-           $b = 0,\ldots,N-1$
+\LINECOMMENT{Step 0 --- precompute the chirp once, shared by every trajectory}
+\STATE $c_n \leftarrow e^{i\pi\alpha n^2}$,\quad $n=0,\ldots,N-1$
+
+\LINECOMMENT{Step 1 --- demodulate each row of the input by the conjugate chirp}
+\FOR{$j=1$ \textbf{to} $J$}
+    \STATE $a_{j,n}\leftarrow X_{j,n}\,c_n^{*}$,\quad $n=0,\ldots,N-1$
 \ENDFOR
 
-\LINECOMMENT{Step 2 --- define the quadratic-phase convolution kernel}
-\STATE $h_m \leftarrow e^{\,i\pi\alpha m^2}$,\quad $m = 0,\ldots,N-1$
+\LINECOMMENT{Step 2 --- padded length avoiding circular wrap-around}
+\STATE $M\leftarrow 2^{\lceil\log_2(2N-1)\rceil}$
 
-\LINECOMMENT{Step 3 --- next power-of-two length prevents circular aliasing}
-\STATE $M \leftarrow 2^{\lceil\log_2(2N-1)\rceil}$
+\LINECOMMENT{Step 3 --- zero-pad every row of $\mathbf{a}$ to length $M$}
+\STATE $\mathbf{a}_{\mathrm{pad}}\leftarrow\mathbf{0}_{J\times M}$;\quad
+       $\mathbf{a}_{\mathrm{pad}}[:,0{:}N]\leftarrow\mathbf{a}$
 
-\LINECOMMENT{Step 4 --- zero-pad $\mathbf{a}$ to length $M$}
-\STATE $\mathbf{a}_{\mathrm{pad}} \leftarrow \mathbf{0}_{J\times M}$;\quad
-       $\mathbf{a}_{\mathrm{pad}}[\,:,\,0:N] \leftarrow \mathbf{a}$
+\LINECOMMENT{Step 4 --- build the kernel from the same chirp, laid out circularly
+  ($h_{-m}=h_m$ places negative lags at the tail of length $M$)}
+\STATE $\mathbf{h}_{\mathrm{pad}}\leftarrow\mathbf{0}_M$
+\STATE $\mathbf{h}_{\mathrm{pad}}[0{:}N]\leftarrow[c_0,\ldots,c_{N-1}]$
+       \COMMENT{lags $m=0,\ldots,N-1$}
+\STATE $\mathbf{h}_{\mathrm{pad}}[M-N+1{:}M]\leftarrow[c_{N-1},\ldots,c_1]$
+       \COMMENT{lags $m=-(N-1),\ldots,-1$}
 
-\LINECOMMENT{%
-  Step 5 --- embed $h$ in circular order so that linear and circular
-  convolution agree on indices $0,\ldots,N-1$
-}
-\STATE $\mathbf{h}_{\mathrm{pad}} \leftarrow \mathbf{0}_{M}$
-\STATE $\mathbf{h}_{\mathrm{pad}}[0:N]
-       \leftarrow [h_0,\,h_1,\,\ldots,\,h_{N-1}]$
-       \COMMENT{non-negative lags}
-\STATE $\mathbf{h}_{\mathrm{pad}}[M-N+1:M]
-       \leftarrow [h_{N-1},\,\ldots,\,h_1]$
-       \COMMENT{negative lags wrapped to the tail}
+\LINECOMMENT{Step 5 --- linear convolution via the convolution theorem;
+  $\mathrm{FFT}(\mathbf{h}_{\mathrm{pad}})$ computed once and shared across all $J$ rows}
+\STATE $\mathbf{conv}\leftarrow \mathrm{IFFT}\bigl(\mathrm{FFT}(\mathbf{a}_{\mathrm{pad}},\mathrm{axis}=1)\odot\mathrm{FFT}(\mathbf{h}_{\mathrm{pad}})\bigr)$
 
-\LINECOMMENT{%
-  Step 6 --- linear convolution $\mathbf{a}\star\mathbf{h}$ via
-  the convolution theorem; complexity $\mathcal{O}(M\log M)$ per batch
-}
-\STATE $\mathbf{conv} \leftarrow
-       \mathrm{IFFT}\!\Bigl(
-         \mathrm{FFT}(\mathbf{a}_{\mathrm{pad}},\;\mathrm{axis}=1)
-         \odot
-         \mathrm{FFT}(\mathbf{h}_{\mathrm{pad}})
-       \Bigr)$
-       \COMMENT{shape $J\times M$; $\mathbf{h}_{\mathrm{pad}}$ is shared across the batch}
+\LINECOMMENT{Step 6 --- demodulate by the chirp again, keep first $N$ entries}
+\STATE $Y_{j,k}\leftarrow c_k^{*}\,\mathrm{conv}_{j,k}$,\quad $k=0,\ldots,N-1,\;j=1,\ldots,J$
 
-\LINECOMMENT{%
-  Step 7 --- multiply by the $k$-dependent phase to complete Bluestein's
-  factorisation; keep only the first $N$ outputs
-}
-\STATE $Y_{j,k} \leftarrow e^{-i\pi\alpha k^2}\,\mathrm{conv}_{j,k}$,\quad
-       $k = 0,\ldots,N-1,\quad j = 1,\ldots,J$
-
-\RETURN $\mathbf{Y} \in \mathbb{C}^{J\times N}$
+\RETURN $\mathbf{Y}\in\mathbb{C}^{J\times N}$
 \end{algorithmic}
 \end{algorithm}
 
-In the current implementation, the fractional parameter is set by default to $\alpha = 2/N_\text{fft}$, giving the spatial spacing
+
+In the current implementation, the fractional parameter is set by default to $\alpha = 0.5/N_\text{fft}$, giving the spatial spacing
 
 \begin{equation}
     \lambda = \frac{2\pi\alpha}{\eta} = \frac{4\pi}{N_\text{fft}\,\eta}.
@@ -331,7 +308,6 @@ In order to obtain the probability distribution function the code assembles the 
     \label{eq:pdf_extract}
     \end{equation}
     Numerical inversion can produce small negative values due to discretisation error and finite truncation of the frequency integral. These artefacts are removed by clipping: \texttt{pdf\_fine = np.maximum(pdf\_fine, 0.0)}, which has negligible effect on well-resolved distributions.
-    \item \textbf{Binning and Normalisation}. The fine PDF grid (of spacing $\lambda$, typically $\sim 0.003$) is resampled onto a coarser shared bin structure with $n_\text{bins}$ equally spaced bins spanning the global range of all $J$ trajectories. Each fine-grid value contributes probability mass $f(x_k)\cdot\lambda$ to the bin containing $x_k$, computed via \texttt{np.histogram} with density weights. The resulting histogram is then normalised row-by-row so that each row sums to one, yielding a proper discrete probability distribution over $n_\text{bins}$ categories.
     \item \textbf{Raw moments output}. When \texttt{n\_bins=None}, the method instead computes the mean and standard deviation directly from the fine frFFT grid using the rectangle rule:
     \begin{align}
     \mathbb{E}[X] &\approx \frac{\sum_k f(x_k)\,x_k\,\lambda}{\sum_k f(x_k)\,\lambda}, \label{eq:raw_mean}\\
@@ -378,7 +354,7 @@ In order to obtain the probability distribution function the code assembles the 
        $w_n \leftarrow 2/3$ for $n$ even, $n \notin \{0, N-1\}$;\quad
        $w_{N-1} \leftarrow 1/3$
 
-\LINECOMMENT{Evaluate Heston characteristic function (Algorithm $\star$) for all trajectories}
+\LINECOMMENT{Evaluate Heston characteristic function (eq. \ref{eq:cf_heston}) for all trajectories}
 \STATE $\boldsymbol{\varphi} \leftarrow
        \textsc{HestonCF}\!\left(
          \mathbf{u},\,\tau,\,
@@ -393,7 +369,7 @@ In order to obtain the probability distribution function the code assembles the 
        e^{-i\,u_n\,b^{(j)}}$,\quad
        $j = 1,\ldots,J,\quad n = 0,\ldots,N-1$
 
-\LINECOMMENT{Batched frFFT inversion (Algorithm~\ref{alg:frFFT})}
+\LINECOMMENT{Batched frFFT inversion (Algorithm~\ref{alg:frFTT})}
 \STATE $\mathbf{Y} \leftarrow
        \textsc{FrFFT\_Batch}\!\left(\mathbf{Z},\,\alpha\right)
        \in \mathbb{C}^{J \times N}$
@@ -424,22 +400,7 @@ In order to obtain the probability distribution function the code assembles the 
     \RETURN $\bigl[\bar{x}^{(j)},\,s^{(j)}\bigr]_{j=1}^{J}$
 \ENDIF
 
-\LINECOMMENT{Build shared bin edges covering all trajectories}
-\STATE $x_{\min} \leftarrow \min_j\!\left(\tilde{\mu}^{(j)} - c\,\tilde{\sigma}^{(j)}\right)$;\quad
-       $x_{\max} \leftarrow \max_j\!\left(\tilde{\mu}^{(j)} + c\,\tilde{\sigma}^{(j)}\right)$
-\STATE $\mathcal{B} \leftarrow \mathrm{linspace}(x_{\min},\,x_{\max},\,K+1)$
-
-\LINECOMMENT{Resample fine PDF onto shared bins (rectangle rule) and normalise}
-\FOR{$j = 1$ \textbf{to} $J$}
-    \STATE $p^{(j)}_\ell \leftarrow
-           \sum_{k:\,x^{(j)}_k \in \mathcal{B}_\ell}
-             f^{(j)}_k\,\lambda$,\quad
-           $\ell = 1,\ldots,K$
-           \COMMENT{probability mass per bin}
-    \STATE $p^{(j)}_\ell \leftarrow p^{(j)}_\ell \;/\; \sum_{\ell'} p^{(j)}_{\ell'}$
-           \COMMENT{row-normalise; set entries $< 10^{-7}$ to zero first}
-\ENDFOR
-\RETURN $\mathbf{p} \in \mathbb{R}^{J \times K}$
+\RETURN $\mathbf{p} = f^{(j)} * x^{(j)} \in \mathbb{R}^{J \times K}$
 
 \end{algorithmic}
 \end{algorithm}
@@ -448,87 +409,66 @@ Moreover, the code provides a reference implementation based on direct Monte Car
 
 The Monte Carlo estimator is consistent (converges to the true PDF as \texttt{mc\_sims} $\to\infty$) but slow: its computational cost is $\mathcal{O}(J \cdot \texttt{mc\_sims} \cdot \texttt{n\_steps})$. The frFFT method, by contrast, evaluates the exact Heston CF and inverts it in $\mathcal{O}(J \cdot N_\text{fft}\log N_\text{fft})$ operations, making it orders of magnitude faster for large $J$.
 
-
 \begin{algorithm}[H]
-    \label{alg:heston_mc_pdf}
-\caption{Monte-Carlo Conditional PDF Estimator for the Heston Model}
+\caption{Monte-Carlo Conditional Heston PDF}
+\label{alg:heston_mc_pdf}
 \begin{algorithmic}[1]
-\REQUIRE Terminal states $\{X_{T}^{(j)}, v_{T}^{(j)}\}_{j=1}^{J}$,
-         Heston parameters
-         $\{\mu^{(j)}, \kappa^{(j)}, \theta^{(j)}, \sigma_v^{(j)}, \rho^{(j)}\}_{j=1}^{J}$
-\REQUIRE Number of MC samples $S$, number of steps $n_{\tau}$,
-         time step $\Delta t$, bin edges $\mathcal{B}$ with $K$ bins
-\ENSURE  Discretised conditional PDF for each trajectory
 
-\LINECOMMENT{Allocate matrix of terminal log-prices}
-\STATE $\mathbf{T} \leftarrow \mathbf{0}_{J \times S}$
+\REQUIRE Current states $\{X_0^{(j)},v_0^{(j)}\}_{j=1}^{J}$,
+Heston parameters
+$\{\kappa^{(j)},\theta^{(j)},\sigma_v^{(j)},\rho^{(j)},\mu^{(j)}\}_{j=1}^{J}$,
+forecast horizon $\tau=n_\tau\Delta t$,
+Monte-Carlo sample size $M$
 
-\LINECOMMENT{Draw $S$ independent sample paths per trajectory}
-\FOR{$s = 1$ \textbf{to} $S$}
-    \STATE $X^{(j)} \leftarrow X_{T}^{(j)}$,\quad
-           $v^{(j)} \leftarrow \max\!\left(v_{T}^{(j)},\, 0\right)$,\quad
-           $j = 1, \ldots, J$
+\ENSURE Terminal log-price samples
+$\mathbf{X}\in\mathbb{R}^{J\times M}$
 
-    \FOR{$n = 1$ \textbf{to} $n_{\tau}$}
-        \LINECOMMENT{Correlated Brownian increments via Cholesky decomposition}
-        \STATE $Z_1^{(j)},\, Z_2^{(j)} \overset{\mathrm{iid}}{\sim}
-               \mathcal{N}(0, 1)$,\quad $j = 1,\ldots,J$
-        \STATE $\Delta W_X^{(j)} \leftarrow \sqrt{\Delta t}\; Z_1^{(j)}$
-        \STATE $\Delta W_v^{(j)} \leftarrow \sqrt{\Delta t}
-               \left(\rho^{(j)} Z_1^{(j)}
-                 + \sqrt{1 - (\rho^{(j)})^2}\; Z_2^{(j)}\right)$
+\FOR{$j=1$ \textbf{to} $J$}
 
-        \LINECOMMENT{Full truncation before diffusion evaluation}
-        \STATE $\hat{v}^{(j)} \leftarrow \max\!\left(v^{(j)},\, 0\right)$
+    \STATE Initialise a CIR process from $v_0^{(j)}$ using
+    $(\kappa^{(j)},\theta^{(j)},\sigma_v^{(j)})$.
 
-        \LINECOMMENT{Euler--Maruyama update for log-price}
-        \STATE $X^{(j)} \leftarrow X^{(j)}
-               + \left(\mu^{(j)} - \tfrac{1}{2}\hat{v}^{(j)}\right)\Delta t
-               + \sqrt{\hat{v}^{(j)}}\;\Delta W_X^{(j)}$
+    \STATE Evolve the variance process
+    (\ref{eq:var_sde_heston}) over $[0,\tau]$
+    using Andersen's Quadratic--Exponential (QE) scheme,
+    simultaneously computing
+    \[
+        v_\tau,
+        \qquad
+        \int_0^\tau v(s)\,ds
+    \]
+    for all $M$ Monte-Carlo paths.
 
-        \LINECOMMENT{Euler--Maruyama update for variance with full truncation}
-        \STATE $v^{(j)} \leftarrow \max\!\Bigl(
-               v^{(j)}
-               + \kappa^{(j)}\!\left(\theta^{(j)} - \hat{v}^{(j)}\right)\Delta t
-               + \sigma_v^{(j)}\sqrt{\hat{v}^{(j)}}\;\Delta W_v^{(j)},\;
-               0\Bigr)$
-    \ENDFOR
+\STATE   Compute the conditional log-price increment
+\[
+Y=
+-\frac12 I_v
++\frac{\rho}{\sigma_v}
+\Bigl(v_\tau-v_0-\kappa(\theta\tau-I_v)\Bigr)
++\sqrt{(1-\rho^2)I_v}\,Z,
+\]
+where $I_v=\int_0^\tau v(s)\,ds$.
 
-    \STATE $T^{(j)}_s \leftarrow X^{(j)}$,\quad $j = 1,\ldots,J$
-    \COMMENT{store terminal log-price for this sample}
+\STATE Set
+\[
+X_\tau=X_0+Y+\mu\tau.
+\]
+
+    \STATE Store the $M$ simulated terminal values as row $j$ of
+    $\mathbf{X}$.
+
 \ENDFOR
 
-\IF{$K$ is \texttt{None}}
-    \LINECOMMENT{Return raw moments}
-    \FOR{$j = 1$ \textbf{to} $J$}
-        \STATE $\bar{x}^{(j)} \leftarrow \dfrac{1}{S}\sum_{s=1}^{S} T_s^{(j)}$
-        \STATE $s^{(j)} \leftarrow
-               \sqrt{\dfrac{1}{S}\sum_{s=1}^{S}
-                 \left(T_s^{(j)} - \bar{x}^{(j)}\right)^{2}}$
-    \ENDFOR
-    \RETURN $\bigl[\bar{x}^{(j)},\, s^{(j)}\bigr]_{j=1}^{J}$
-\ENDIF
-
-\LINECOMMENT{Histogram terminal draws onto shared bin edges and normalise}
-\FOR{$j = 1$ \textbf{to} $J$}
-    \STATE $p^{(j)}_\ell \leftarrow
-           \bigl|\bigl\{s : T_s^{(j)} \in \mathcal{B}_\ell\bigr\}\bigr|$,\quad
-           $\ell = 1, \ldots, K$
-           \COMMENT{count falls per bin}
-    \STATE $p^{(j)}_\ell \leftarrow p^{(j)}_\ell \;/\; \sum_{\ell'} p^{(j)}_{\ell'}$
-           \COMMENT{normalise; set entries $< 10^{-7}$ to zero first}
-\ENDFOR
-\RETURN $\mathbf{p} \in \mathbb{R}^{J \times K}$
+\RETURN $\mathbf{X}$
 
 \end{algorithmic}
 \end{algorithm}
-
 
 So the \texttt{HestonSimulator} integrates the following chain of mathematical techniques into a single coherent pipeline. 
 The Heston SDE system (\ref{eq:logprice_sde_heston})--(\ref{eq:correlation_heston}) is discretised using correlated Brownian increments constructed via Cholesky decomposition, 
 with the full-truncation Milstein scheme for the variance and Euler--Maruyama for the log-price. 
 The conditional PDF of future log-prices is obtained by evaluating the closed-form Heston CF in its numerically 
-stable Little Trap formulation and then applying the Gil-Pelaez inversion formula (\ref{eq:gilpelaez_discrete}) with Simpson quadrature weights.
+stable formulation and then applying the Gil-Pelaez inversion formula (\ref{eq:gilpelaez_discrete}) with Simpson quadrature weights.
 The resulting discrete sum is evaluated efficiently across all $N_\text{fft}$ spatial grid points simultaneously by expressing it as a fractional DFT and computing
 it via Bluestein's chirp convolution algorithm, which reduces the cost from $\mathcal{O}(N_\text{fft}^2)$ to $\mathcal{O}(N_\text{fft}\log N_\text{fft})$ 
 while completely decoupling the frequency resolution $\eta$ from the spatial resolution $\lambda$.\\
@@ -618,13 +558,13 @@ The experiment is structured in three sequential validation steps, each
 targeting a different layer of the computational pipeline.\\
 
 
-A set of $J = 10000$ independent trajectories is simulated using the
-\texttt{DataSimulator} class described in \ref{alg:y condition}, with $N = 252$ time steps over a horizon of
-$T = 1$ year, giving a time-step size of $dt = T/N = 0.02$ years.  The
+A set of $J = 10000$ independent trajectories is simulated using the 
+same algorithm described in section \ref{sec:bs_experiments}, in particular \ref{alg:y condition}, with $N = 252$ time steps over a horizon of
+$T = 1$ year, giving a time-step size of $dt = T/N = 0.004$ years.  The
 per-trajectory drift and volatility parameters are drawn uniformly:
 $\mu \sim \mathcal{U}(0,\, 0.1)$ and $\sigma \sim \mathcal{U}(0.1,\, 1.2)$,
 while the initial log-price satisfies $X_0 \sim \mathcal{U}(0,\, 1)$.  With
-a one-step-ahead forecast horizon $\tau = dt = 0.02$ years.\\
+a one-step-ahead forecast horizon $\tau = dt = 0.004$ years.\\
 
 The inversion is performed with $N_{\mathrm{FFT}} = 4096$ frequency nodes
 and a frequency-domain step $\eta = 0.25$.  Following algorithm \ref{alg:frFTT}. The fractional parameter is set to
@@ -641,7 +581,7 @@ covered.\\
 
 \paragraph{Step A: Analytical moments sanity check.}
 Before engaging the frFFT at all, the first validation step confirms that the
-method used to obtain the probability distribution function described in \ref{alg:x target} correctly implements
+method used to obtain the analytical probability distribution function correctly implements
 equation~\eqref{eq:bs_normal}.  The
 method returns a $(J \times 2)$ array whose columns are the analytical mean
 $\mu_{\mathrm{BS},k}$ and standard deviation $\sigma_{\mathrm{BS},k}$ for
@@ -650,7 +590,7 @@ from the simulation parameters and the closed-form expressions in
 equation~\eqref{eq:bs_normal}.
 
 The results, summarised in Table~\ref{tab:step_a}, show that the analytical
-moments returned by \ref{alg:x target} are \emph{bit-for-bit identical} to the
+moments returned by the code implementation are \emph{bit-for-bit identical} to the
 directly computed values: the absolute difference in both mean and standard
 deviation is exactly zero across all four trajectories.  This is expected,
 since both quantities are computed from the same floating-point operations on
@@ -660,13 +600,13 @@ error in the formula for the analytical parameters.
 \begin{table}[H]
 \centering
 \caption{Step A: comparison between directly computed analytical parameters
-and those returned by \ref{alg:x target} for the first 4 trajectories.
+and those returned by code simulation for the first 4 trajectories.
 All differences are zero to double-precision.}
 \label{tab:step_a}
 \begin{tabular}{ccccccc}
 \toprule
-$k$ & $\mu_{\mathrm{BS},k}$ & \texttt{get\_pdf} mean & $|\Delta\mu|$
-    & $\sigma_{\mathrm{BS},k}$ & \texttt{get\_pdf} std & $|\Delta\sigma|$ \\
+$k$ & $\mu_{\mathrm{BS},k}$ & \texttt{computed} mean & $|\Delta\mu|$
+    & $\sigma_{\mathrm{BS},k}$ & \texttt{computed} std & $|\Delta\sigma|$ \\
 \midrule
 0 & 0.8533110 & 0.8533110 & $0$ & 0.0232011 & 0.0232011 & $0$ \\
 1 & 0.1042671 & 0.1042671 & $0$ & 0.0459892 & 0.0459892 & $0$ \\
@@ -806,32 +746,13 @@ where $F$ denotes the discrete CDF; the Jensen-Shannon distance
 $\mathrm{JS}(p \,\|\, q) = \sqrt{D_{\mathrm{KL}}(p \,\|\, m) / 2
 + D_{\mathrm{KL}}(q \,\|\, m)/2}$ with $m = (p+q)/2$; the total variation
 distance $\mathrm{TV} = \tfrac{1}{2}\sum_j |p_j - q_j|$; and the
-Hellinger distance $H = \sqrt{\tfrac{1}{2}\sum_j (\sqrt{p_j} - \sqrt{q_j})^2}$.
-The results are reproduced in Table~\ref{tab:step_c}.
+Hellinger distance $H = \sqrt{\tfrac{1}{2}\sum_j (\sqrt{p_j} - \sqrt{q_j})^2}$.\\
+The average values of the distribution metrics between the frFFT density and the
+analytical Gaussian for the $10,000$ trajectories are in the order of $10^{-8}$ for the Jensen-Shannon, TV distance and Hellinger distance
+while the average value of the KS test's pvalues is around $1.0$ suggesting no relevant difference between the 
+analytical distribution and the one obtained from the fractional fft transform.\\
 
-\begin{table}[H]
-\centering
-\caption{Step C: distribution metrics between the frFFT density and the
-analytical Gaussian for the first 4 trajectories, computed at the $\approx 38$ active fine-grid points
-per trajectory.  All finite metrics are exactly zero; the \texttt{nan}
-entries in the JS column are a numerical artefact of zero mass at boundary
-points and are interpreted as zero.}
-\label{tab:step_c}
-\begin{tabular}{ccccc}
-\toprule
-$k$ & KS & JS distance & TV & Hellinger \\
-\midrule
-0 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
-1 & 0.000000 & 0.000000     & 0.000000 & 0.000000 \\
-2 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
-3 & 0.000000 & 0.000000     & 0.000000 & 0.000000 \\
-\midrule
-mean & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Every finite metric is identically zero.  This result has a precise
+This result has a precise
 interpretation: at each of the 38 active quadrature points, the probability
 mass $p_j = f_{\mathrm{frFFT}}(x_j) \cdot \lambda$ and
 $q_j = f_{\mathrm{Gauss}}(x_j) \cdot \lambda$ agree to within
@@ -847,8 +768,7 @@ at every active grid point in the support for four randomly sampled trajectories
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{Heston/images/fft_plots.png}
-    \caption{Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories.  The two curves are visually indistinguishable,
-     confirming the distributional identity established by the zero-distance metrics in Table~\ref{tab:step_c}.}
+    \caption{Comparison of the frFFT-recovered density (red dashed) and the analytical Gaussian (blue) for four randomly sampled trajectories.}
     \label{fig:frfft_plots}
 \end{figure}
 
@@ -905,7 +825,7 @@ follows.
 
     \item \textbf{Machine-epsilon residuals}: the pointwise density residual
     lies between $10^{-15}$ and $10^{-14}$, consistent with the rounding
-    error floor of IEEE 754 arithmetic, with no systematic bias.
+    error floor of machine precision, with no systematic bias.
 
     \item \textbf{Aliasing is benign}: the factor-of-two inflation of the raw
     integral, which is a predictable consequence of the choice
@@ -945,7 +865,7 @@ machinery itself.
 
 \section{Scoring Rule ForGAN results}
 
-The experiment has been conducted using the Heston trajectories generated in \ref{sec:heston_simulation} and the frFFT-based PDF estimator described in \ref{sec:frfft_validation}.\\
+The experiment has been conducted using the Heston trajectories and the frFFT-based PDF estimator described in \ref{sec:frfft_validation}.\\
 The training procedure implemented is designed to run on a high-performance computing (HPC) of the CINECA nodes. In particular, the training script is executed on a node equipped with \textbf{8 CPU cores and 1 GPU}, as available on the Leonardo Booster partition.\\
 The script follows a fully automated pipeline that (i) generates a large synthetic Heston dataset in chunks, (ii) stores it in a binary streaming format, (iii) builds a memory-mapped dataset to avoid loading the full sample set into RAM, (iv) trains the SRForGAN generator on the GPU, and (v) saves the learned weights together with the full training configuration for reproducibility.\\
 

@@ -476,7 +476,7 @@ class HestonSimulator(DataSimulator):
 
         # ── Monte-Carlo fallback ──────────────────────────────────────────────
         if mc_sims >= 2:
-            return self._mc_pdf(X0, v0, tau, n_bins, mc_sims, n_steps_ahead)
+            return self._mc_pdf(X0=X0, v0=v0, n_bins=n_bins, mc_sims=mc_sims, n_steps=n_steps_ahead)
 
         # ── frFFT parameters ──────────────────────────────────────────────────
         if alpha_frfft is None:

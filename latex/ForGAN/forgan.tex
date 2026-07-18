@@ -1,4 +1,5 @@
 \chapter{Experiments with Black-Scholes dynamics}
+\label{sec:bs_experiments}
 
 The Black--Scholes framework rests on: (i) a frictionless, arbitrage-free market with continuous trading and no transaction costs; (ii) a risky asset $S_t$ with \emph{constant} instantaneous drift $\mu$ and volatility $\sigma>0$; (iii) a constant risk-free rate $r$; (iv) log-normally distributed asset prices, driven by a single standard Brownian motion $W_t$ under the physical measure $\mathbb{P}$; and (v) no dividends, jumps, or stochastic volatility.
 
@@ -158,9 +159,10 @@ After having obtained $D$ from \ref{alg:mc_terminal_dist} and having computed th
 the two distributions can be compared by using all the metrics described in \ref{sec:performance_metrics} like Jensen-Shannon divergence, Wasserstein distance, Total Variation distance and statistical tests like the Kolmogorov-Smirnov test.
 
 
-\subsection{ForGAN simplified task}
+\section{ForGAN results with fixed volatility trajectories}
 In the following section a simplified version of the problem is discussed.
-In particular, here the condition vector is given by just trajectories obtained from the same volatility parameter $\sigma = 0.5$,
+In particular, here the condition vector is given by Geometric Brownian Motion trajectories
+obtained from the same volatility parameter $\sigma = 0.5$, by using the procedure described in algorithm \ref{alg:y condition},
 which will be constant for all 
 the trajectories.
 The goal of this experiment is to understand if the proposed ForGAN architecture is able to capture the variance and mean of the target distribution when the volatility is fixed for all trajectories.
@@ -172,15 +174,16 @@ Below are presented the architecture and metrics results for the simple ForGAN a
 \label{tab:forgan_debug_architecture}
 \begin{tabular}{lll}
 \hline
-\textbf{Parameter}         & \textbf{Generator}            & \textbf{Critic (Discriminator)} \\ \hline
-Input Dimension            & 32 (Latent) + 2 (Cond.)       & 1 (Data) + 2 (Cond.)            \\
-Hidden Layers              & [64, 128, 64]                 & [64, 128, 128, 64, 32]          \\
-Output Dimension           & 1                             & 1                               \\
-Activation Function        & Leaky ReLU                    & Leaky ReLU                      \\
-Normalization              & BatchNormalization            & None                            \\
-Dropout                    & 0.0                           & 0.0                             \\
+\textbf{Parameter}         & \textbf{Generator}          & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 64 (Latent) + 252 (Cond.)   & 1 (Data) + 252 (Cond.)          \\
+Hidden Layers              & [512, 256, 128, 64]         & [512, 256, 256, 128, 64]        \\
+Output Dimension           & 1                           & 1                               \\
+Activation Function        & ReLU                        & Leaky ReLU                      \\
+Normalization              & Batch Norm                  & None                      \\
+Dropout                    & 0.0                         & 0.0                             \\
 \multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline
 Max Epochs                 & \multicolumn{2}{l}{100}                                       \\
+Learning Rate              & \multicolumn{2}{l}{0.0001}                                      \\
 \end{tabular}
 \end{table}
 
@@ -218,15 +221,16 @@ Also the results from the ForWGAN architecture with the same simplified setup ar
 \label{tab:forwgan_debug_architecture}
 \begin{tabular}{lll}
 \hline
-\textbf{Parameter}         & \textbf{Generator}            & \textbf{Critic (Discriminator)} \\ \hline
-Input Dimension            & 24 (Latent) + 2 (Cond.)       & 1 (Data) + 2 (Cond.)            \\
-Hidden Layers              & [64, 128, 64]                 & [64, 128, 64, 32]               \\
-Output Dimension           & 1                             & 1                               \\
-Activation Function        & Leaky ReLU                    & Leaky ReLU                      \\
-Normalization              & None                          & LayerNorm                      \\
-Dropout                    & 0.0                           & 0.0                             \\
+\textbf{Parameter}         & \textbf{Generator}          & \textbf{Critic (Discriminator)} \\ \hline
+Input Dimension            & 64 (Latent) + 252 (Cond.)   & 1 (Data) + 252 (Cond.)          \\
+Hidden Layers              & [512, 256, 128, 64]         & [512, 256, 256, 128, 64]        \\
+Output Dimension           & 1                           & 1                               \\
+Activation Function        & ReLU                        & Leaky ReLU                      \\
+Normalization              & None                        & Layer Norm                      \\
+Dropout                    & 0.0                         & 0.0                             \\
 \multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline
-Max Epochs                 & \multicolumn{2}{l}{100}                                       \\
+Max Epochs                 & \multicolumn{2}{l}{100}                                        \\
+Learning Rate              & \multicolumn{2}{l}{0.0001}                                      \\
 \end{tabular}
 \end{table}
 
@@ -256,11 +260,27 @@ EMD Distance & 0.0036 \\
     \label{forwgan_debug_sample}
 \end{figure}
 
-\subsection{ForGAN results}
 
-The training algorithm and data flow used for training the ForGAN model shows just some changes related to the output and the way the probability distribution is generated.
-In fact, in this case the output data of the training set is a single value $c_{T + \tau}$ instead of a probability vector as in the previous CGAN and CWGAN-GP models.\\
+\section{ForGAN results with variable volatility trajectories}
+\label{sec:bs experiment}
+The following setup for the experiments has been used:\\
+\begin{itemize}
+    \item \textbf{Initial price range}: $X_0 = 0.0$
+    \item \textbf{Drift range}: $\mu = 0.0$
+    \item \textbf{Volatility range}: $\sigma \in (0.1, 1.2)$
+    \item \textbf{Time horizon}: $T = 1.0 $ yearly horizon
+    \item \textbf{Number of time steps}: $N = 252$
+    \item \textbf{Number of simulated paths}: $J = 100{,}000$
+    \item \textbf{n-steps ahead}: $\tau = 1$
+\end{itemize}
 
+The experimental setup is based on a data generation process designed to emulate realistic financial price dynamics exploiting Geometric Brownian motion described in the before in previous section. 
+The asset price trajectories are simulated over a fixed time horizon of one year, discretized into $N=252$ time steps corresponding to daily observations.
+For each experiment, $J=100{,}000$ independent paths are generated, ensuring sufficient sample diversity and statistical robustness.
+The initial asset price $X_0$ is set for each trajectory to $0.0$, while the drift parameter $\mu$ is fixed at zero to isolate the model's ability to learn volatility-driven dynamics.
+The volatility parameter $\sigma$ is sampled from a wide range $(0.1, 1.2)$ to capture varying market conditions, from near-deterministic to highly stochastic regimes.
+The distribution to be learned refers to the $1$-th step ahead observation, that is, the distribution of asset prices at time $T + 1$ (or $N dt + 1$) given information up to time $T$. 
+Learning distributions for longer horizons does not provide additional insights since the shape of the distribution remains Gaussian, with the only difference being a larger variance.\\
 
 The experiment has been conducted by using the following architecture and hyperparameters:
 \begin{table}[H]
@@ -277,13 +297,16 @@ Activation Function        & ReLU                        & Leaky ReLU           
 Normalization              & Batch Norm                  & None                      \\
 Dropout                    & 0.0                         & 0.0                             \\
 \multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline
+Learning Rate              & \multicolumn{2}{l}{0.0005}                                      \\
 Max Epochs                 & \multicolumn{2}{l}{100}                                       \\
 \end{tabular}
 \end{table}
 
-The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
-the resulting p-values are accepted 48\% of times, which is inline with the results obtained for the CGAN model.\\
-Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.49 which is worse than the CWGAN-GP model, suggesting that Wasserstein distance provides a better training convergence and generalization capabilities.
+The Kolmogorov-Smirnov test performed on 10000 real and generated bins probabilities shows that
+the resulting p-values are accepted 48\% of time.\\
+Moreover, the average Jensen-Shannon divergence over the 1000 samples is around 0.49,
+suggesting poor performance since the Jensen-Shannon divergence computed by using the logarithm in base 2
+is bounded in the range $[0, 1]$.
 
 \begin{table}[h]
 \centering
@@ -317,10 +340,9 @@ struggles to effectively capture the variance of the target distribution when th
 
 
 
-\subsection{ForWGAN results}
-Also in this case the training algorithm and data flow used for training the ForWGAN model have been adapted to the new output setup.
-
-
+In case of the ForWGAN architecture experiments 
+just the training procedure and the architecture differs with respect to the ForGAN case, 
+in fact, both training and test data remain the same.
 The experiment has been conducted by using the following architecture and hyperparameters:
 \begin{table}[H]
 \centering
@@ -337,13 +359,14 @@ Normalization              & None                        & Layer Norm           
 Dropout                    & 0.0                         & 0.0                             \\
 \multicolumn{3}{c}{\textbf{Global Training Settings}}                                     \\ \hline
 Max Epochs                 & \multicolumn{2}{l}{100}                                       \\
+Learning Rate              & \multicolumn{2}{l}{0.0005}                                      \\
 \end{tabular}
 \end{table}
 
 
-The Kolmogorov-Smirnov test performed on 1000 real and generated bins probabilities shows that
-the resulting p-values are accepted 56\% of times, significantly higher than the CWGAN-GP and the ForGAN proposed models.\\
-Moreover, the average Jenshen-Shannon divergence over the 1000 samples is around 0.35 which highlights an improvement with respect to the ForGAN model.\\
+The Kolmogorov-Smirnov test performed on 10000 real and generated bins probabilities shows that
+the resulting p-values are accepted 56\% of times, significantly higher than the ForGAN proposed models.\\
+Moreover, the average Jensen-Shannon divergence over the 1000 samples is around 0.35 which highlights an improvement with respect to the ForGAN model.\\
 \begin{table}[h]
 \centering
 \begin{tabular}{l c}
@@ -364,9 +387,9 @@ A visual inspection of different samples with various degrees of volatility is p
 In particular, six different samples are shown below where
 the starting values is the same $X_0 = 0.0$, $\mu = 0.0$ while the volatility have different values for each sample 
 $\sigma = [0.3, 0.5, 0.7, 0.9]$.
-From the results we can see an important improvement with respect to the simple ForGAN architecture 
-in the same way as the CWGAN-GP model showed better results than the CGAN one,
-suggesting that the Wasserstein loss with gradient penalty helps in stabilizing the training process and improving the quality of the generated distributions.
+From the results we can see an important improvement with respect to the simple ForGAN architecture,
+suggesting that the Wasserstein loss with gradient penalty helps in stabilizing the training process 
+and improving the quality of the generated distributions the same way has been demonstrated in papers like \cite{background:wgan} and \cite{background2:gp_wgan}.
 
 \begin{figure}[H]
     \centering
@@ -375,24 +398,4 @@ suggesting that the Wasserstein loss with gradient penalty helps in stabilizing 
     \label{forgan_sample_sigma}
 \end{figure}
 
-
-
-\subsection{Improvements}
-Mode collapse, also known as the "Helvetica scenario," 
-occurs when the generator learns to produce only a 
-limited subset of the data distribution. 
-It can be categorized into two forms, especially in the context of 
-conditional time-series GANs like ForGAN:
-\begin{itemize}
-    \item Distribution Mode Collapse: A collapse in the variety of samples generated for a single specific condition (time point). The model fails to capture the probabilistic uncertainty of the future return.
-    \item Mean Mode Collapse: A collapse in the distribution of the means of generated values across all different conditions. This effectively reduces the model to producing similar point estimates regardless of the historical input
-\end{itemize}
-
-When both occur simultaneously, 
-the model yields a single point estimate for every input, 
-completely losing its probabilistic forecasting capabilities. 
-Research indicates that mode collapse is often tied to the generator converging toward sharp local minima. 
-Once $G$ finds a sample that receives a high score from $D$, it may continue to reproduce that sample; 
-if $D$ cannot identify this repetitive behavior (due to converging to its own local minima), 
-the gradients for $G$ vanish, and the model becomes stuck.\\
 

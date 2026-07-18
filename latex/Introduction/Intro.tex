@@ -469,7 +469,7 @@ which combines the conditional adversarial framework with a recurrent conditioni
 \section{Probabilistic Forecasting using GANs}
 The overwhelming majority of forecasting models developed in the quantitative finance and machine learning literature are trained to minimize a pointwise loss function, typically the mean squared error (MSE) or the mean absolute error (MAE), between a predicted scalar or vector and an observed realization. Formally, given a conditioning history $\mathbf{x}_{1:t} = (x_1, \dots, x_t)$ of a stochastic process, a point forecaster learns a deterministic mapping
 \begin{equation*}
-\hat{x}_{t+1} = f_\theta(\mathbf{x}_{1:t}), \qquad \theta^\star = \arg\min_\theta \; \mathbb{E}\left[ \ell\left(x_{t+1}, f_\theta(\mathbf{x}_{1:t})\right) \right],
+\hat{x}_{t+h} = f_\theta(\mathbf{x}_{1:t}), \qquad \theta^\star = \arg\min_\theta \; \mathbb{E}\left[ \ell\left(x_{t+h}, f_\theta(\mathbf{x}_{1:t})\right) \right],
 \end{equation*}
 where $\ell(\cdot,\cdot)$ is typically the squared error $\ell(x,\hat x) = (x-\hat x)^2$.
 When the underlying data-generating process is stochastic, as is the case for essentially every financial time series, since asset prices, volatilities, and interest rates evolve under genuine aleatoric uncertainty, a point forecast conveys only the conditional mean (or, depending on the loss, the conditional median) of the future state, and discards all information about the shape, skewness, and tail behaviour of the conditional distribution.
@@ -477,11 +477,11 @@ This is a critical shortcoming for financial applications, where risk management
 
 The correct object of interest is therefore the conditional predictive distribution
 \begin{equation}
-p\left(x_{t+1} \mid \mathbf{x}_{1:t}\right),
+p\left(x_{t+h} \mid \mathbf{x}_{1:t}\right),
 \end{equation}
 or, in the multi-step-ahead case relevant to path-dependent risk metrics, the joint conditional distribution
 \begin{equation}
-p\left(x_{t+1}, x_{t+2}, \dots, x_{t+H} \mid \mathbf{x}_{1:t}\right)
+p\left(x_{t+h}, x_{t+2}, \dots, x_{t+H} \mid \mathbf{x}_{1:t}\right)
 \end{equation}
 over a forecast horizon $H$. 
 Estimating this object is the task of \emph{probabilistic forecasting} \cite{background:probabilistic_forecasting}. 
@@ -497,7 +497,7 @@ Generative Adversarial Networks
 offer an attractive alternative precisely
 because they are implicit generative models
 where the generator $G(\mathbf{c}, \mathbf{z})$, conditioned on a history $\mathbf{c} = \mathbf{x}_{1:t}$ 
-and driven by an exogenous noise vector $\mathbf{z} \sim p_z$, is trained so that its induced output distribution approximates $p(x_{t+1} \mid \mathbf{x}_{1:t})$
+and driven by an exogenous noise vector $\mathbf{z} \sim p_z$, is trained so that its induced output distribution approximates $p(x_{t+h} \mid \mathbf{x}_{1:t})$
 without any parametric assumption on the shape of that distribution. 
 Repeated sampling of $\mathbf{z}$ for a fixed conditioning history $\mathbf{c}$ produces an empirical ensemble of trajectories, from which arbitrary functionals of the predictive distribution, quantiles, moments, tail probabilities and so on,
 can be estimated by Monte Carlo. This is the conceptual bridge between adversarial generative modelling and probabilistic time series forecasting,
@@ -622,7 +622,7 @@ which admits the equivalent, sample-based (kernel) representation in terms of tw
 \end{equation}
 This representation is directly usable as a training loss for a GAN generator: given $N$ samples $\{\hat x^{(i)}\}_{i=1}^N$ drawn from $G([\mathbf{c},\mathbf{z}^{(i)}])$, an unbiased estimator of the CRPS is
 \begin{equation}
-\widehat{\mathrm{CRPS}} = \frac{1}{N} \sum_{i=1}^{N} \left| \hat x^{(i)} - x_{t+1} \right| - \frac{1}{2 N (N-1)} \sum_{i=1}^{N} \sum_{j \neq i} \left| \hat x^{(i)} - \hat x^{(j)} \right|,
+\widehat{\mathrm{CRPS}} = \frac{1}{N} \sum_{i=1}^{N} \left| \hat x^{(i)} - x_{t+h} \right| - \frac{1}{2 N (N-1)} \sum_{i=1}^{N} \sum_{j \neq i} \left| \hat x^{(i)} - \hat x^{(j)} \right|,
 \end{equation}
 
 The natural multivariate generalization of the CRPS, applicable when the forecast target is a vector $\mathbf{x} \in \mathbb{R}^d$ (e.g. a full multi-step forecast path, or a vector of Heston state variables), is the Energy Score of order $\beta \in (0,2)$:
@@ -691,6 +691,90 @@ capable of capturing the full conditional distribution of financial processes,
 representing a valid alternative to parametric models and other generative architectures.
 
 
+\section{Limitations of standard forecast techniques}
+\label{sec:literature_gap}
+
+Classical forecasting casts $x_{t+h}$ prediction as a regression problem,
+with the model trained to minimize a pointwise loss such as RMSE. 
+Under squared-error loss, the Bayes-optimal predictor is the conditional expectation,
+\begin{equation}
+\label{eq:mean_regression_target}
+\hat{x}_{t+h} = \arg\min_{f} \; \mathbb{E}_{x_{t+h}}\big[(x_{t+h} - f(c))^2\big] = \mathbb{E}[x_{t+h} \mid c] = \mu(\rho(x_{t+h}\mid c)),
+\end{equation}
+i.e. the model converges
+to the mean of the conditional distribution 
+regardless of its shape. 
+This is only informative when $\rho(x_{t+h}\mid c)$ 
+is unimodal and concentrated, approximating a Dirac delta. 
+When the true conditional distribution is multimodal, Eq.~\ref{eq:mean_regression_target} 
+produces a value that need not lie near \emph{any} 
+realizable outcome. 
+\cite{background:forgan} illustrate this with a synthetic bimodal target where $x_{10}$ 
+realizes one value in $80\%$ of cases and a second, 
+disjoint value in the remaining $20\%$: 
+the trained regressor converges to the 
+weighted average $0.8$, 
+a point with zero support 
+under the true data-generating process. 
+This failure mode is structural rather 
+than a symptom of under-fitting or 
+insufficient capacity. 
+No amount of additional training data or 
+model complexity corrects it, since the objective
+in Eq.~\ref{eq:mean_regression_target} is itself misspecified 
+relative to the estimand of interest 
+whenever $\rho(x_{t+h}\mid c)$ deviates 
+from near-degeneracy. 
+The same argument applies to the Heston-driven volatility clusters targeted in this thesis, 
+where the conditional density of log-price increments is heteroskedastic 
+and can exhibit heavy tails and skewness 
+inconsistent with a single-mode Gaussian-like summary.
+
+Quantile regression \cite{background:quantile_regression} partially 
+addresses this limitation by estimating 
+conditional quantile functions $Q_{\alpha}(x_{t+h}\mid c)$ directly, 
+via the asymmetric piecewise-linear (pinball) loss
+\begin{equation}
+\label{eq:pinball_loss}
+\mathcal{L}_{\alpha}(x_{t+h}, \hat{x}_{t+h}) = \big(x_{t+h} - \hat{x}_{t+h}\big)\big(\alpha - \mathbf{1}[x_{t+h} < \hat{x}_{t+h}]\big), \qquad \alpha \in (0,1),
+\end{equation}
+
+consistent for the $\alpha$-quantile. 
+Fitting a family $\{\hat{Q}_{\alpha_1}, \dots, \hat{Q}_{\alpha_K}\}$ over a grid of 
+quantile levels in principle recovers an approximation 
+of the full conditional distribution. 
+In practice, however, each $\hat{Q}_{\alpha_k}$ 
+is typically estimated by an independent regression, 
+with no constraint enforcing monotonicity in $\alpha$. 
+This gives rise to the \emph{quantile-crossing} problem: 
+for $\alpha_i < \alpha_j$ the fitted quantiles 
+can satisfy $\hat{Q}_{\alpha_i}(c) > \hat{Q}_{\alpha_j}(c)$, 
+violating the definition of a valid distribution function. 
+The pathology is most pronounced with dense quantile grids or 
+small sample sizes \cite{background:mean_regression}, 
+precisely the regime relevant to derivative-pricing 
+and tail-risk applications where fine resolution in 
+the extreme quantiles (VaR, ES) is required. Post-hoc 
+rearrangement or monotonicity-constrained estimators 
+\cite{background:quantile_regression2,background:quantile_regression3} 
+mitigate but do not eliminate the problem, and add 
+estimation overhead that scales with the number of 
+quantile levels considered.
+
+Both failure modes share a common root: 
+they optimize a functional of $\rho(x_{t+h}\mid c)$ 
+(its mean, or a finite set of quantiles) 
+rather than the distribution itself, 
+and the functional's fidelity to the 
+underlying density degrades precisely in 
+the multimodal, heteroskedastic regimes characteristic 
+of stochastic volatility models. 
+This motivates the shift toward implicit, 
+sample-based conditional density estimation 
+pursued by ForGAN and, subsequently, 
+by the SRForGAN architecture proposed in this thesis.
+
+
 
 
 \section{Limitations of GANs}
@@ -734,7 +818,7 @@ mode collapse manifests specifically as \emph{underdispersion}:
 a generator conditioned on a given history $\mathbf{x}_{1:t}$ 
 collapses across noise draws $\mathbf{z}$ 
 to a narrow cluster of outputs, so that the induced 
-predictive distribution $\hat p_G(x_{t+1} \mid \mathbf{x}_{1:t})$ 
+predictive distribution $\hat p_G(x_{t+h} \mid \mathbf{x}_{1:t})$ 
 has substantially smaller variance than the true conditional distribution.\\
 
 A second, related instability is the \emph{gradient vanishing} that arises from gradient saturation at the discriminator.
@@ -800,15 +884,10 @@ motivate the development of the SRForGAN architecture in this thesis.
 
 
 
-
-
-
-
-
-\chapter{Data and Experimental Setup}
+\chapter{Data, Models and Experimental Setup}
 Experiments are conducted to evaluate the performance of the proposed SRForGAN model in comparison to the original ForGAN architecture in order to assess their ability to produce coherent conditional distributions given well known financial processes, 
 in particular, the experiments adopt trajectories obtained from Geometric Brownian Motion and Heston stochastic volatility model. 
-This chapter outlines the how training data are computed, model configurations, training procedures, and evaluation metrics used in the experiments.
+This chapter outlines how training data are computed, model configurations, training procedures, and evaluation metrics used in the experiments.
 
 \section{Training Data}
 In order to effectively train the Conditional GAN models, two kinds of data are required for the training phase:
@@ -823,6 +902,483 @@ However, in the test phase, a third kind of data is required, that is the ground
 distribution of the future output $\tau$ steps ahead given the past trajectory $c$. In this experimental setting, this distribution can be 
 computed analytically in the case of the Black-Scholes model and 
 numerically in the case of the Heston model (or alternatively using the inverse fast Fourier transform to obtain the probability density function as shown in \ref{alg:heston_pdf}).\\
+
+\section{The ForGAN Architecture}
+\label{sec:forgan}
+
+ForGAN \cite{background:forgan} reformulates the $h$-step-ahead time series forecasting as a conditional generative modeling problem,
+replacing the point estimate $\hat{x}_{t+h}$ of classical regression with an implicit sampler for the full conditional density $\rho(x_{t+h} \mid c)$, where $c = \{x_0, \dots, x_t\}$ denotes the historical condition window. 
+This design directly targets the two structural weaknesses of 
+mean-regression forecasters discussed in previous chapter \ref{chapter:literature_review}: convergence to the conditional mean under multimodal targets, and the quantile-crossing pathology of explicit quantile regressors.
+
+ForGAN builds on the conditional GAN (CGAN) framework of \cite{background:cgan}, 
+in fact, the mimised loss function is the same of a standard conditional GAN model:
+\begin{equation*}
+\min_G \max_D V(D,G) = \mathbb{E}_{x_{t+h} \sim \rho_{\text{data}}(x_{t+h})}[\log D(x_{t+h} \mid c)] + \mathbb{E}_{z \sim \rho_z(z)}[\log(1 - D(G(z \mid c)))].
+\end{equation*}
+Where the target data to generate is no more a matrix representing an image but the next value of a sequential process.
+At the Nash equilibrium of this game, the optimal generator $G^*$ implicitly represents the true conditional distribution 
+$\rho(x_{t+h}\mid c)$, so that repeated sampling $z \sim \mathcal{N}(0, I)$ yields draws from the forecast distribution rather than a single summary statistic.
+
+Architecturally, both $G$ and $D$ are built around a single recurrent layer (LSTM or GRU). 
+The generator first encodes the condition window through the RNN layer to 
+obtain a fixed-size condition representation, 
+concatenates it with a noise vector 
+$z \sim \mathcal{N}(0, I)$ of size $N$, 
+and passes the result through two dense 
+layers to produce the scalar forecast $\hat{x}_{t+h}$ as represented in schemas \ref{img:forgan} and \ref{img:forgan_rnn}. 
+The discriminator appends the candidate value (either $\hat{x}_{t+h}$ from $G$ or the ground-truth $x_{t+h}$) 
+to the end of the condition window, 
+forming the extended sequence $\{x_0,\dots,x_{t+h}\}$, 
+and feeds it through its own RNN layer followed by a dense 
+layer that outputs a single real/fake validity score. 
+Training proceeds asymmetrically: at each epoch the discriminator 
+is updated for $D_{\text{iter}}$ steps while the generator
+ is updated once, a ratio tuned alongside the RNN cell type, 
+ hidden sizes $R_G, R_D$, noise dimension $N$, and condition length $C$ via hyperparameter optimization techniques like genetic algorithms. 
+ Algorithm~\ref{alg:forgan_training} summarizes one training epoch.
+
+\begin{algorithm}[H]
+\caption{ForGAN Training (single epoch)}
+\label{alg:forgan_training}
+\begin{algorithmic}[1]
+\REQUIRE Generator $G_\phi$, discriminator $D_\theta$, condition window $c$, target $x_{t+h}$, discriminator iterations $D_{\text{iter}}$
+\FOR{$i = 1$ to $D_{\text{iter}}$}
+\STATE Sample noise $z \sim \mathcal{N}(0, I)$
+\STATE $\hat{x}_{t+h} \leftarrow G_\phi(z, c)$ \COMMENT{generated forecast}
+\STATE $\ell_D \leftarrow -\big[\log D_\theta(x_{t+h} \mid c) + \log(1 - D_\theta(\hat{x}_{t+h} \mid c))\big]$
+\STATE Update $\theta$ by descending $\nabla_\theta \ell_D$
+\ENDFOR
+\STATE Sample noise $z \sim \mathcal{N}(0, I)$
+\STATE $\hat{x}_{t+h} \leftarrow G_\phi(z, c)$
+\STATE $\ell_G \leftarrow -\log D_\theta(\hat{x}_{t+h} \mid c)$
+\STATE Update $\phi$ by descending $\nabla_\phi \ell_G$
+\end{algorithmic}
+\end{algorithm}
+As can be denoted from the following algorithm is that 
+it reproduce the same logic of the standard conditional GAN training process like in
+\ref{alg: cgan}. In fact, an easy extension of the ForGAN model using the Wasserstein Loss
+can be easily deduced by adopting the algorithm of the Wasserstein GAN with Gradient Penalty \ref{alg:cwgan_gp}, which is denominated ForWGAN during this thesis.\\
+
+To isolate the contribution of adversarial training from that of the architecture itself, 
+the original authors also define a \emph{G-regression} baseline: a network 
+structurally identical to $G$, 
+but trained by minimizing RMSE directly instead of playing the minimax game. 
+Across the Lorenz, Mackey-Glass, and Internet-traffic (A5M) benchmarks, 
+ForGAN is shown to match or beat G-regression and prior state-of-the-art 
+on point-wise metrics (RMSE, MAE, MAPE) 
+while dramatically outperforming both on the 
+Kullback-Leibler divergence between the sampled 
+forecast distribution and the empirical target distribution.\\
+Despite this success, 
+vanilla adversarial training inherits well-known 
+instabilities: vanishing gradients when $D$ saturates, 
+and mode collapse, 
+whereby $G$ learns to reproduce only a subset of the 
+modes of $\rho(x_{t+h}\mid c)$ while still fooling $D$ as described in section \ref{sec:limitations-gans}. 
+These pathologies motivate the design choices underlying SRForGAN, 
+introduced in the following section, 
+which departs from the adversarial signal of Eq.~\ref{eq:CGAN minimax} 
+in favor of a scoring-rule-based objective, 
+retaining ForGAN's conditional generative structure 
+while removing its reliance on a saturating discriminator game.
+
+
+\section{The SRForGAN Architecture}
+Mode collapse, also known as the "Helvetica scenario," 
+occurs when the generator learns to produce only a 
+limited subset of the data distribution as already explained in section \ref{sec:limitations-gans}. 
+It can be categorized into two forms, especially in the context of 
+conditional time-series GANs like ForGAN:
+\begin{itemize}
+    \item Distribution Mode Collapse: A collapse in the variety of samples generated for a single specific condition. The model fails to capture the probabilistic uncertainty of the future process.
+    \item Mean Mode Collapse: A collapse in the distribution of the means of generated values across all different conditions. This effectively reduces the model to producing similar point estimates regardless of the historical input
+\end{itemize}
+
+When both occur simultaneously, 
+the model yields a single point estimate for every input, 
+completely losing its probabilistic forecasting capabilities, a scenario similar to outputs seen in the classical ForGAN experiments \ref{forgan_simple_sample_sigma}. 
+Research indicates that mode collapse is often tied to the generator
+converging toward sharp local minima. 
+Once $G$ finds a sample that receives a high score from $D$,
+it may continue to reproduce that sample. 
+On the other hand,
+if $D$ cannot identify this repetitive behavior (due to converging to its own local minima), 
+the gradients for $G$ vanish, and the model becomes stuck.
+
+
+
+The Fin-GAN paper \cite{forgan:fin_gan} identifies specific triggers and solutions for these performance issues caused by mode collapse in the ForGAN model. The key findings include:
+\begin{itemize}
+    \item Weight Initialisation: Using He initialisation led to mode collapse in 67\% of simulations for ForGAN; however, switching to Xavier initialisation significantly alleviated the problem.
+    \item Loss Function Regularization: Including standard supervised terms like Mean Squared Error (MSE) or Sharpe Ratio (SR) with high coefficients can actually induce mode collapse by encouraging the model to only output values close to the target, so new terms are required to avoid this behaviour.
+    \item The paper suggests that adding a Profit and Loss (PnL) term to the generator's loss function acts as an effective regularizer. This term shifts the generated distributions and prevents the model from collapsing into single-point estimates, ensuring a more robust probabilistic forecast.
+\end{itemize}
+
+Also in \cite{srforgan:srforgan}, the authors propose replacing the adversarial loss with a strictly proper scoring rule, specifically the Energy Score, which is designed to directly optimize the generator for accurate probabilistic forecasting.
+This approach addresses the fundamental issues of mode collapse and training instability by providing a theoretically sound objective that encourages the generator to produce well-calibrated distributions rather than just realistic samples.\\
+
+In particular, the paper proposes replacing the adversarial objective with a scoring rule, which is a function $S(P^\phi, y)$ 
+that takes a forecast distribution $P^\phi$ and a single observed realization $y$ and returns a penalty score where the lower the score, the better the forecast.\\
+The key definition is strict propriety. A scoring rule $S$ is strictly proper relative to a class $\mathcal{P}$ if:
+$$\mathbb{E}_{y \sim P^*}[S(P^*, y)] < \mathbb{E}_{y \sim P^*}[S(P^\phi, y)] \quad \forall P^\phi \neq P^*$$
+Where the expected score is uniquely minimized when the forecast distribution equals the true data distribution $P^*$. No other distribution achieves a lower expected score. This is the property that makes a scoring rule the right objective for distribution learning because
+it is theoretically guaranteed to converge to the right answer, not just some approximation like the 
+GAN objective that minimizes a divergence between distributions which has a similar guarantee in principle, but the GAN only minimizes a variational lower bound of that divergence using a finite-capacity critic, which breaks the guarantee in practice.\\
+
+
+The paper \cite{srforgan:srforgan} uses the Energy Score as its primary scoring rule. 
+For $\beta \in (0,2)$, with $X, X' \sim P^\phi$ independent draws:
+\begin{equation}
+    \label{eq:energy_score}
+S_E^{(\beta)}(P^\phi, y) = 2 \cdot \mathbb{E}\|X - y\|_2^\beta - \mathbb{E}\|X - X'\|_2^\beta
+\end{equation}
+
+This Energy Score is obtained from the general Kernel Score:
+\begin{equation*}
+    \label{eq:kernel_score} 
+    S_k(P^\phi, y) = \mathbb{E}[k(X,X')] - 2\mathbb{E}[k(X,y)]
+\end{equation*}
+
+By choosing the negative power kernel $k(x,y) = -\|x - y\|_2^\beta$. 
+The Kernel Score is strictly proper whenever $k$ is a positive-definite kernel and $-\|x - y\|_2^\beta$ for $\beta \in (0,2)$ is indeed positive-definite.\\
+
+The Energy Score can be decomposed in two terms:
+$$S_E^{(\beta)}(P^\phi, y) = \underbrace{2\mathbb{E}\|X - y\|_2^\beta}_{\text{accuracy term}} - \underbrace{\mathbb{E}\|X - X'\|_2^\beta}_{\text{spread reward}}$$
+The accuracy term pulls generated samples toward the truth. The spread reward is subtracted, meaning the optimizer is explicitly penalized for producing a degenerate distribution where $X \approx X'$. 
+This is the mechanism that prevents mode collapse: a collapsed distribution has $\|X - X'\| = 0$, contributing nothing to the spread reward, making the total score worse than a properly dispersed distribution. The strictly proper guarantee ensures the only global minimum is at $P^\phi = P^*$.\\
+
+The paper fixes $\beta = 1$ throughout. In 1D, $S_E^{(1)}$ recovers exactly the CRPS (Continuous Ranked Probability Score), which is the standard evaluation metric in probabilistic weather forecasting:
+\begin{equation}
+    \label{eq:crps}
+    \begin{aligned}
+        \mathrm{CRPS}(F, y) =& \int_{-\infty}^{\infty} \big(F(x) - \mathbf{1}\{x \ge y\}\big)^2 \, dx\\
+        &\text{ or alternatively }\\
+      \mathrm{CRPS}(F, y)  =& \mathbb{E}|X - y| - \frac{1}{2}\mathbb{E}|X - X'|
+    \end{aligned}
+\end{equation}
+
+
+$S_E$ is defined as an expectation over $P^\phi$, but is not possible to differentiate through a sampling operation.
+The reparameterization trick resolves this. Because the generator defines:
+$$X = G_\phi(z, \text{c}), \quad z \sim \mathcal{N}(0, I)$$
+the expectation formula can be rewritten as:
+$$\mathbb{E}_{X \sim P^\phi}[\|X - y\|] = \mathbb{E}_{z \sim \mathcal{N}}[\|G_\phi(z, c) - y\|]$$
+The randomness now lives entirely in $z$, which is fixed before the forward pass. 
+The generator $G_\phi$ is deterministic and differentiable with respect to its weights. Automatic differentiation libraries can therefore compute $\nabla_\phi S_E$ exactly.
+The unbiased Monte Carlo estimator of the full gradient, as discussed in Appendix C of the paper \cite{srforgan:srforgan} is:
+\begin{equation}
+    \label{eq:energy_score_estimator}
+    \hat{S}_E^{(\beta)}(\{x_j\}_{j=1}^m, y) = \frac{2}{m}\sum_{j=1}^m \|x_j - y\|^\beta - \frac{1}{m(m-1)}\sum_{\substack{j,k=1 \\ k \neq j}}^m \|x_j - x_k\|^\beta
+\end{equation}
+
+where each $x_j = G_\phi(z_j, c)$ with $z_j$ drawn independently. The $\frac{1}{m(m-1)}$ denominator excludes diagonal terms and makes this an unbiased estimator. 
+Moreover, the paper proves that exchanging gradient and expectation is valid almost surely under mild conditions on the neural network architecture. This means that minimizing the empirical energy score via SGD gives unbiased gradient estimates of the true objective, so convergence results from standard SGD theory apply.
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{SRForGAN/images/srforgan_train_schema.png}
+    \caption{SRForGAN training schema. The generator takes a noise vector and a conditioning variable to produce a forecast distribution, which is then scored against the true observation using the Energy Score. The critic is not used in this architecture, as the adversarial loss is replaced by the scoring rule objective.}
+    \label{img:srforgan_train_schema}
+\end{figure}
+
+
+%
+%Layer 5 — The prequential formulation: adapting to time series
+%This is the paper's main theoretical contribution. For a temporal sequence $(y_1, \dots, y_T)$, the standard i.i.d. scoring rule objective (Eq. 6 in the paper) is:
+%$$\min_\phi \mathbb{E}_{\theta \sim \Pi} \mathbb{E}_{y \sim P^*(\cdot|\theta)} S(P^\phi(\cdot|\theta), y)$$
+%This assumes independent context-observation pairs $(\theta_i, y_i)$, which is not true for a time series. The paper replaces this with the prequential (predictive-sequential) score. Given a recorded window of length $T$, forecast each step $l$ ahead conditioned on the previous $k$ observations:
+%$$\hat{\phi}_T(y_{1:T}) := \arg\min_\phi \sum_{t=k}^{T-l} S(P^\phi_{t+l}(\cdot|y_{t-k+1:t}),\; y_{t+l})$$
+%This is literally how forecasting systems are evaluated in practice: for each time window in your training data, generate a conditional forecast and score it against the realization. The prequential score is then the sum of these one-at-a-time forecasting evaluations across the entire training sequence.
+%Why is this still a proper scoring rule despite temporal dependence? The key is Theorem 2 (in the paper): if $S$ is strictly proper, then the prequential score $S_T$ is strictly proper for distributions over $y_{k+l:T}|y_{1:k+l-1}$ that are $k$-Markovian with lag $l$. The proof proceeds by tower property of expectations — propriety at each step propagates to the joint proper scoring of the full sequence. Intuitively, because each term $S(P^\phi_{t+l}(\cdot|y_{t-k+1:t}), y_{t+l})$ depends only on the local window of length $k$, and the generator is the same for all $t$, the sequential evaluation correctly scores the generator's ability to forecast the conditional distribution of the next step.
+
+
+
+%Layer 6 — The consistency theorem (Theorem 3)
+%This is the rigorous guarantee that makes the method scientifically sound. The empirical minimizer:
+%$$\hat{\phi}_T(y_{1:T}) = \arg\min_\phi \frac{1}{T-l-k+1}\sum_{t=k}^{T-l} S(P^\phi(\cdot|y_{t-k+1:t}), y_{t+l})$$
+%converges to $\phi^*_T$, the minimizer of the true expected prequential score, as $T \to \infty$, under four assumptions:
+%A1 — Compactness: $\Phi$ compact. Standard regularity condition.
+%A2 — Uniqueness: The true minimizer is isolated. Lemma 12 shows this is satisfied when $S$ is strictly proper and the model is well-specified (i.e., there exists $\phi^*$ such that $P^{\phi^*} = P^*$).
+%A3 — Asymptotic stationarity: The marginal distribution of $(y_{t-k+1:t+l})$ averaged over time converges weakly. This is satisfied for stationary processes like GBM, which has stationary increments.
+%A4 — Mixing and moment boundedness: The process is either $\alpha$-mixing or $\phi$-mixing with appropriate decay rates. GBM satisfies $\phi$-mixing since increments are independent. The moment bound for the Energy Score reduces to requiring $\mathbb{E}\|y_{t+l}\|^\beta < \infty$, which holds for log-normal GBM increments.
+%The proof combines two classical results: the Uniform Law of Large Numbers for dependent data (Pötscher and Prucha 1989) applied to the sum of scoring rule evaluations, and a generic consistency result (Theorem 5.1, Skouras 1998) which promotes uniform convergence of the objective to convergence of the minimizer. The key insight is that even though consecutive terms in the sum are correlated (since the windows overlap), the mixing condition ensures this dependence decays fast enough that the ULLN still holds. This is fundamentally different from GAN training, which has no analogous consistency result for dependent data.
+
+
+Additionally, the paper states in the conclusion that the combination of adversarial and SR minimization would be beneficial and a promising path to explore. So an additional hybrid loss term is defined by adding the Energy Score to both the Wasserstein adversarial loss and classical Jensen-Shannon adversarial loss. 
+In particular, the generator loss using the hybrid approach is defined as:
+\begin{equation}
+    \label{eq:hybrid_wasserstein_loss}
+    \mathcal{L}_G = \underbrace{-\mathbb{E}[C(G(c,z))]}_{\text{Wasserstein signal}} + \lambda \cdot \underbrace{\hat{S}_E}_{\text{Energy Score}}
+\end{equation}
+
+
+
+
+
+
+% ---------------------------------------------------------------
+% Algorithm 1 — Unbiased Energy Score Estimate
+% ---------------------------------------------------------------
+\begin{algorithm}[H]
+\caption{Unbiased Energy Score Estimate $\hat{S}_E$}
+\label{alg:energy_score}
+\begin{algorithmic}[1]
+\REQUIRE Generator $G_{\phi}$, condition $c \in \mathbb{R}^l$,
+         observation $y \in \mathbb{R}^d$,
+         exponent $\beta \in (0,2)$
+\STATE Draw $m$ independent noise vectors $\{z_j\}_{j=1}^m \sim \mathcal{N}(0, I)$
+\STATE Generate $m$ samples $\{x_j\}_{j=1}^m \subset \mathbb{R}^d$ where $x_j = G_{\phi}(z_j, c)$
+
+
+\STATE \textbf{// Term 1: } $\frac{2}{m}\sum_{j=1}^{m}\|x_j - y\|^{\beta}$
+\STATE $T_1 \leftarrow \dfrac{2}{m}\displaystyle\sum_{j=1}^{m}\|x_j - y\|^{\beta}$
+
+\STATE \textbf{// Term 2: }
+       $\frac{1}{m(m-1)}\sum_{j \neq k}\|x_j - x_k\|^{\beta}$
+\STATE $T_2 \leftarrow \dfrac{1}{m(m-1)}\displaystyle\sum_{\substack{j,k=1 \\ j \neq k}}^{m}\|x_j - x_k\|^{\beta}$
+
+\RETURN $\hat{S}_E \leftarrow T_1 - T_2$
+\end{algorithmic}
+\end{algorithm}
+
+It is important to note that the available code implementation of the scoring rule includes also the 
+kernel score, which is a generalization of the energy score. The kernel score is defined as:
+\begin{equation}
+    \label{eq:kernel_score_estimator}
+    \hat{S}_k(\{x_j\}_{j=1}^m, y) = 
+    \frac{1}{m(m-1)}\sum_{\substack{j,k=1 \\ k \neq j}}^m k(x_j, x_k) 
+    - \frac{2}{m}\sum_{j=1}^m k(x_j, y), 
+    \quad k(x,x') = \exp\!\left(-\frac{\|x - x'\|^2}{2\gamma^2}\right)
+\end{equation}
+where $\gamma$ is a bandwidth parameter. The kernel score is also strictly proper and can be used as an alternative to the energy score, but the paper focuses on the energy score for its simplicity and interpretability in terms of accuracy and spread.\\
+One of the major proposition arising from \cite{srforgan:srforgan} is that the sum of the energy score and the kernel score is also a strictly proper scoring rule, which they call the energy-kernel score. This allows for a flexible combination of both scores in the generator's loss function, potentially leveraging the strengths of each to further improve forecasting performance.
+The energy-kernel score is defined as:
+\begin{equation}
+    \label{eq:energy_kernel_score_estimator}
+    \hat{S}_{E+k}^{(\beta)}(\{x_j\}_{j=1}^m, y) = 
+    \hat{S}_E^{(\beta)}(\{x_j\}_{j=1}^m, y) 
+    + \hat{S}_k(\{x_j\}_{j=1}^m, y)
+\end{equation}
+where $\hat{S}_E^{(\beta)}$ is the energy score estimator from Algorithm \ref{alg:energy_score} and $\hat{S}_k$ is the kernel score estimator from Equation \ref{eq:kernel_score_estimator}.
+
+
+% ---------------------------------------------------------------
+% Algorithm 2 — MySRForGAN Training
+% ---------------------------------------------------------------
+\begin{algorithm}[H]
+\caption{\textsc{SRForGAN} Training via Energy Score Minimisation}
+\label{alg:srforgan_train}
+\begin{algorithmic}[1]
+\REQUIRE
+    Training set $\mathcal{D}_{\text{train}} = \{(y_{t+l},\, y_{t-k+1:t})\}_{t=k}^{T-l}$,
+    validation set $\mathcal{D}_{\text{val}}$ (optional),
+    generator $G_{\phi}$ with parameters $\phi$,
+    scoring rule SR $\in \{\text{energy}, \text{kernel}, \text{energy-kernel}\}$,
+    number of generator draws $m$,
+    learning rate $\eta$,
+    maximum epochs $E_{\max}$,
+    early-stopping patience $P$,
+    minimum improvement threshold $\delta_{\min}$
+\ENSURE Trained generator parameters $\phi^*$
+
+\STATE Initialise Adam optimiser with parameters $\phi$ and learning rate $\eta$
+\STATE $\ell^*_{\text{val}} \leftarrow +\infty$;\quad
+       $p \leftarrow 0$;\quad
+       $\phi^* \leftarrow \phi$
+
+\FOR{$e = 1, \ldots, E_{\max}$}
+
+    \STATE \textbf{// --- Training pass ---}
+    \STATE Shuffle $\mathcal{D}_{\text{train}}$ into mini-batches
+           $\mathcal{B}_1, \ldots, \mathcal{B}_{N_B}$ of size $B$
+    \STATE $\ell_{\text{train}} \leftarrow 0$
+
+    \FOR{each mini-batch $(Y, C) \in \mathcal{B}_1, \ldots, \mathcal{B}_{N_B}$}
+        \STATE $\hat{\mathcal{L}} \leftarrow
+               \textsc{SRLoss}(C,\, Y,\, G_{\phi},\, m)$
+               \hfill\textit{// Algorithm~\ref{alg:energy_score}}
+        \STATE $\phi \leftarrow \phi - \eta\,\nabla_{\phi}\,\hat{\mathcal{L}}$
+               \hfill\textit{// Adam update, no critic needed}
+        \STATE $\ell_{\text{train}} \leftarrow \ell_{\text{train}} + \hat{\mathcal{L}}$
+    \ENDFOR
+    \STATE $\ell_{\text{train}} \leftarrow \ell_{\text{train}} / N_B$
+
+    \STATE \textbf{// --- Validation pass (no gradient) ---}
+    \IF{$\mathcal{D}_{\text{val}}$ is provided}
+        \STATE $\ell_{\text{val}} \leftarrow \textsc{SRLoss}$ evaluated on
+               $\mathcal{D}_{\text{val}}$ 
+        \IF{$\ell_{\text{val}} < \ell^*_{\text{val}} - \delta_{\min}$}
+            \STATE $\ell^*_{\text{val}} \leftarrow \ell_{\text{val}}$;\quad
+                   $p \leftarrow 0$;\quad
+                   $\phi^* \leftarrow \phi$
+                   \hfill\textit{// save best checkpoint}
+        \ELSE
+            \STATE $p \leftarrow p + 1$
+            \IF{$p \geq P$}
+                \STATE \textbf{break}
+                       \hfill\textit{// early stopping}
+            \ENDIF
+        \ENDIF
+    \ENDIF
+
+\ENDFOR
+
+\RETURN $\phi^*$
+\end{algorithmic}
+\end{algorithm}
+
+
+
+
+
+% ── local colour definitions ─────────────────────────────────────────────────
+\definecolor{cganblue}{RGB}{30,100,180}
+\definecolor{wganred}{RGB}{180,40,40}
+\definecolor{commentgray}{RGB}{110,110,110}
+ 
+% ── local math helpers ───────────────────────────────────────────────────────
+\newcommand{\Loss}{\mathcal{L}}
+\newcommand{\ES}{\hat{S}_{E}}
+ 
+% ── line-comment for the algorithmic package ─────────────────────────────────
+% algorithmic has no standalone comment line; emulate it with \STATE
+\newcommand{\LINECOMMENT}[1]{%
+  \STATE{\color{commentgray}\small$\triangleright$\;\textit{#1}}}
+ 
+% override inline comment style
+\renewcommand{\algorithmiccomment}[1]{%
+  \hfill{\color{commentgray}\small$\triangleright$\;\textit{#1}}}
+ 
+% ─────────────────────────────────────────────────────────────────────────────
+
+ 
+The hybrid models, which use both the adversarial losses (Binary Cross-Entropy and Wasserstein distance) and the energy score, inherit the same energy score method from \ref{alg:energy_score}.\\
+The hybrid Forgan uses as adversarial term the Binary Cross-Entropy loss and the
+ full hybrid generator loss for one mini-batch $B$ is:
+ 
+\begin{equation}
+  \Loss_{G}^{\mathrm{CGAN}}
+  =
+  \underbrace{
+    -\frac{1}{B} \sum_{b=1}^B \log D(G(z^{(b)}, c^{(b)}))
+  }_{\text{BCE adversarial loss}}
+  \;+\;
+  \underbrace{
+    \frac{\lambda}{B}\;
+    \sum_{b=1}^B \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
+  }_{\text{Energy Score (\ref{alg:energy_score})}}
+  \label{eq:cgan_hybrid}
+\end{equation}
+ 
+\begin{algorithm}[H]
+\caption{{\color{cganblue}\texttt{ForGAN}} --- hybrid generator update
+  (called when $\mathrm{step} \bmod n_{\mathrm{critic}} = 0$)}
+\begin{algorithmic}[1]
+\REQUIRE Generator $G_{\phi}$, Discriminator $D_{\psi}$
+\REQUIRE Condition batch $\mathbf{c}$, true targets $\mathbf{y}$,
+         real labels $\mathbf{1}$, samples $M$,
+         ES weight $\lambda$, noise dim $N_z$
+\ENSURE  Updated generator parameters $\phi$
+
+
+\LINECOMMENT{Draw M independent noise vectors; generate M samples}
+\STATE $\mathrm{samples} \leftarrow [\;]$
+\FOR{$m = 1$ \textbf{to} $M$}
+  \STATE $\mathbf{z}_m \sim \mathcal{N}(\mathbf{0},\,\mathbf{I}_{N_z})$
+  \COMMENT{fresh draw each iteration}
+  \STATE $\hat{y}_m \leftarrow G_{\phi}(\mathbf{c},\,\mathbf{z}_m)$
+  \COMMENT{shape $[B \times D]$}
+  \STATE $\mathrm{samples}.\mathrm{append}(\hat{y}_m)$
+\ENDFOR
+ 
+\LINECOMMENT{Adversarial term: pass only the first sample through D}
+\STATE $\mathrm{probs}
+  \leftarrow D_{\psi}\!\left(\mathrm{samples}[1],\,\mathbf{c}\right)$
+\STATE $\Loss_{\mathrm{adv}}
+  \leftarrow \mathrm{BCE}(\mathrm{probs},\;\mathbf{1})$
+  \COMMENT{generator wants $D$ to output 1 on fakes}
+ 
+\LINECOMMENT{Energy Score term: all M samples contribute}
+\STATE $\Loss_{\mathrm{ES}}
+  \leftarrow
+  \textsc{EnergyScoreLoss}(\mathrm{samples},\;\mathbf{y})$
+ 
+\LINECOMMENT{Combine, backpropagate once, update}
+\STATE $\Loss_{G}
+  \leftarrow \Loss_{\mathrm{adv}} + \lambda \cdot \Loss_{\mathrm{ES}}$
+\STATE $\mathrm{Backward}(\Loss_{G})$
+  \COMMENT{gradients from both terms accumulate in one pass}
+\STATE $\mathrm{Step}(\phi)$
+\RETURN $\Loss_{G}$
+\end{algorithmic}
+\end{algorithm}
+
+
+The adversarial term is the Wasserstein generator loss
+$-\mathbb{E}[D(G(z, c))]$ so in this case no labels are needed since the critic
+output is an unbounded real score.
+ 
+\begin{equation}
+  \Loss_{G}^{\mathrm{CWGAN}}
+  =
+  \underbrace{
+    -\frac{1}{B} \sum_{i=1}^B D(G(z^{(b)}, c^{(b)}))}_{\text{Wasserstein generator loss}}
+  \;+\;
+  \underbrace{
+    \frac{\lambda}{B}\;
+    \sum_{i=1}^B \ES\!\left(\{\hat{x}_m\}_{m=1}^{M},\,\mathbf{Y}\right)
+  }_{\text{Energy Score (\ref{alg:energy_score})}}
+  \label{eq:cwgan_hybrid}
+\end{equation}
+ 
+
+
+
+\begin{algorithm}[H]
+\caption{{\color{wganred}\texttt{ForWGAN}} --- hybrid generator update}
+\begin{algorithmic}[1]
+\REQUIRE Generator $G_{\phi}$, Critic $C_{\psi}$
+\REQUIRE Condition batch $\mathbf{c}$, true targets $\mathbf{y}$,
+         samples $M$, ES weight $\lambda$, noise dim $N_z$
+\ENSURE  Updated generator parameters $\phi$
+ 
+ 
+\LINECOMMENT{Draw M independent noise vectors; generate M samples}
+\STATE $\mathrm{samples} \leftarrow [\;]$
+\FOR{$m = 1$ \textbf{to} $M$}
+  \STATE $\mathbf{z}_m \sim \mathcal{N}(\mathbf{0},\,\mathbf{I}_{N_z})$
+  \STATE $\hat{y}_m \leftarrow G_{\phi}(\mathbf{c},\,\mathbf{z}_m)$
+  \COMMENT{shape $[B \times D]$}
+  \STATE $\mathrm{samples}.\mathrm{append}(\hat{y}_m)$
+\ENDFOR
+ 
+\LINECOMMENT{Wasserstein term: no labels; maximise critic score on fakes}
+\STATE $\Loss_{\mathrm{W}}
+  \leftarrow
+  -C_{\psi}\!\left(\mathrm{samples}[1],\,\mathbf{c}\right).\mathrm{mean}()$
+  \COMMENT{no target labels required}
+ 
+\LINECOMMENT{Energy Score term: all M samples contribute}
+\STATE $\Loss_{\mathrm{ES}}
+  \leftarrow
+  \textsc{EnergyScoreLoss}(\mathrm{samples},\;\mathbf{y})$
+ 
+\LINECOMMENT{Combine, backpropagate once, update}
+\STATE $\Loss_{G}
+  \leftarrow \Loss_{\mathrm{W}} + \lambda \cdot \Loss_{\mathrm{ES}}$
+\STATE $\mathrm{Backward}(\Loss_{G})$
+\STATE $\mathrm{Step}(\phi)$
+\RETURN $\Loss_{G}$
+\end{algorithmic}
+\end{algorithm}
+ 
+
+The critic and the discriminator are trained on real and fake samples, respectively, and do not interact with the Energy Score in any way,
+so they follow the standard adversarial training procedure already described in the previous chapter \ref{alg: cgan}, \ref{alg:cwgan_gp}.
+
 
 
 \section{Performance metrics and statistical tests}
