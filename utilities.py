@@ -332,8 +332,9 @@ def plot_bin_dist(trues: np.ndarray | list,
                    bins_values: np.ndarray | list,
                    X_T: List[float] | None = None,
                    v_T: List[float] | None = None,
-                   means: np.ndarray | list | None = None,
-                   stds: np.ndarray | list | None = None,
+                   theta: np.ndarray | list | None = None,
+                   sigma_vol: np.ndarray | list | None = None,
+                   kappa: np.ndarray | list | None = None,
                    ncols: int | None = None,   
                    zoom: bool = False,
                    smooth_curves: list | None = None):
@@ -391,15 +392,6 @@ def plot_bin_dist(trues: np.ndarray | list,
             x_c, y_c = smooth_curves[i]
             ax.plot(x_c, y_c, color='black', linewidth=2,
                     linestyle='--', label=f"Heston PDF")
-            
-        # Overlay theoretical normal distribution if mean and std are provided
-        elif means is not None and stds is not None:
-            mu = means[i]
-            sigma = stds[i]
-            # Scale the PDF to match the probability mass (PDF * bin_width = probability per bin)
-            normal_pdf = norm.pdf(bin_centers_row, loc=mu, scale=sigma) * width
-            ax.plot(bin_centers_row, normal_pdf, color='black', linewidth=2,
-                    linestyle='--', label=f"N({round(mu, 3)}, {round(sigma, 3)})")
 
         if X_T is not None:
             ax.axvline(
@@ -414,7 +406,13 @@ def plot_bin_dist(trues: np.ndarray | list,
         if v_T is not None:
             ax.plot([], [], ' ', label=f"v_T={v_T[i]:.3f}")
 
-        ax.set_title(f"Histogram {i}")
+        if kappa is not None or theta is not None or sigma_vol is not None:
+            kappa_title = f"kappa={round(kappa[i], 2)}, " if (kappa is not None and len(set(kappa))!=1) else ""
+            theta_title = f"theta={round(theta[i], 2)}, " if (theta is not None and len(set(theta))!=1) else ""
+            sigma_vol_title = f"vol-of-vol = {round(sigma_vol[i], 2)}" if (sigma_vol is not None and len(set(sigma_vol))!=1) else ""
+            ax.set_title(f"Hist {i}: " + kappa_title + theta_title + sigma_vol_title)
+        else:
+            ax.set_title(f"Histogram {i}")
         ax.set_xlabel("Bin values")
         ax.set_ylabel("Probability")
         ax.legend()

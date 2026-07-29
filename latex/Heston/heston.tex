@@ -1006,7 +1006,7 @@ learning\_rate            & \multicolumn{2}{l}{$10^{-3}$}                       
 
 
 \subsection{Test results}
-The trained model is evaluated on a test set given by $100000$ trajectories that were not seen during training by using the same Heston parameters adopted for the training process and described in table \ref{tab:heston_training_params}. 
+The trained model is evaluated on a test set given by \text{100,000} trajectories that were not seen during training by using the same Heston parameters adopted for the training process and described in table \ref{tab:heston_training_params}. 
 The evaluation metrics are computed by comparing the distribution of the generated predictions with the distribution of the true targets in the test set, using the Heston Monte Carlo simulations (and the frFFT-based PDF estimator for the visualization) described in \ref{sec:frfft_validation}.\\
 
 \begin{table}[h]
@@ -1099,16 +1099,17 @@ truth and of the generated distribution, respectively.
 $|\Delta_{\mathrm{true}}|=|\hat{\mu}_{\mathrm{true}}-\mu_{\mathrm{th}}|$,
 $|\Delta_{\mathrm{gen}}|=|\hat{\mu}_{\mathrm{gen}}-\mu_{\mathrm{th}}|$.}
 \label{tab:mean_consistency}
-\begin{tabular}{cccccccr}
+\begin{tabular}{cccccccc}
 \toprule
-Traj. & $X_T$ & $v_T$ & It\^{o} shift & $\mu_{\mathrm{th}}$
+Traj. & $X_T$ & $v_T$ & $\mu_{\mathrm{th}}$
       & $\hat{\mu}_{\mathrm{true}}$ & $|\Delta_{\mathrm{true}}|$
-      & $\hat{\mu}_{\mathrm{gen}}$\phantom{$|$} \\
+      & $\hat{\mu}_{\mathrm{gen}}$\phantom{$|$}
+      & $|\Delta_{\mathrm{gen}}|$ \\
 \midrule
-0 & $-1.219$ & $0.879$ & $-0.017$ & $-1.236$ & $-1.237$ & $0.001$ & $-1.243$ \\
-1 & $-0.975$ & $1.094$ & $-0.021$ & $-0.996$ & $-0.983$ & $0.014$ & $-1.086$ \\
-2 & $\phantom{-}0.721$ & $0.367$ & $-0.007$ & $\phantom{-}0.714$ & $\phantom{-}0.712$ & $0.001$ & $\phantom{-}0.675$ \\
-3 & $-0.159$ & $0.498$ & $-0.010$ & $-0.169$ & $-0.174$ & $0.006$ & $-0.147$ \\
+0 & $-1.219$ & $0.879$ & $-1.236$ & $-1.237$ & $0.001$ & $-1.243$ & $0.006$\\
+1 & $-0.975$ & $1.094$ & $-0.996$ & $-0.983$ & $0.014$ & $-1.086$ & $0.09$\\
+2 & $\phantom{-}0.721$ & $0.367$  & $\phantom{-}0.714$ & $\phantom{-}0.712$ & $0.001$ & $\phantom{-}0.675$ & $0.039$ \\
+3 & $-0.159$ & $0.498$ & $-0.169$ & $-0.174$ & $0.006$ & $-0.147$ & $0.022$\\
 \bottomrule
 \end{tabular}
 \end{table}

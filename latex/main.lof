@@ -20,4 +20,3 @@
 \contentsline {figure}{\numberline {5.3}{\ignorespaces Pointwise residuals between the normalised frFFT density and the analytical Gaussian density, evaluated at the active fine-grid points within $\pm 5\sigma $ of each trajectory's mean. The vertical axes carry exponents of $1^{-15}$, confirming that the residuals are at the level of double-precision machine epsilon.}}{68}{figure.5.3}%
 \contentsline {figure}{\numberline {5.4}{\ignorespaces Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $.}}{73}{figure.5.4}%
 \contentsline {figure}{\numberline {5.5}{\ignorespaces Samples obtained using fixed $x_0$, $\mu $, $v_0$, $\theta $, $\kappa $, $\sigma _v$, $\rho $.}}{74}{figure.5.5}%
-\addvspace {10\p@ }
