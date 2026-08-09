@@ -166,6 +166,401 @@ Nevertheless, conceptually, the transport plan remains the object that specifies
 
 
 
+\chapter{Verification of the assumptions underlying the Energy Score as loss function}
+\label{ch:condition_proofs}
 
+The convergence analysis of the scoring-rule-based learning framework proposed by Pacchiardi et al.~\cite{srforgan:srforgan} 
+relies on a number of regularity assumptions 
+concerning the data generating process and the 
+neural network defining the predictive distribution. 
+This appendix verifies that these assumptions listed in ~Chapter\ref{ES_conditions} are satisfied by the simulation framework adopted in this work.
+
+
+
+\section{Finite-moment assumption}
+The Energy Score is defined for distributions possessing finite moments of order $\beta$, where
+
+\[
+0<\beta<2.
+\]
+So it require $\mathbb{E}_{X\sim P^\phi}\|X\|^\beta<\infty$ for the strict propriety of $S_E^{(\beta)}$ and for its unbiased estimator to have finite variance.
+Both the generated and real data distributions are required to satisfy this condition.\\
+
+Starting from the simulated processes, we verify that this requirement is met.
+For the Black--Scholes model,
+
+\[
+X_t
+=
+X_0
+-
+\frac12\sigma^2t
++
+\sigma W_t,
+\]
+
+where
+
+\[
+W_t
+\sim
+\mathcal N(0,t).
+\]
+
+Hence,
+
+\[
+X_t
+\sim
+\mathcal N
+\left(
+X_0-\frac12\sigma^2t,
+\sigma^2t
+\right),
+\]
+
+which possesses finite moments of every order.
+
+Similarly, under the Heston model, provided that the parameters satisfy the usual admissibility conditions
+
+\[
+\kappa>0,\qquad
+\theta>0,\qquad
+\xi>0,
+\]
+
+the variance process remains non-negative and the log-price admits finite moments over finite forecasting horizons under the parameter ranges considered in this work.
+
+Since every parameter is sampled from a bounded domain,
+
+\[
+\vartheta\in\Theta,
+\]
+
+where $\Theta$ is compact, there exists a finite constant
+
+\[
+M_\beta<\infty
+\]
+
+such that
+
+\[
+\sup_{\vartheta\in\Theta}
+\mathbb E
+\left[
+\|X_t\|^\beta
+\mid
+\vartheta
+\right]
+\le
+M_\beta.
+\]
+
+Applying the law of total expectation,
+
+\[
+\mathbb E
+\|X_t\|^\beta
+=
+\int
+\mathbb E
+[
+\|X_t\|^\beta
+\mid
+\vartheta
+]
+\,d\Pi(\vartheta)
+\le
+M_\beta
+<
+\infty.
+\]
+
+
+\vspace{3cm}
+Coming to the generated distribution,
+if the generator's output layer is bounded (tanh, sigmoid), this is immediate, in fact, $\|X\|$ is almost surely bounded, 
+so every moment is trivially finite. 
+Our generator instead uses a \emph{linear} output layer, 
+so $X=G_\phi(z,c)$ is, in principle, 
+unbounded as $z$ ranges over $\mathbb{R}^{d_z}$.\\
+$G_\phi(z,c)$ is Lipschitz in $z$. By fixing $\phi$ and $c$ it can be seen that
+The map $z\mapsto G_\phi(z,c)$ is a finite composition of two kinds of layers:
+\begin{itemize}
+\item affine maps $h\mapsto Wh+b$, like the linear output layer,
+which are Lipschitz with constant $\|W\|_{\mathrm{op}}$ (the operator norm) finite since $W$ is a finite matrix. Here in our case $h$ is the concatenation of the recurrent embedding $h(c)$ and the latent variable $z$.
+\item pointwise nonlinear functions (ReLU, LeakyReLU, tanh, GELU, \ldots), each Lipschitz with a known finite constant $\ell$ (e.g.\ $\ell=1$ for ReLU).
+\end{itemize}
+A composition of $L_1$ and 
+$L_2$-Lipschitz maps is $(L_1L_2)$-Lipschitz, 
+so $G_\phi(z,c)$ is $L_\phi(c)$-Lipschitz, 
+with $L_\phi(c)$ the finite product of all per-layer 
+constants. 
+This uses only the composition structure of 
+the network, so it holds regardless of whether the 
+\emph{output} layer is bounded, and applies equally 
+after the recurrent embedding of $c$ has collapsed to a 
+fixed finite vector $h(c)$: with $c$ fixed, 
+$z\mapsto G_\phi(z,c)$ is a finite composition 
+of dense layers acting on $(h(c),z)$.\\
+
+Now by definition of Lipschitz continuity and the 
+triangle inequality,
+\[
+\|G_\phi(z,c)\| \;\le\; \|G_\phi(0,c)\| + L_\phi(c)\,\|z\|,
+\]
+where $\|G_\phi(z,c)\|$ is the norm of the generator output, $\|G_\phi(0,c)\|$ is a fixed finite 
+number (the network evaluated at $z=0$, no randomness 
+involved) and $L_\phi(c)$ is a fixed finite 
+Lipschitz constant.\\
+
+For $Z\sim\mathcal N(0,I_{d_z})$, the squared norm is a chi-squared random variable with $d_z$ degrees of freedom $\|Z\|^2\sim\chi^2_{d_z}$, and
+\[
+\mathbb{E}\|Z\|^\beta = 2^{\beta/2}\,\frac{\Gamma\!\left(\tfrac{d_z+\beta}{2}\right)}{\Gamma\!\left(\tfrac{d_z}{2}\right)} <\infty \qquad\text{for every }\beta>0,
+\]
+where $\Gamma(t)=\int_0^\infty x^{t-1}e^{-x}\,dx$ is Euler's Gamma function, finite for every $t>0$. 
+Both arguments above are positive since $d_z,\beta>0$.
+Finiteness itself needs no closed form but can be derived from the fact that $\|Z\|^2$ has a density with Gaussian tails,
+and Gaussian tails decay faster than any polynomial.\\
+
+For $a,b\ge0$, $(a+b)^\beta\le C_\beta(a^\beta+b^\beta)$, 
+with $C_\beta=1$ if $\beta\le1$ (subadditivity of the concave 
+map $t^\beta$) and $C_\beta=2^{\beta-1}$ if $\beta>1$ (convexity, 
+via Jensen). Apply this with $a=\|G_\phi(0,c)\|$, $b=L_\phi(c)\|z\|$, 
+the two terms bounding $\|G_\phi(z,c)\|$, 
+then take $\mathbb{E}_{Z\sim\mathcal N(0,I_{d_z})}$ of both sides:
+
+\[
+\mathbb{E}_{Z\sim\mathcal N(0,I_{d_z})}\|G_\phi(Z,c)\|^\beta
+\;\le\;
+C_\beta\Big(\|G_\phi(0,c)\|^\beta + L_\phi(c)^\beta\,\mathbb{E}\|Z\|^\beta\Big)
+\;<\;\infty,
+\]
+
+finite because $\|G_\phi(0,c)\|$ and $L_\phi(c)$ are 
+fixed finite numbers for fixed $\phi,c$ 
+and $\mathbb{E}\|Z\|^\beta<\infty$ as seen before. 
+Since $X=G_\phi(Z,c)$ 
+under the reparameterisation trick, 
+this proves $\mathbb{E}_{X\sim P^\phi(\cdot|c)}\|X\|^\beta<\infty$ 
+for every fixed $\phi\in\Phi$ and $c$: 
+a linear output layer poses no obstruction, 
+because linearity is itself a Lipschitz property, 
+and the resulting at-most-linear growth in $\|z\|$ 
+is dominated by the finiteness of all Gaussian moments.\\
+
+The bound above holds for one fixed $\phi$; 
+Lemmas~13--14 of \cite{srforgan:srforgan} 
+additionally require it \emph{uniformly} over 
+$\phi\in\Phi$, ultimately because their Theorem~3 
+assumes $\Phi$ compact (Assumption~A1). 
+This does not follow from the architecture 
+alone: $L_\phi(c)$ and $\|G_\phi(0,c)\|$ both 
+depend on the current weights, and nothing 
+prevents $L_\phi(c)\to\infty$ along an 
+unconstrained training trajectory. In practice this 
+is enforced, not assumed by the use of weight decay or spectral-norm 
+regularisations which bounds $\|W\|_{\mathrm{op}}$ 
+layer-by-layer, and gradient clipping bounds 
+the trajectory travelled by $\phi$, together 
+giving a finite $\bar L=\sup_{\phi\in\Phi}L_\phi(c)$ 
+over any compact $\Phi$ the optimiser is confined to. 
+The moment-boundedness condition of Sec.~\ref{sec:energy_score_theory} 
+is therefore satisfiable by construction 
+for the proposed generator, 
+but it is a property of the \emph{training regime} as a whole.\\
+
+
+Therefore, the finite-moment assumption required for the Energy Score is satisfied.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Unbiasedness of the estimator}
+
+For one condition $c$, let
+
+\[
+X_1,\ldots,X_m
+\stackrel{\mathrm{i.i.d.}}{\sim}
+P_\phi(\cdot\mid c)
+\]
+
+denote independent samples generated by the neural network.
+
+The empirical Energy Score used during optimization is
+
+\[
+\widehat S_E^{(\beta)}
+=
+\frac{2}{m}
+\sum_{i=1}^m
+\|X_i-y\|^\beta
+-
+\frac{1}{m(m-1)}
+\sum_{i\neq j}
+\|X_i-X_j\|^\beta.
+\]
+
+Using linearity of expectation,
+
+\[
+\mathbb E
+\left[
+\frac{2}{m}
+\sum_{i=1}^m
+\|X_i-y\|^\beta
+\right]
+=
+2
+\mathbb E
+\|X-y\|^\beta.
+\]
+
+Likewise,
+
+\[
+\mathbb E
+\left[
+\frac1{m(m-1)}
+\sum_{i\neq j}
+\|X_i-X_j\|^\beta
+\right]
+=
+\mathbb E
+\|X-X'\|^\beta,
+\]
+
+because every ordered pair
+$(X_i,X_j)$,
+$i\neq j$,
+has the same joint distribution as two independent draws
+$X,X'\sim P_\phi(\cdot\mid c)$.
+
+Therefore,
+\[
+\mathbb E
+\left[
+\widehat S_E^{(\beta)}
+\right]
+=
+S_E^{(\beta)},
+\]
+
+
+showing that the estimator implemented during training is unbiased, exactly as established in Appendix C of Pacchiardi et al.~\cite{srforgan:srforgan}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Independence of the generated observations}
+
+
+Although different trajectories may be generated using different model parameters (for example different values of the volatility parameter in the Black--Scholes model or different Heston parameters), this does not violate the theoretical assumptions underlying scoring-rule minimization. Indeed, if the parameters $\vartheta$ of the underlying data generation process are independently 
+sampled from a probability distribution $\Pi(\vartheta)$ before simulating each trajectory, every observation is generated according to a hierarchical model. In fact, the first step of the generative process is to sample the parameters $\vartheta_j$ for each trajectory $j$ from $\Pi$, and then to sample the condition--target pair $(c_j,y_j)$ from the conditional law $P(C,Y \mid\vartheta)$ defined by those parameters. Formally:
+\[
+\vartheta_j\sim\Pi,
+\qquad
+(c_j,y_j)\sim P(C,Y \mid\vartheta),
+\]
+which induces the marginal joint distribution. In fact, starting from the joint law and the fact that the $J$ trajectories 
+are independently generated:
+
+\[
+d \mathbb{P}\left(\vartheta_1, c_1, y_1, \ldots, \vartheta_J, c_J, y_J\right)=
+\prod_{j=1}^J\left[P\left(d c_j, d y_j \mid \vartheta_j\right) 
+d \Pi\left(\vartheta_j\right)\right]
+\]
+
+then by marginalizing out the latent parameters $\vartheta_j$ we obtain the marginal law of the observed data:
+
+\[
+d \mathbb{P}\left(c_1, y_1, \ldots, c_J, y_J\right)=
+\int \cdots \int \prod_{j=1}^J\left[P\left(d c_j, d y_j 
+\mid \vartheta_j\right) d \Pi\left(\vartheta_j\right)\right]
+\]
+
+by applying Tonelli's theorem and integrating out the latent parameters $\vartheta_j$:
+\[
+=\prod_{j=1}^J 
+\underbrace{\left(\int P\left(d c_j, d y_j \mid 
+\vartheta_j\right) d \Pi\left(\vartheta_j\right)\right)}_{=P\left(d c_j, d y_j\right)}=\prod_{j=1}^J 
+P\left(d c_j, d y_j\right)
+\]
+
+
+the label $\vartheta$
+is merely the (dummy) variable of integration, 
+and every trajectory shares the same 
+support $\Pi$ for the latent generating process's parameters 
+and the same conditional family 
+$P(C,Y\mid\vartheta)$,
+the marginal law of the observed data is simply a product of $J$ identical measures $P(C,Y)$, each of which is the marginal law of a single condition, target pair $(c_j,y_j)$ obtained by integrating out the latent parameters $\vartheta$ from the conditional law.
+So every factor in the product is the identical measure 
+$P(C,Y)=
+\int
+P(C,Y\mid\vartheta)
+\,d\Pi(\vartheta)$, only evaluated at a different observed point.
+
+Therefore,
+\[
+(c_1,y_1),\ldots,(c_J,y_J)
+\stackrel{\mathrm{i.i.d.}}{\sim}
+P(C,Y),
+\]
+
+So, even though each trajectory may have been simulated with different underlying stochastic parameters. The variation in the parameters is absorbed into the marginal data distribution and does not affect the strict propriety of the scoring rule, which is defined conditionally on the observed conditioning variable.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\section{Differentiability of the learning objective}
+
+The generator defines the predictive distribution through the reparameterization
+
+\[
+X
+=
+G_\phi(z,c),
+\qquad
+z\sim\mathcal N(0,I).
+\]
+
+The latent variable is independent of the network parameters, while the mapping
+
+\[
+G_\phi(\cdot,\cdot)
+\]
+
+is differentiable almost everywhere because it is composed of affine mappings and standard neural-network activation functions.
+
+Consequently,
+
+\[
+\mathbb E
+\left[
+\|G_\phi(z,c)-y\|^\beta
+\right]
+\]
+
+is differentiable with respect to $\phi$.
+
+Under the bounded-moment conditions verified above, the Dominated Convergence Theorem justifies exchanging differentiation and expectation,
+
+\[
+\nabla_\phi
+\mathbb E
+[S_E]
+=
+\mathbb E
+[
+\nabla_\phi S_E
+].
+\]
+
+Therefore, the stochastic gradients computed through automatic differentiation constitute unbiased estimators of the gradient of the population objective. Standard stochastic gradient descent convergence results therefore apply, exactly as shown in Theorem 1 and Appendix C of Pacchiardi et al.~\cite{srforgan:srforgan}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The previous results demonstrate that the simulation framework adopted in this work satisfies the assumptions required by the theory of strictly proper scoring-rule minimization. Although individual trajectories are generated using different realizations of the underlying stochastic model parameters, these parameters are sampled independently from a common distribution before each simulation. Consequently, the resulting condition--target pairs constitute an i.i.d. sample from a joint distribution, the Energy Score remains strictly proper, its Monte Carlo approximation is unbiased, and the optimization procedure implemented in this work inherits the theoretical guarantees established by Pacchiardi et al.
 
 \end{appendices}

@@ -592,49 +592,157 @@ by construction, the true conditional \emph{distribution} itself,
 rather than a decision-rule-specific functional of it.
 
 \section{Scoring Rules and ForGAN advances}
-The paradigm formalized by \cite{background:scoring_rules} 
-is to jointly assess calibration and 
-sharpness through \emph{proper scoring rules}: 
-functionals $S(\hat P, x)$ of a predictive distribution $\hat P$ 
-and a realized outcome $x$ such that the expected score 
-is uniquely minimized when the forecaster 
-reports the true conditional distribution,
 
+
+
+%-------------------------------------------------------------
+%-------------------------------------------------------------
+
+
+
+
+\label{sec:energy_score_theory}
+A scoring rule is any function $S:\mathcal P\times\Omega\to\mathbb R$ 
+that assigns a numerical reward $S(P^\phi,y)$ to a 
+probabilistic forecast $P\in\mathcal P$ once the 
+outcome $y$ materialises \cite{background:scoring_rules}. 
+Scoring rules originated as tools for \emph{forecast evaluation} and 
+\emph{elicitation}. A forecaster who 
+believes the true law is $P^\star$ is rewarded, 
+in expectation, according to $S(P^\phi,P^\star)$ for
+ whichever forecast $P^\phi$ is quoted, and 
+ propriety is precisely the condition 
+ guaranteeing that quoting $P^\phi =P^\star$ is the 
+ forecaster's optimal, honest strategy.  
+ Beyond evaluation, any strictly proper $S$ 
+ can be repurposed as a \emph{training objective}: 
+ minimising $-S(P^\phi, P^\star)$ over a parametric or 
+ generative family $\{P^\phi\}$ pushes $P^\phi$ 
+ toward the data-generating law, which is the 
+ perspective adopted throughout this thesis.\\
+
+This section formalises why minimising the empirical 
+Energy Score of Eq.~\eqref{eq:energy_score_estimator} 
+drives the generator$G_\phi$ toward the 
+true conditional law $P^\star(\cdot|c)$, 
+and states the regularity conditions under 
+which this guarantee holds for the i.i.d.\ 
+trajectory design of the subsequent experiments discussed in the following chapter.\\
+
+Propriety is the most important charactersistic 
+that a scoring rule can have and it is extensively leveraged during this work.
+The authors of \cite{background:scoring_rules} show that propriety 
+ can be fully characterized:
+ \cite{background:scoring_rules} 
+ show that every proper
+ scoring rule derives
+from a convex function $F$ on 
+$\mathcal P$, where $F(P):=S(P,P)$ 
+is the expected score under the forecast $P$ itself. 
+Propriety is equivalent to $F$ being convex and 
+to $S(P,\cdot)$ acting as a subtangent of 
+$F$ at $P$; strict propriety corresponds 
+to $F$ being strictly convex. $F$ 
+thus plays the role of a generalized 
+entropy, and the divergence $D(P^\star\|P^\phi)$ 
+becomes, on suitable spaces, the 
+Bregman divergence induced by $F$. 
+Any admissible convex $F$ therefore 
+yields a propriety-preserving training loss that can be optimized by gradient descent,
+which is precisely what allows scoring rules 
+to be tailored to a given problem.
+
+\paragraph{Strict propriety.} 
+For a scoring rule $S(P^\phi,y)$, 
+define the expected score 
+$S(P^\phi,P^\star):=\mathbb{E}_{Y\sim P^\star}S(P^\phi,Y)$. 
+Following \cite{background:scoring_rules},
+ $S$ is \emph{proper} relative to a class $\mathcal{P}$ 
+ if $S(P^\star,P^\star)\le S(P^\phi,P^\star)\ \forall P^\phi\in\mathcal{P}$, 
+ and \emph{strictly proper} if 
+ equality holds only at $P^\phi=P^\star$. 
+ Propriety is what makes $S$ a sound training 
+ objective: it guarantees
+$$D(P^\star\|P^\phi):=S(P^\phi,P^\star)-S(P^\star,P^\star)\ \ge\ 0,$$
+is a valid statistical divergence, vanishing
+iff $P^\phi=P^\star$.\\
+
+The authors of \cite{background:scoring_rules} 
+uses this property to demonstrate that given a fitting problem
+of a parametric model $P^\phi$ where $Y_1, Y_2, \ldots, Y_n$ are the observed i.i.d. 
+samples, and $\phi_0$ the true parameter value, then by 
+maximizing the goodness-of-fit given by the expected score:
+
+\begin{equation*}
+    \mathcal{S}_n(\phi)=\frac{1}{n} \sum_{i=1}^n S\left(P_\phi, Y_i\right),
+\end{equation*} 
+
+then: $\arg \max _\phi \mathcal{S}_n(\phi) \rightarrow \phi_0 \text { as } n \rightarrow \infty$.\\
+
+
+%Any $\phi$ minimising $\mathbb{E}_{c\sim\Pi}\,S(P^\phi(\cdot|c),P^\star(\cdot|c))$ therefore recovers the \emph{full}  conditional law for every $c\in\mathrm{supp}(\Pi)$,  not merely a point estimate or a moment of it.
+ 
+One of the most widely used strictly proper scoring rules for multivariate continuous distributions is the Energy Score, which generalises the Continuous Ranked Probability Score (CRPS), which is the main scoring rule used in this work, to higher dimensions.\\
+$S_E^{(\beta)}$ is defined as:
 \begin{equation}
-\mathbb{E}_{x \sim P}\left[ S(P, x) \right] \le \mathbb{E}_{x \sim P}\left[ S(\hat P, x) \right] \qquad \text{for all } \hat P,
+\mathrm{S}_E^{(\beta)}(P^{\phi}, \mathbf{y}) = \mathbb{E}\left\| \mathbf{X} - \mathbf{y} \right\|_d^\beta - \tfrac{1}{2}\, \mathbb{E}\left\| \mathbf{X} - \mathbf{X}' \right\|_d^\beta, \qquad \mathbf{X}, \mathbf{X}' \stackrel{\text{iid}}{\sim} P^{\phi},
 \end{equation}
-with equality if and only if $\hat P = P$, a property known as strict propriety.
-Proper scoring rules are the natural loss functions
-for training and evaluating GAN-based probabilistic forecasters,
-precisely because they can be estimated consistently
-from samples, that is, without requiring an explicit likelihood,
-which aligns with the implicit, 
-sampling-based nature of the GAN generator.\\
 
-The two proper scoring rules most relevant to this literature, and to the scoring-rule-based training paradigm are the Continuous Ranked Probability Score (CRPS) and the Energy Score.
-For a univariate predictive CDF $\hat F$ and a scalar outcome $x$,
+which is basically the Kernel Score $S_k(P^\phi,y)=\mathbb{E}[k(X,X')]-2\mathbb{E}[k(X,y)]$ 
+with the negative-power kernel $k(x,y)=-\|x-y\|_2^\beta$. 
+In \cite[Thm.~4]{background:scoring_rules}, authors show that
+$S_k$ is strictly proper on the class of distributions with 
+finite $\mathbb{E}\|X\|^\beta$ whenever $k$ is (conditionally) 
+strictly positive-definite. For $\beta\in(0,2)$ the negative-power kernel satisfies this,
+so $S_E^{(\beta)}$ is strictly proper on that class and by consequence also the univariate CRPS which is obtained by setting $\beta=1$.\\ 
+
+
+%----------------------------------------------
+Before using $S_E^{(\beta)}$ as a training loss, \cite{srforgan:srforgan} and \cite{background:scoring_rules} require:
+ 
+\begin{itemize}
+\label{scoring_rule_assumptions}
+\item $\beta\in(0,2)$: the negative-power kernel $k(x,y)=-\|x-y\|^\beta$ is (conditionally) strictly positive-definite only in this range, which is what makes $S_E^{(\beta)}$ strictly proper rather than merely proper.
+\item Finite $\beta$-th moments: $\mathbb{E}_{Y\sim P^\star}\|Y\|^\beta<\infty$ and $\mathbb{E}_{X\sim P^\phi}\|X\|^\beta<\infty$, without this the score, and hence the objective, may not even be finite.
+\item A \emph{well-specified} model class: some $\phi^\star\in\Phi$ with $P^{\phi^\star}(\cdot|c)=P^\star(\cdot|c)$ for all $c$, needed for the population minimiser to be unique (\cite{srforgan:srforgan}, Lemma~12). This condition is satisfied by the theorem of the universal approximation of neural networks, 
+which guarantees that a sufficiently large generator network can approximate any continuous function to arbitrary precision.
+\item i.i.d.\ training pairs $(c_j,y_j)\sim\Pi\times P^\star(\cdot|c)$: if pairs are instead dependent (e.g.\ sliding windows of one sequence), consistency additionally requires stationarity and mixing conditions (\cite{srforgan:srforgan}, Thm.~3), which our design avoids by construction.
+\item A generator admitting the reparameterisation trick: $X=G_\phi(z,c)$, $z\sim\mathcal N(0,I)$, differentiable in $\phi$, so $\nabla_\phi S_E$ can be estimated unbiasedly (App.~C, \cite{srforgan:srforgan}).
+\end{itemize}
+
+
+
+For our i.i.d.\ simulation 
+design, this is not a modelling risk but an analytically verifiable property: 
+with $\beta=1$, the log-price increment over $[X_{Ndt},X_{Ndt+\tau}]$ is Gaussian
+ with variance $\sigma_j^2\Delta t$ and $\sigma_j\in(0,1.2]$ bounded above by 
+ construction (Algorithm~\ref{alg:y condition}), so $\mathbb{E}|Y|<\infty$ trivially, 
+ and $\mathbb{E}\|X\|<\infty$ follows for any generator with bounded output layer or 
+ empirically bounded activations. This is a strictly easier position than the 
+ prequential time-series case of \cite{srforgan:srforgan}, where the same 
+ moment condition must hold \emph{uniformly over $t$} under stationarity and 
+ mixing assumptions (their Theorem 3), an assumption we do not need, since our 
+ $J$ trajectories are simulated i.i.d.\ rather than drawn as overlapping windows 
+ of one sequence.\\
+
+The proper scoring rules most relevant to this literature and in particular to this work is the Continuous Ranked Probability Score (CRPS) which is derived from the Energy Score by using a beta parameter equal to 1.
+For a univariate predictive CDF $\hat F$ and a scalar outcome $y$:
 \begin{equation}
-\mathrm{CRPS}(\hat F, x) = \int_{-\infty}^{\infty} \left( \hat F(y) - \mathbf{1}_{y \ge x} \right)^2 \, dy,
+    \label{eq:CRPS}
+\mathrm{CRPS}(\hat F, y) = \int_{-\infty}^{\infty} \left( \hat F(x) - \mathbf{1}_{x \ge y} \right)^2 \, dx,
 \end{equation}
 which admits the equivalent, sample-based (kernel) representation in terms of two independent draws $X, X' \sim \hat F$,
 \begin{equation}
-\mathrm{CRPS}(\hat F, x) = \mathbb{E}\left| X - x \right| - \tfrac{1}{2}\, \mathbb{E}\left| X - X' \right|.
+\mathrm{CRPS}(\hat F, y) = \mathbb{E}\left| X - y \right| - \tfrac{1}{2}\, \mathbb{E}\left| X - X' \right|.
 \end{equation}
 This representation is directly usable as a training loss for a GAN generator: given $N$ samples $\{\hat x^{(i)}\}_{i=1}^N$ drawn from $G([\mathbf{c},\mathbf{z}^{(i)}])$, an unbiased estimator of the CRPS is
 \begin{equation}
+    \label{eq:CRPS_estimator}
 \widehat{\mathrm{CRPS}} = \frac{1}{N} \sum_{i=1}^{N} \left| \hat x^{(i)} - x_{t+h} \right| - \frac{1}{2 N (N-1)} \sum_{i=1}^{N} \sum_{j \neq i} \left| \hat x^{(i)} - \hat x^{(j)} \right|,
 \end{equation}
 
-The natural multivariate generalization of the CRPS, applicable when the forecast target is a vector $\mathbf{x} \in \mathbb{R}^d$ (e.g. a full multi-step forecast path, or a vector of Heston state variables), is the Energy Score of order $\beta \in (0,2)$:
-\begin{equation}
-\mathrm{ES}_\beta(\hat P, \mathbf{x}) = \mathbb{E}\left\| \mathbf{X} - \mathbf{x} \right\|_d^\beta - \tfrac{1}{2}\, \mathbb{E}\left\| \mathbf{X} - \mathbf{X}' \right\|_d^\beta, \qquad \mathbf{X}, \mathbf{X}' \stackrel{\text{iid}}{\sim} \hat P,
-\end{equation}
-which reduces to (twice) the CRPS when $d=1$ and $\beta=1$. As with the CRPS, the Energy Score is strictly proper for $\beta \in (0,2)$, and its sample estimator
-\begin{equation}
-\widehat{\mathrm{ES}}_\beta = \frac{1}{N}\sum_{i=1}^N \left\| \hat{\mathbf{x}}^{(i)} - \mathbf{x} \right\|_2^\beta - \frac{1}{2N(N-1)} \sum_{i=1}^N\sum_{j\ne i} \left\| \hat{\mathbf{x}}^{(i)} - \hat{\mathbf{x}}^{(j)} \right\|_2^\beta
-\end{equation}
 
-The Energy Score therefore plays a role directly analogous to the minimax value function $V(D,G)$ of the original GAN, but with the crucial advantage that it is a proper scoring rule with a known, well-behaved minimizer, removing the discriminator-induced gradient pathologies discussed in Section~\ref{sec:limitations-gans} at the cost of a bias--variance trade-off governed by the ensemble size $N$ (the estimator above is unbiased for the population Energy Score, but its variance decreases only at rate $O(1/N)$, so small ensembles yield noisy gradients.
+The Energy Score, and by consequence the CRPS, therefore plays a role directly analogous to the minimax value function $V(D,G)$ of the original GAN, but with the crucial advantage that it is a proper scoring rule with a known, well-behaved minimizer, removing the discriminator-induced gradient pathologies discussed in Section~\ref{sec:limitations-gans} at the cost of a bias--variance trade-off governed by the ensemble size $N$ (the estimator above is unbiased for the population Energy Score, but its variance decreases only at rate $O(1/N)$, so small ensembles yield noisy gradients.
 
 
 \section{Applications in Quantitative Finance}
@@ -1018,13 +1126,134 @@ The Fin-GAN paper \cite{forgan:fin_gan} identifies specific triggers and solutio
 Also in \cite{srforgan:srforgan}, the authors propose replacing the adversarial loss with a strictly proper scoring rule, specifically the Energy Score, which is designed to directly optimize the generator for accurate probabilistic forecasting.
 This approach addresses the fundamental issues of mode collapse and training instability by providing a theoretically sound objective that encourages the generator to produce well-calibrated distributions rather than just realistic samples.\\
 
-In particular, the paper proposes replacing the adversarial objective with a scoring rule, which is a function $S(P^\phi, y)$ 
-that takes a forecast distribution $P^\phi$ and a single observed realization $y$ and returns a penalty score where the lower the score, the better the forecast.\\
+In particular, the paper proposes replacing the adversarial objective with a scoring rule whose theory is covered in \ref{sec:energy_score_theory}.
+To sum up, it is a function $S(P^\phi, y)$ 
+that takes a forecast distribution $P^\phi$ and a single observed realization $y$ and returns, in our framework, a penalty score where the lower the score, the better the forecast.\\
 The key definition is strict propriety. A scoring rule $S$ is strictly proper relative to a class $\mathcal{P}$ if:
-$$\mathbb{E}_{y \sim P^*}[S(P^*, y)] < \mathbb{E}_{y \sim P^*}[S(P^\phi, y)] \quad \forall P^\phi \neq P^*$$
+$$\mathbb{E}_{Y \sim P^*}[S(P^*, Y)] < \mathbb{E}_{Y \sim P^*}[S(P^\phi, Y)] \quad \forall P^\phi \neq P^*$$
 Where the expected score is uniquely minimized when the forecast distribution equals the true data distribution $P^*$. No other distribution achieves a lower expected score. This is the property that makes a scoring rule the right objective for distribution learning because
-it is theoretically guaranteed to converge to the right answer, not just some approximation like the 
+it is theoretically guaranteed to converge to the right answer, provided that some conditions are met, not just some approximation like the 
 GAN objective that minimizes a divergence between distributions which has a similar guarantee in principle, but the GAN only minimizes a variational lower bound of that divergence using a finite-capacity critic, which breaks the guarantee in practice.\\
+
+
+
+%-----------------------------------------------------
+
+
+The proposed model follows the scoring-rule-based conditional generative framework introduced by Pacchiardi et al. \cite{srforgan:srforgan}. Let $c\in\mathcal{C}$ denote the conditioning variable and let $y\in\mathcal{Y}$ denote the corresponding future realization. The objective is to learn a conditional probability distribution
+\[
+P^\phi(\cdot\mid c),
+\]
+parameterized by a neural network with weights $\phi$, such that it approximates the true conditional distribution
+\[
+P^*(\cdot\mid c).
+\]
+
+Unlike adversarial approaches, the model is trained by directly minimizing a strictly proper scoring rule. Given a scoring rule $S(P,y)$, the population objective is
+\begin{equation}
+\label{eq:population_objective}
+\mathcal{L}(\phi)
+=
+\mathbb{E}_{(C,Y)\sim P^*}
+\left[
+S\!\left(P^\phi(\cdot\mid C),Y\right)
+\right].
+\end{equation}
+
+In the conditional setting the strictly propriety of scoring rule is satisfied if:
+\[
+\mathbb{E}_{Y\sim P^*(\cdot\mid c)}
+S(P^*(\cdot\mid c),Y)
+<
+\mathbb{E}_{Y\sim P^*(\cdot\mid c)}
+S(P^\phi(\cdot\mid c),Y)
+\]
+for every conditional distribution
+$
+P^\phi(\cdot\mid c)\neq P^*(\cdot\mid c).
+$
+Consequently, the unique minimizer of (\ref{eq:population_objective}) satisfies
+\[
+P^\phi(\cdot\mid c)=P^*(\cdot\mid c)
+\qquad
+\text{for almost every }c,
+\]
+which provides the statistical consistency of the learning objective.\\
+
+
+Before using any scoring rule as a training loss, \cite{srforgan:srforgan} and \cite{background:scoring_rules} require:
+
+\begin{enumerate}
+    \label{ES_conditions}
+\item $\beta\in(0,2)$: the negative-power kernel $k(x,y)=-\|x-y\|^\beta$ is (conditionally) strictly positive-definite only in this range, which is what makes $S_E^{(\beta)}$ \ref{eq:energy_score} strictly proper rather than merely proper.
+\item Finite $\beta$-th moments: $\mathbb{E}_{Y\sim P^\star}\|Y\|^\beta<\infty$ and $\mathbb{E}_{X\sim P^\phi}\|X\|^\beta<\infty$, without this the score, and hence the objective, need not even be finite.
+\item A \emph{well-specified} unbiased estimator of the population scoring rule.
+\item I.i.d.\ training pairs $(c_j,y_j)\sim\Pi\times P^\star(\cdot|c)$ 
+\item A generator admitting the reparameterisation trick, $X=G_\phi(z,c)$, $z\sim\mathcal N(0,I)$, differentiable in $\phi$, so $\nabla_\phi S_E$ can be estimated unbiasedly (App.~C, \cite{srforgan:srforgan}).
+\end{enumerate}
+The discussion and proofs of these conditions are met in out setting are provided in the appendix \ref{ch:condition_proofs}.\\
+
+
+The original formulation of Pacchiardi et al. \cite{srforgan:srforgan} considers a prequential forecasting problem in which the conditioning variables are overlapping sliding windows extracted from a single observed time series. 
+In contrast, the present work constructs the training dataset by simulating $J$ independent trajectories of the underlying stochastic differential equation. 
+Each trajectory produces one condition--target pair
+\[
+(c_j,y_j),
+\qquad
+j=1,\ldots,J,
+\]
+where
+\[
+c_j
+=
+(X_0^j,\ldots,X_N^j)
+\]
+is the observed trajectory up to the forecasting horizon and
+\[
+y_j
+=
+X_{N+\tau}^j
+\]
+is the future realization.
+
+
+
+Although different trajectories may be generated using different model parameters (for example different values of the volatility parameter in the Black--Scholes model or different Heston parameters), this does not violate the theoretical assumptions underlying scoring-rule minimization. Indeed, if the parameters $\vartheta$ of the underlying data generation process are independently 
+sampled from a probability distribution $\Pi(\vartheta)$ before simulating each trajectory, every observation is generated according to a hierarchical model. In fact, the first step of the generative process is to sample the parameters $\vartheta_j$ for each trajectory $j$ from $\Pi$, and then to sample the condition--target pair $(c_j,y_j)$ from the conditional law $P(C,Y \mid\vartheta)$ defined by those parameters. Formally:
+\[
+\vartheta_j\sim\Pi,
+\qquad
+(c_j,y_j)\sim P(C,Y \mid\vartheta),
+\]
+which induces the marginal joint distribution:
+\[
+(c_1,y_1),\ldots,(c_J,y_J)
+\stackrel{\mathrm{i.i.d.}}{\sim}
+P(C,Y),
+\]
+
+So, even though each trajectory may have been simulated with different underlying stochastic parameters. The variation in the parameters is absorbed into the marginal data distribution and does not affect the strict propriety of the scoring rule, which is defined conditionally on the observed conditioning variable.\\
+
+
+
+
+The empirical objective optimized during training is therefore
+\begin{equation}
+\label{eq:empirical_sr}
+\hat{\mathcal{L}}(\phi)
+=
+\frac{1}{J}
+\sum_{j=1}^{J}
+S_E\!\left(
+P^\phi(\cdot\mid c_j),
+y_j
+\right),
+\end{equation}
+which is the standard empirical estimator of (\ref{eq:population_objective}) for independent condition--target observations.
+
+
+%----------------------------------------------------
+
 
 
 The paper \cite{srforgan:srforgan} uses the Energy Score as its primary scoring rule. 
@@ -1069,10 +1298,10 @@ The generator $G_\phi$ is deterministic and differentiable with respect to its w
 The unbiased Monte Carlo estimator of the full gradient, as discussed in Appendix C of the paper \cite{srforgan:srforgan} is:
 \begin{equation}
     \label{eq:energy_score_estimator}
-    \hat{S}_E^{(\beta)}(\{x_j\}_{j=1}^m, y) = \frac{2}{m}\sum_{j=1}^m \|x_j - y\|^\beta - \frac{1}{m(m-1)}\sum_{\substack{j,k=1 \\ k \neq j}}^m \|x_j - x_k\|^\beta
+    \hat{S}_E^{(\beta)}(\{x_i\}_{i=1}^m, y) = \frac{2}{m}\sum_{i=1}^m \|x_i - y\|^\beta - \frac{1}{m(m-1)}\sum_{\substack{i,k=1 \\ k \neq i}}^m \|x_i - x_k\|^\beta
 \end{equation}
 
-where each $x_j = G_\phi(z_j, c)$ with $z_j$ drawn independently. The $\frac{1}{m(m-1)}$ denominator excludes diagonal terms and makes this an unbiased estimator. 
+where each $x_i = G_\phi(z_i, c)$ with $z_i$ drawn independently. The $\frac{1}{m(m-1)}$ denominator excludes diagonal terms and makes this an unbiased estimator. 
 Moreover, the paper proves that exchanging gradient and expectation is valid almost surely under mild conditions on the neural network architecture. This means that minimizing the empirical energy score via SGD gives unbiased gradient estimates of the true objective, so convergence results from standard SGD theory apply.
 
 
@@ -1107,15 +1336,6 @@ Moreover, the paper proves that exchanging gradient and expectation is valid alm
 %The proof combines two classical results: the Uniform Law of Large Numbers for dependent data (Pötscher and Prucha 1989) applied to the sum of scoring rule evaluations, and a generic consistency result (Theorem 5.1, Skouras 1998) which promotes uniform convergence of the objective to convergence of the minimizer. The key insight is that even though consecutive terms in the sum are correlated (since the windows overlap), the mixing condition ensures this dependence decays fast enough that the ULLN still holds. This is fundamentally different from GAN training, which has no analogous consistency result for dependent data.
 
 
-Additionally, the paper states in the conclusion that the combination of adversarial and SR minimization would be beneficial and a promising path to explore. So an additional hybrid loss term is defined by adding the Energy Score to both the Wasserstein adversarial loss and classical Jensen-Shannon adversarial loss. 
-In particular, the generator loss using the hybrid approach is defined as:
-\begin{equation}
-    \label{eq:hybrid_wasserstein_loss}
-    \mathcal{L}_G = \underbrace{-\mathbb{E}[C(G(c,z))]}_{\text{Wasserstein signal}} + \lambda \cdot \underbrace{\hat{S}_E}_{\text{Energy Score}}
-\end{equation}
-
-
-
 
 
 
@@ -1148,9 +1368,9 @@ It is important to note that the available code implementation of the scoring ru
 kernel score, which is a generalization of the energy score. The kernel score is defined as:
 \begin{equation}
     \label{eq:kernel_score_estimator}
-    \hat{S}_k(\{x_j\}_{j=1}^m, y) = 
-    \frac{1}{m(m-1)}\sum_{\substack{j,k=1 \\ k \neq j}}^m k(x_j, x_k) 
-    - \frac{2}{m}\sum_{j=1}^m k(x_j, y), 
+    \hat{S}_k(\{x_i\}_{i=1}^m, y) = 
+    \frac{1}{m(m-1)}\sum_{\substack{i,k=1 \\ k \neq i}}^m k(x_i, x_k) 
+    - \frac{2}{m}\sum_{i=1}^m k(x_i, y), 
     \quad k(x,x') = \exp\!\left(-\frac{\|x - x'\|^2}{2\gamma^2}\right)
 \end{equation}
 where $\gamma$ is a bandwidth parameter. The kernel score is also strictly proper and can be used as an alternative to the energy score, but the paper focuses on the energy score for its simplicity and interpretability in terms of accuracy and spread.\\
@@ -1158,9 +1378,9 @@ One of the major proposition arising from \cite{srforgan:srforgan} is that the s
 The energy-kernel score is defined as:
 \begin{equation}
     \label{eq:energy_kernel_score_estimator}
-    \hat{S}_{E+k}^{(\beta)}(\{x_j\}_{j=1}^m, y) = 
-    \hat{S}_E^{(\beta)}(\{x_j\}_{j=1}^m, y) 
-    + \hat{S}_k(\{x_j\}_{j=1}^m, y)
+    \hat{S}_{E+k}^{(\beta)}(\{x_i\}_{i=1}^m, y) = 
+    \hat{S}_E^{(\beta)}(\{x_i\}_{i=1}^m, y) 
+    + \hat{S}_k(\{x_i\}_{i=1}^m, y)
 \end{equation}
 where $\hat{S}_E^{(\beta)}$ is the energy score estimator from Algorithm \ref{alg:energy_score} and $\hat{S}_k$ is the kernel score estimator from Equation \ref{eq:kernel_score_estimator}.
 
@@ -1197,9 +1417,15 @@ where $\hat{S}_E^{(\beta)}$ is the energy score estimator from Algorithm \ref{al
     \STATE $\ell_{\text{train}} \leftarrow 0$
 
     \FOR{each mini-batch $(Y, C) \in \mathcal{B}_1, \ldots, \mathcal{B}_{N_B}$}
+        \STATE $\hat{S}_E^B = 0$
+        \FOR{$b = 1$ to $B$ samples in the mini-batch}
+            \STATE \text{// Compute for sample $b$ of the batch  $\hat{S}_E^b $}
+            \hfill\textit{// Algorithm~\ref{alg:energy_score}}
+            \STATE $\hat{S}_E^B \leftarrow \hat{S}_E^B + \hat{S}_E^b$
+        \ENDFOR
         \STATE $\hat{\mathcal{L}} \leftarrow
-               \textsc{SRLoss}(C,\, Y,\, G_{\phi},\, m)$
-               \hfill\textit{// Algorithm~\ref{alg:energy_score}}
+               \textsc{SRLoss}(C,\, Y,\, G_{\phi},) = \frac{1}{N_B} \hat{S}_E^B$
+               \hfill\textit{// Estimator~\ref{eq:empirical_sr}}
         \STATE $\phi \leftarrow \phi - \eta\,\nabla_{\phi}\,\hat{\mathcal{L}}$
                \hfill\textit{// Adam update, no critic needed}
         \STATE $\ell_{\text{train}} \leftarrow \ell_{\text{train}} + \hat{\mathcal{L}}$
@@ -1253,6 +1479,14 @@ where $\hat{S}_E^{(\beta)}$ is the energy score estimator from Algorithm \ref{al
   \hfill{\color{commentgray}\small$\triangleright$\;\textit{#1}}}
  
 % ─────────────────────────────────────────────────────────────────────────────
+
+Additionally, the paper states in the conclusion that the combination of adversarial and SR minimization would be beneficial and a promising path to explore. So an additional hybrid loss term is defined by adding the Energy Score to both the Wasserstein adversarial loss and classical Jensen-Shannon adversarial loss. 
+In particular, the generator loss using the hybrid approach is defined as:
+\begin{equation}
+    \label{eq:hybrid_wasserstein_loss}
+    \mathcal{L}_G = \underbrace{-\mathbb{E}[C(G(c,z))]}_{\text{Wasserstein signal}} + \lambda \cdot \underbrace{\hat{S}_E}_{\text{Energy Score}}
+\end{equation}
+
 
  
 The hybrid models, which use both the adversarial losses (Binary Cross-Entropy and Wasserstein distance) and the energy score, inherit the same energy score method from \ref{alg:energy_score}.\\

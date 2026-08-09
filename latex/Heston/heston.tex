@@ -912,7 +912,7 @@ $\rho$     & -0.7 \\
 \texttt{Forecast\_horizon}     & 10 \\
 \hline
 \end{tabular}
-\caption{Model hyperparameters}
+\caption{Heston parameters}
 \end{table}
 Where $x_0$ is the initial value of the log-price process, $\mu$ is the drift, $v_0$ is the initial variance, $\kappa$ is the mean-reversion speed of the variance, $\theta$ is the long-term mean of the variance, $\sigma_v$ is the volatility of the variance process, and $\rho$ is the correlation between the Brownian motions driving the log-price and variance.
 From the parameters values, the Feller condition is satisfied (in fact, $\kappa \theta = 2.0 \times 0.5 = 1.0 > 0.9 = \sigma_v^2$), ensuring that the variance process remains positive. 
@@ -1161,4 +1161,109 @@ parameter set, the terminal states $(X_T,\,v_T)$, and the Monte Carlo ground-tru
 distributions: theoretical means match empirical means to within $0.014$ and
 theoretical standard deviations to within $0.007$.  The generated distributions
 replicate the correct distributional shape and ordering as suggested by the 
-distance metrics and Kolmogorov-Smirnov test as well.
+distance metrics and Kolmogorov-Smirnov test as well.\\
+
+
+The same kind of experiment is run on Heston dataset obtained by allowing 
+the different parameters to change.\\
+The first set of experiments allows just the volatility of the volatility to change. In this case the parameters of the trajectories are sampled as follows:
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\hline
+Parameter & Value training & Value testing \\
+\hline
+$x_0$      & 0.0 & 0.0\\
+$\mu$      & 0.0 & 0.0\\
+$v_0$      & 0.5 & 0.5\\
+$\kappa$   & 2.0 & 2.0\\
+$\theta$   & 0.5 & 0.5\\
+$\sigma_v$ & (0.2, 1.3) & (0.3, 1.2) \\
+$\rho$     & -0.7 & -0.7\\
+\texttt{Condition\_trajectory\_length} & 252 & 252\\
+\texttt{Forecast\_horizon}     & 10 & 10\\
+\hline
+\end{tabular}
+\caption{Heston parameters vol-of-vol}
+\end{table}
+
+The performance metrics obtained over \text{10000} samples are slightly decreased
+with respect to the fixed parameters experiment:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\hline
+Metric & Value \\
+\hline
+KS test acceptance rate & 83.00\% \\
+Jensen--Shannon distance & 0.149905 \\
+Hellinger distance & 0.128144 \\
+Total variation distance & 0.128569 \\
+Earth mover's distance & 0.001136 \\
+\hline
+\end{tabular}
+\caption{Distribution comparison metrics}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Heston/images/srforgan_samples_volvol.png}
+    \caption{Samples obtained using fixed $x_0$, $\mu$, $v_0$, $\theta$, $\kappa$, $\rho$ and variable $\sigma_v$}
+    \label{srforgan_heston_sample_volvol}
+\end{figure}
+
+The last experiment allows all the different parameters to change for each trajectory,
+while keeping the Feller condition always satisfied, 
+in particular:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\hline
+Parameter & Value training & Value testing \\
+\hline
+$x_0$      & 0.0  & 0.0 \\
+$\mu$      & 0.0 & 0.0 \\
+$v_0$      & 0.5 & 0.5 \\
+$\kappa$   & (1.5, 5.0) & (2.0, 4.0) \\
+$\theta$   & (0.57, 1.5) & (0.6, 1.4) \\
+$\sigma_v$ & (0.2, 1.3) & (0.3, 1.2) \\
+$\rho$     & -0.7 & -0.7 \\
+\texttt{Condition\_trajectory\_length} & 252 & 252 \\
+\texttt{Forecast\_horizon}     & 10 & 10\\
+\hline
+\end{tabular}
+\caption{Heston with all variable parameters}
+\end{table}
+
+
+The performance metrics does not differ significantly from the previous experiment where just the vol-of-vol 
+is allowed to change for each trajectory. This suggests that the model is able to 
+model also trajectories guided by different underlying parameters 
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\hline
+Metric & Value \\
+\hline
+KS test acceptance rate & 82.10\% \\
+Jensen--Shannon distance & 0.150024 \\
+Hellinger distance & 0.129049 \\
+Total variation distance & 0.129361 \\
+Earth mover's distance & 0.001198 \\
+\hline
+\end{tabular}
+\caption{Distribution comparison metrics}
+\end{table}
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{Heston/images/srforgan_samples_all_params.png}
+    \caption{Samples obtained using fixed $x_0$, $\mu$, $v_0$, but different $\theta$, $\kappa$, $\rho$ and $\sigma_v$}
+    \label{srforgan_heston_sample_all_var}
+\end{figure}
+
+

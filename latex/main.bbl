@@ -651,6 +651,49 @@
       \field{pages}{359\bibrangedash 378}
       \range{pages}{20}
     \endentry
+    \entry{srforgan:srforgan}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=a1b163e4420a009c1d6b0076ce43dfd7}{%
+           family={Pacchiardi},
+           familyi={P\bibinitperiod},
+           given={Lorenzo},
+           giveni={L\bibinitperiod}}}%
+        {{hash=812e39cd0945724779725b741ee7c8cb}{%
+           family={Adewoyin},
+           familyi={A\bibinitperiod},
+           given={Rilwan\bibnamedelima A},
+           giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=1bfe3443b0b08e9a166b07fa7572baec}{%
+           family={Dueben},
+           familyi={D\bibinitperiod},
+           given={Peter},
+           giveni={P\bibinitperiod}}}%
+        {{hash=af8c2045f576cb84ce423817fc4bd740}{%
+           family={Dutta},
+           familyi={D\bibinitperiod},
+           given={Ritabrata},
+           giveni={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{fullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{fullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{bibnamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authorbibnamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authornamehash}{e8cf8318e1023245cbc55c70d8725335}
+      \strng{authorfullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \strng{authorfullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Machine Learning Research}
+      \field{number}{45}
+      \field{title}{Probabilistic forecasting with generative networks via scoring rule minimization}
+      \field{volume}{25}
+      \field{year}{2024}
+      \field{pages}{1\bibrangedash 64}
+      \range{pages}{64}
+    \endentry
     \entry{background:quantile_regression}{article}{}{}
       \name{author}{3}{}{%
         {{hash=5a283566f83f2071901270d67928b225}{%
@@ -680,8 +723,8 @@
       \strng{authornamehash}{778bb76edc26ea60ae2424274e07f68d}
       \strng{authorfullhash}{778bb76edc26ea60ae2424274e07f68d}
       \strng{authorfullhashraw}{778bb76edc26ea60ae2424274e07f68d}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of financial econometrics}
@@ -708,8 +751,8 @@
       \strng{authornamehash}{9c35c837aab0a3a24cc7c32213f43268}
       \strng{authorfullhash}{9c35c837aab0a3a24cc7c32213f43268}
       \strng{authorfullhashraw}{9c35c837aab0a3a24cc7c32213f43268}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{arXiv preprint arXiv:2508.18921}
@@ -750,8 +793,8 @@
       \strng{authornamehash}{801ba3c68575a0a78135df387a244897}
       \strng{authorfullhash}{97fcea1445dceb7f04fd5573e834d14f}
       \strng{authorfullhashraw}{97fcea1445dceb7f04fd5573e834d14f}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Financial Innovation}
@@ -796,8 +839,8 @@
       \strng{authornamehash}{d90856e51f7f10b883ab5db8820da4e1}
       \strng{authorfullhash}{175506e841be70f90f5d9d975dd4d50e}
       \strng{authorfullhashraw}{175506e841be70f90f5d9d975dd4d50e}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Quantitative Finance}
@@ -842,8 +885,8 @@
       \strng{authornamehash}{c803ca7c1168ac12ce5b3d8f529420a8}
       \strng{authorfullhash}{41707542eb8b75d2a0838154a78b6d8d}
       \strng{authorfullhashraw}{41707542eb8b75d2a0838154a78b6d8d}
-      \field{sortinit}{2}
-      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Management Science}
@@ -873,8 +916,8 @@
       \strng{authornamehash}{eda2d58a1b493691fe187a3fe6b03c41}
       \strng{authorfullhash}{eda2d58a1b493691fe187a3fe6b03c41}
       \strng{authorfullhashraw}{eda2d58a1b493691fe187a3fe6b03c41}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Statistical Modelling}
@@ -909,8 +952,8 @@
       \strng{authornamehash}{bd53f834f316782faf2b5cdaccfdf28b}
       \strng{authorfullhash}{bd53f834f316782faf2b5cdaccfdf28b}
       \strng{authorfullhashraw}{bd53f834f316782faf2b5cdaccfdf28b}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of the Royal Statistical Society Series B: Statistical Methodology}
@@ -945,8 +988,8 @@
       \strng{authornamehash}{a031c61993dd32c164a7835eb8103f2e}
       \strng{authorfullhash}{a031c61993dd32c164a7835eb8103f2e}
       \strng{authorfullhashraw}{a031c61993dd32c164a7835eb8103f2e}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{AStA Advances in Statistical Analysis}
@@ -981,8 +1024,8 @@
       \strng{authornamehash}{c3a75c350adfe6030a9a24ab810f065f}
       \strng{authorfullhash}{c3a75c350adfe6030a9a24ab810f065f}
       \strng{authorfullhashraw}{c3a75c350adfe6030a9a24ab810f065f}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Machine Learning}
@@ -992,49 +1035,6 @@
       \field{year}{2025}
       \field{pages}{141}
       \range{pages}{1}
-    \endentry
-    \entry{srforgan:srforgan}{article}{}{}
-      \name{author}{4}{}{%
-        {{hash=a1b163e4420a009c1d6b0076ce43dfd7}{%
-           family={Pacchiardi},
-           familyi={P\bibinitperiod},
-           given={Lorenzo},
-           giveni={L\bibinitperiod}}}%
-        {{hash=812e39cd0945724779725b741ee7c8cb}{%
-           family={Adewoyin},
-           familyi={A\bibinitperiod},
-           given={Rilwan\bibnamedelima A},
-           giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
-        {{hash=1bfe3443b0b08e9a166b07fa7572baec}{%
-           family={Dueben},
-           familyi={D\bibinitperiod},
-           given={Peter},
-           giveni={P\bibinitperiod}}}%
-        {{hash=af8c2045f576cb84ce423817fc4bd740}{%
-           family={Dutta},
-           familyi={D\bibinitperiod},
-           given={Ritabrata},
-           giveni={R\bibinitperiod}}}%
-      }
-      \strng{namehash}{e8cf8318e1023245cbc55c70d8725335}
-      \strng{fullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
-      \strng{fullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
-      \strng{bibnamehash}{e8cf8318e1023245cbc55c70d8725335}
-      \strng{authorbibnamehash}{e8cf8318e1023245cbc55c70d8725335}
-      \strng{authornamehash}{e8cf8318e1023245cbc55c70d8725335}
-      \strng{authorfullhash}{9a9b143ab7eaba405fdee30e1e75e85d}
-      \strng{authorfullhashraw}{9a9b143ab7eaba405fdee30e1e75e85d}
-      \field{sortinit}{3}
-      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{Journal of Machine Learning Research}
-      \field{number}{45}
-      \field{title}{Probabilistic forecasting with generative networks via scoring rule minimization}
-      \field{volume}{25}
-      \field{year}{2024}
-      \field{pages}{1\bibrangedash 64}
-      \range{pages}{64}
     \endentry
     \entry{background:ks_test}{article}{}{}
       \name{author}{1}{}{%
@@ -1055,8 +1055,8 @@
       \strng{authornamehash}{61cfab2004dce53675c07da633f01ad1}
       \strng{authorfullhash}{61cfab2004dce53675c07da633f01ad1}
       \strng{authorfullhashraw}{61cfab2004dce53675c07da633f01ad1}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Journal of the American statistical Association}
@@ -1091,8 +1091,8 @@
       \strng{authornamehash}{438a4728b573646f5f489f4e938936a3}
       \strng{authorfullhash}{438a4728b573646f5f489f4e938936a3}
       \strng{authorfullhashraw}{438a4728b573646f5f489f4e938936a3}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Zeitschrift für Wahrscheinlichkeitstheorie und verwandte Gebiete}
@@ -1122,8 +1122,8 @@
       \strng{authornamehash}{da886e16f39671df2e1cc9208589b67d}
       \strng{authorfullhash}{da886e16f39671df2e1cc9208589b67d}
       \strng{authorfullhashraw}{da886e16f39671df2e1cc9208589b67d}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{The review of financial studies}
@@ -1165,8 +1165,8 @@
       \strng{authornamehash}{f08b707e553aa2fcaf04c65fd6bfc22f}
       \strng{authorfullhash}{f08b707e553aa2fcaf04c65fd6bfc22f}
       \strng{authorfullhashraw}{f08b707e553aa2fcaf04c65fd6bfc22f}
-      \field{sortinit}{4}
-      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Econometrica}
@@ -1201,8 +1201,8 @@
       \strng{authornamehash}{fd3c1907a71e4c3ed7ed6643e849924b}
       \strng{authorfullhash}{fd3c1907a71e4c3ed7ed6643e849924b}
       \strng{authorfullhashraw}{fd3c1907a71e4c3ed7ed6643e849924b}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{title}{Numerical solution of stochastic differential equations with jumps in finance}
@@ -1228,8 +1228,8 @@
       \strng{authornamehash}{060db303139b50d8bdd6f970fa749df8}
       \strng{authorfullhash}{060db303139b50d8bdd6f970fa749df8}
       \strng{authorfullhashraw}{060db303139b50d8bdd6f970fa749df8}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Theory of Probability \& Its Applications}
@@ -1271,8 +1271,8 @@
       \strng{authornamehash}{0a4c0219638032fc80ff28dd29b5816a}
       \strng{authorfullhash}{cad0e59640929d3dd6b8f0247e7ee62a}
       \strng{authorfullhashraw}{cad0e59640929d3dd6b8f0247e7ee62a}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Wilmott}
@@ -1301,8 +1301,8 @@
       \strng{authornamehash}{017eaf8ce97e6aa98659ab4b645e257e}
       \strng{authorfullhash}{017eaf8ce97e6aa98659ab4b645e257e}
       \strng{authorfullhashraw}{017eaf8ce97e6aa98659ab4b645e257e}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Biometrika}
