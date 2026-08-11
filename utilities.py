@@ -330,6 +330,7 @@ def plot_learning_curve(df_csv:str):
 def plot_bin_dist(trues: np.ndarray | list,
                    preds: np.ndarray | list,
                    bins_values: np.ndarray | list,
+                   moments: np.ndarray | list[Tuple[float, float]] | None = None,
                    X_T: List[float] | None = None,
                    v_T: List[float] | None = None,
                    theta: np.ndarray | list | None = None,
@@ -387,7 +388,14 @@ def plot_bin_dist(trues: np.ndarray | list,
         ax.bar(bin_centers_row, pred, width=width, alpha=0.9, label="Generated distribution", zorder=2)
         #ax.bar(bin_centers_row, pred, width=width, facecolor = 'none', edgecolor="tab:orange", linewidth=2, label="Generated distribution", zorder=2)
         
-
+        # Overlay theoretical normal distribution if mean and std are provided
+        if moments is not None:
+            dist_moments = moments[i]
+            # Scale the PDF to match the probability mass (PDF * bin_width = probability per bin)
+            normal_pdf = norm.pdf(bin_centers_row, loc=dist_moments[0], scale=dist_moments[1]) * width
+            ax.plot(bin_centers_row, normal_pdf, color='black', linewidth=2,
+                    linestyle='--', label=f"N({round(dist_moments[0], 3)}, {round(dist_moments[1], 3)})")
+            
         if smooth_curves is not None:
             x_c, y_c = smooth_curves[i]
             ax.plot(x_c, y_c, color='black', linewidth=2,
